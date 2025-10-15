@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+:root {
+  /* TheDir Design System Colors */
+  --primary: #ff5a5f;
+  --secondary: #666666;
+  --dark: #000000;
+  --white: #ffffff;
+  
+  /* System colors */
+  --success: #67981a;
+  --info: #3f93f3;
+  --warning: #ffba00;
+  --danger: #ff0000;
+  --light: #f0f0f0;
+  
+  /* Gray scale */
+  --gray: #999999;
+  --gray-01: #e8edef;
+  --gray-02: #f5f5f5;
+  --gray-03: #eeeeee;
+  --gray-04: #eef1f2;
+  --gray-05: #ecf0f1;
+  --gray-06: #f0f2f3;
+  --darker-light: #cccccc;
+  --lighter-dark: #262626;
+  
+  /* Complementary colors */
+  --blue: #01b3ed;
+  --cyan: #0583c5;
+  --teal: #67981a;
+  --orange: #ffba00;
+  --green: #74b100;
+  --dark-red: #cc0000;
+  
+  /* Typography */
+  --font-family-sans-serif: "Inter", "Work Sans", sans-serif;
+  
+  /* Spacing system */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  
+  /* Default theme */
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+/* Global styles */
+body {
+  font-family: var(--font-family-sans-serif);
+  color: var(--dark);
+  line-height: 1.6;
+}
+
+/* Utility classes for design system */
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #e54b50;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: 4px;
+  padding: 10px 22px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+
+/* Loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
