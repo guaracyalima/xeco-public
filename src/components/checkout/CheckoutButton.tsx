@@ -8,8 +8,16 @@ import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { CheckoutUserData } from '@/types/order'
 import { useNavigationAnalytics } from '@/hooks/useAnalytics'
+import { createAffiliateSale } from '@/lib/affiliate-sales-service'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { CartDiscount } from '@/types'
 
-export function CheckoutButton() {
+interface CheckoutButtonProps {
+  discount?: CartDiscount | null;
+}
+
+export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
   const { cart, getCartItemsCount, getCartTotal, startCheckout } = useCart()
   const { firebaseUser } = useAuth()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -19,7 +27,9 @@ export function CheckoutButton() {
   const { trackButtonClick } = useNavigationAnalytics()
 
   const itemCount = getCartItemsCount()
-  const totalAmount = getCartTotal()
+  const subtotalAmount = getCartTotal()
+  const discountAmount = discount?.discountAmount || 0
+  const totalAmount = discount?.finalTotal || subtotalAmount
 
   const handleCheckoutClick = () => {
     setError(null)
@@ -53,6 +63,22 @@ export function CheckoutButton() {
     setError(null)
 
     try {
+      // Criar AffiliateSale se for cupom de afiliado
+      if (discount?.affiliate) {
+        try {
+          await createAffiliateSale(
+            discount.affiliate,
+            '', // orderId - será atualizado após criação do pedido no Asaas
+            firebaseUser?.email || '',
+            subtotalAmount,
+            discount.coupon.code
+          );
+        } catch (saleError) {
+          console.error('Erro ao criar registro de venda do afiliado:', saleError)
+          // Não bloquear o checkout por erro no tracking
+        }
+      }
+
       const checkoutUrl = await startCheckout(userData)
       
       setSuccess('Redirecionando para pagamento...')
@@ -101,9 +127,36 @@ export function CheckoutButton() {
               {itemCount} {itemCount === 1 ? 'item' : 'itens'} no carrinho
             </span>
             <span className="text-lg font-semibold text-gray-900">
-              R$ {totalAmount.toFixed(2)}
+              R$ {subtotalAmount.toFixed(2)}
             </span>
           </div>
+
+          {/* Mostrar desconto se houver */}
+          {discount && (
+            <div className="flex items-center justify-between mb-2 text-sm">
+              <span className="text-green-600">
+                Desconto ({discount.coupon.code})
+                {discount.affiliate && (
+                  <span className="text-xs text-gray-500 block">Cupom de afiliado</span>
+                )}
+              </span>
+              <span className="text-green-600 font-medium">
+                -R$ {discount.discountAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          {/* Total final */}
+          {discount && (
+            <div className="flex items-center justify-between mb-2 pt-2 border-t border-gray-300">
+              <span className="text-base font-semibold text-gray-900">
+                Total
+              </span>
+              <span className="text-lg font-bold text-gray-900">
+                R$ {totalAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
           
           {/* Lista de itens resumida */}
           <div className="space-y-1">

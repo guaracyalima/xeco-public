@@ -43,6 +43,18 @@ export interface CompanyCategory {
   updatedAt: Date
 }
 
+export interface CompanyUrl {
+  id: string
+  companyId: string
+  slug: string
+  city: string
+  state: string
+  fullUrl: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface Product {
   id: string
   name: string
@@ -75,6 +87,7 @@ export interface AffiliateInvitation {
   storeId: string
   storeName: string
   storeOwnerName: string
+  commissionRate: number // Taxa de comissão do afiliado (ex: 5 para 5%)
   createdAt?: Date
 }
 
@@ -88,8 +101,26 @@ export interface Affiliated {
   email: string
   whatsapp: string
   name: string
+  commissionRate: number // Taxa de comissão do afiliado (ex: 5 para 5%)
   createdAt: Date
   updatedAt: Date
+}
+
+export interface AffiliateSale {
+  id?: string
+  affiliateId: string
+  storeId: string
+  orderId: string
+  customerEmail: string
+  orderValue: number
+  commissionValue: number
+  commissionRate: number
+  couponUsed?: string
+  clickId?: string
+  saleDate: Date
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED'
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED'
+  createdAt: Date
 }
 
 export interface AffiliateConfirmRequest {

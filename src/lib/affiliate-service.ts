@@ -99,6 +99,7 @@ export const getInvitationByTokenAndEmail = async (
       storeId: data.storeId,
       storeName: data.storeName,
       storeOwnerName: data.storeOwnerName,
+      commissionRate: data.commissionRate || 5, // Default 5% if not specified
       createdAt: data.createdAt?.toDate()
     } as AffiliateInvitation
   } catch (error) {
@@ -247,6 +248,7 @@ export const confirmAffiliateInvitation = async (
       email: email,
       whatsapp: '', // To be filled by user later
       name: email.split('@')[0], // Temporary name
+      commissionRate: invitation.commissionRate, // Save commission rate from invitation
       createdAt: new Date(),
       updatedAt: new Date()
     }

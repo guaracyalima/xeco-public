@@ -112,7 +112,7 @@ export function CartSummary() {
 
       {/* Action Button */}
       <div className="px-6 py-4 border-t border-gray-200">
-        <CheckoutButton />
+        <CheckoutButton discount={discount} />
       </div>
 
       {/* Security Info */}
