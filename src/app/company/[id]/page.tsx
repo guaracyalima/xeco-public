@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { Product } from '@/types'
 import { FavoriteCompanyButton } from '@/components/favorites/FavoriteCompanyButton'
 import { CompanyProductCard } from '@/components/company/CompanyProductCard'
+import { useCompanyAnalytics } from '@/hooks/useAnalytics'
 
 interface Company {
   id: string
@@ -43,6 +44,7 @@ interface Company {
 export default function CompanyDetailsPage() {
   const params = useParams()
   const companyId = params.id as string
+  const { trackCompanyView, trackCompanyShare, trackCompanyContact } = useCompanyAnalytics()
   
   const [company, setCompany] = useState<Company | null>(null)
   const [products, setProducts] = useState<Product[]>([])
@@ -73,6 +75,9 @@ export default function CompanyDetailsPage() {
         } as Company
 
         setCompany(companyData)
+
+        // Track company view
+        trackCompanyView(companyData, 'profile')
 
         // Buscar nome da categoria se existir
         if (companyData.category) {
@@ -133,11 +138,15 @@ export default function CompanyDetailsPage() {
           text: `Confira a empresa ${company.name} no Xeco!`,
           url: window.location.href,
         })
+        // Track successful native share
+        trackCompanyShare(company, 'native')
       } catch (err) {
         console.log('Erro ao compartilhar:', err)
       }
-    } else {
+    } else if (company) {
       navigator.clipboard.writeText(window.location.href)
+      // Track copy share
+      trackCompanyShare(company, 'copy')
       alert('Link copiado para a área de transferência!')
     }
   }
@@ -305,6 +314,7 @@ export default function CompanyDetailsPage() {
                         <a 
                           href={`tel:${company.phone}`}
                           className="text-coral-600 hover:text-coral-700 font-medium"
+                          onClick={() => trackCompanyContact(company, 'phone')}
                         >
                           {company.phone}
                         </a>
@@ -317,6 +327,7 @@ export default function CompanyDetailsPage() {
                         <a 
                           href={`mailto:${company.email}`}
                           className="text-coral-600 hover:text-coral-700 font-medium"
+                          onClick={() => trackCompanyContact(company, 'email')}
                         >
                           {company.email}
                         </a>
@@ -390,6 +401,7 @@ export default function CompanyDetailsPage() {
                         <a 
                           href={`tel:${company.phone}`}
                           className="text-coral-600 hover:text-coral-700 font-medium"
+                          onClick={() => trackCompanyContact(company, 'phone')}
                         >
                           {company.phone}
                         </a>
@@ -402,6 +414,7 @@ export default function CompanyDetailsPage() {
                         <a 
                           href={`mailto:${company.email}`}
                           className="text-coral-600 hover:text-coral-700 font-medium"
+                          onClick={() => trackCompanyContact(company, 'email')}
                         >
                           {company.email}
                         </a>

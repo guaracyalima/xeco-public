@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { AnalyticsProvider } from "@/contexts/AnalyticsContext";
+import { AnalyticsConsentBanner } from "@/components/analytics/AnalyticsConsentBanner";
 
 const workSans = Work_Sans({
   variable: "--font-work-sans",
@@ -25,11 +27,14 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${workSans.variable} font-sans antialiased`}>
         <AuthProvider>
-          <FavoritesProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
-          </FavoritesProvider>
+          <AnalyticsProvider>
+            <FavoritesProvider>
+              <CartProvider>
+                {children}
+                <AnalyticsConsentBanner />
+              </CartProvider>
+            </FavoritesProvider>
+          </AnalyticsProvider>
         </AuthProvider>
       </body>
     </html>

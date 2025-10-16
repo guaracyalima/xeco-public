@@ -5,6 +5,7 @@ import { Search, MapPin } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useSearchAnalytics } from '@/hooks/useAnalytics'
 
 interface HeroSectionProps {
   onSearch?: (query: string, location: string) => void
@@ -14,8 +15,14 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
   const [query, setQuery] = useState('')
   const [location, setLocation] = useState('')
   const router = useRouter()
+  const { trackSearch } = useSearchAnalytics()
 
   const handleSearch = () => {
+    if (query || location) {
+      // Track the search
+      trackSearch(query || 'empty', 0, { location, source: 'hero_section' })
+    }
+
     if (onSearch) {
       onSearch(query, location)
     } else {

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Heart } from 'lucide-react'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useAuth } from '@/context/AuthContext'
+import { useFavoritesAnalytics } from '@/hooks/useAnalytics'
 import { cn } from '@/lib/utils'
 
 interface FavoriteCompanyButtonProps {
@@ -24,6 +25,7 @@ export function FavoriteCompanyButton({
   const [isLoading, setIsLoading] = useState(false)
   const { addToFavorites, removeFromFavorites, isFavorite, requireAuth } = useFavorites()
   const { user } = useAuth()
+  const { trackAddToFavorites, trackRemoveFromFavorites } = useFavoritesAnalytics()
   
   const isAlreadyFavorite = isFavorite(companyId)
 
@@ -54,8 +56,10 @@ export function FavoriteCompanyButton({
 
       if (isAlreadyFavorite) {
         await removeFromFavorites(companyId)
+        trackRemoveFromFavorites(companyId, companyName, 'company')
       } else {
         await addToFavorites(companyId, companyName)
+        trackAddToFavorites(companyId, companyName, 'company')
       }
     } catch (error) {
       console.error('Erro ao gerenciar favoritos:', error)
@@ -67,6 +71,7 @@ export function FavoriteCompanyButton({
   const handleAddToFavorites = async () => {
     try {
       await addToFavorites(companyId, companyName)
+      trackAddToFavorites(companyId, companyName, 'company')
     } catch (error) {
       console.error('Erro ao adicionar aos favoritos:', error)
     }

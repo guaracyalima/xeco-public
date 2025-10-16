@@ -1,10 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { useCart } from '@/contexts/CartContext'
 import { MessageCircle, Package } from 'lucide-react'
+import { CheckoutButton } from '@/components/checkout/CheckoutButton'
+import { CouponField } from '@/components/cart/CouponField'
+import { CartDiscount } from '@/types'
 
 export function CartSummary() {
   const { cart } = useCart()
+  const [discount, setDiscount] = useState<CartDiscount | null>(null)
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -13,30 +18,7 @@ export function CartSummary() {
     }).format(price)
   }
 
-  const handleProceedToWhatsApp = () => {
-    if (cart.items.length === 0) return
-
-    // Create WhatsApp message with cart items
-    let message = `🛒 *Pedido via Xeco*\n\n`
-    message += `📍 *Empresa:* ${cart.companyName}\n`
-    message += `📦 *Itens do pedido:*\n\n`
-
-    cart.items.forEach((item, index) => {
-      message += `${index + 1}. *${item.product.name}*\n`
-      message += `   Quantidade: ${item.quantity}\n`
-      message += `   Preço unitário: ${formatPrice(item.product.salePrice)}\n`
-      message += `   Subtotal: ${formatPrice(item.total)}\n\n`
-    })
-
-    message += `💰 *Total Geral: ${formatPrice(cart.totalPrice)}*\n\n`
-    message += `📱 Mensagem enviada através da plataforma Xeco`
-
-    // TODO: Get actual WhatsApp number from company data
-    const whatsappNumber = '5511999999999' // This should come from company data
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
-    
-    window.open(whatsappUrl, '_blank')
-  }
+  const finalTotal = discount ? discount.finalTotal : cart.totalPrice
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-4">
@@ -52,6 +34,28 @@ export function CartSummary() {
           <span className="text-gray-600">Itens ({cart.totalItems})</span>
           <span className="font-medium text-gray-900">{formatPrice(cart.totalPrice)}</span>
         </div>
+
+        {/* Coupon Field */}
+        <CouponField 
+          companyId={cart.companyId || ''}
+          cartTotal={cart.totalPrice}
+          onCouponApplied={setDiscount}
+          currentDiscount={discount}
+        />
+
+        {/* Discount Display */}
+        {discount && (
+          <div className="border-t border-gray-200 pt-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="text-gray-900">{formatPrice(cart.totalPrice)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-green-600">Desconto ({discount.coupon.code})</span>
+              <span className="text-green-600 font-medium">-{formatPrice(discount.discountAmount)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Company Info */}
         <div className="bg-gray-50 rounded-lg p-4">
@@ -92,9 +96,14 @@ export function CartSummary() {
           <div className="flex items-center justify-between">
             <span className="text-lg font-semibold text-gray-900">Total</span>
             <span className="text-lg font-bold text-coral-500">
-              {formatPrice(cart.totalPrice)}
+              {formatPrice(finalTotal)}
             </span>
           </div>
+          {discount && (
+            <p className="text-xs text-green-600 mt-1">
+              Você economizou {formatPrice(discount.discountAmount)}!
+            </p>
+          )}
           <p className="text-xs text-gray-500 mt-1">
             Preço final a ser negociado com a empresa
           </p>
@@ -103,17 +112,7 @@ export function CartSummary() {
 
       {/* Action Button */}
       <div className="px-6 py-4 border-t border-gray-200">
-        <button
-          onClick={handleProceedToWhatsApp}
-          disabled={cart.items.length === 0}
-          className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
-        >
-          <MessageCircle className="h-5 w-5" />
-          <span>Finalizar via WhatsApp</span>
-        </button>
-        <p className="text-xs text-gray-500 text-center mt-2">
-          Você será redirecionado para o WhatsApp da empresa
-        </p>
+        <CheckoutButton />
       </div>
 
       {/* Security Info */}

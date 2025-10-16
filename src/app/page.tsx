@@ -19,6 +19,8 @@ export default function Home() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // REMOVIDO: trackPageView manual - o AnalyticsService já faz automaticamente
 
   useEffect(() => {
     const loadData = async () => {

@@ -3,6 +3,7 @@
 import { Product } from '@/types'
 import { MapPin, Package } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useProductAnalytics } from '@/hooks/useAnalytics'
 
 interface ProductCardProps {
   product: Product
@@ -11,8 +12,15 @@ interface ProductCardProps {
 
 export function ProductCard({ product, showBadge }: ProductCardProps) {
   const router = useRouter()
+  const { trackProductView, trackProductClick } = useProductAnalytics()
 
   const handleClick = () => {
+    trackProductClick(product.id, product.name, {
+      price: product.salePrice,
+      companyId: product.companyOwner,
+      location: 'product_card',
+      source: 'featured_products'
+    })
     router.push(`/produto/${product.id}`)
   }
 

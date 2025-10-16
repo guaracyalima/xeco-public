@@ -4,6 +4,7 @@ import { Product } from '@/types'
 import { ProductCard } from './ProductCard'
 import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useNavigationAnalytics } from '@/hooks/useAnalytics'
 
 interface FeaturedProductsSectionProps {
   products: Product[]
@@ -15,8 +16,10 @@ export function FeaturedProductsSection({
   title = "Super ofertas🔥" 
 }: FeaturedProductsSectionProps) {
   const router = useRouter()
+  const { trackButtonClick } = useNavigationAnalytics()
 
   const handleViewAll = () => {
+    trackButtonClick('view_all_featured_products', `featured_products_section_${title}`)
     router.push('/products')
   }
 

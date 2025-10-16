@@ -2,6 +2,7 @@ export interface User {
   id: string
   name: string
   email: string
+  requiresPasswordChange?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -57,6 +58,90 @@ export interface Product {
   active: string  // Campo correto: "SIM" ou "NÃO"
   createdAt: Date
   updatedAt: Date
+}
+
+// Affiliate types
+export interface AffiliateInvitation {
+  id: string
+  email: string
+  emailSentId: string
+  expiresAt: string // ISO string date
+  inviteToken: string
+  inviteUrl: string
+  message: string
+  recipientName: string
+  resentCount: number
+  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED'
+  storeId: string
+  storeName: string
+  storeOwnerName: string
+  createdAt?: Date
+}
+
+export interface Affiliated {
+  id: string
+  user: string // user ID
+  walletId: string
+  invite_code: string // unique affiliate code
+  active: 'SIM' | 'NAO'
+  company_relationed: string // store ID
+  email: string
+  whatsapp: string
+  name: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface AffiliateConfirmRequest {
+  inviteToken: string
+  email: string
+}
+
+export interface AffiliateConfirmResponse {
+  success: boolean
+  message: string
+  data?: {
+    affiliateId: string
+    storeName: string
+    inviteCode: string
+    isNewUser: boolean
+    requiresPasswordChange: boolean
+  }
+}
+
+// Coupon types
+export interface Coupon {
+  id: string
+  code: string
+  type: 'COMPANY' | 'AFFILIATE'
+  companyId: string
+  affiliateId?: string // Only for AFFILIATE type
+  discountType: 'PERCENTAGE' | 'FIXED'
+  discountPercentage?: number // For percentage discount (e.g., 10 for 10%)
+  discountValue?: number // For fixed discount in BRL
+  active: boolean
+  expiresAt?: Date
+  usageLimit?: number
+  usedCount: number
+  minimumAmount?: number // Minimum cart value to apply
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CouponValidationResult {
+  valid: boolean
+  message: string
+  coupon?: Coupon
+  affiliate?: Affiliated
+  discountAmount?: number
+}
+
+export interface CartDiscount {
+  coupon: Coupon
+  affiliate?: Affiliated
+  discountAmount: number
+  originalTotal: number
+  finalTotal: number
 }
 
 // Order and OrderItem entities

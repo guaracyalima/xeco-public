@@ -1,0 +1,396 @@
+{
+  "name": "create checkout - services",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-payment",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 192],
+      "id": "6c8bc01c-37f9-4ca5-a85f-c92781f1ce83",
+      "webhookId": "webhook-create-payment"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const body = item.json.body;\n  if (!body.companyId || typeof body.companyId !== 'string') throw new Error('companyId é obrigatório e deve ser uma string');\n  if (!body.amount || typeof body.amount !== 'number' || body.amount <= 0) throw new Error('amount deve ser um número maior que zero');\n  if (!body.packageName || typeof body.packageName !== 'string' || body.packageName.length < 3) throw new Error('packageName é obrigatório e deve ter pelo menos 3 caracteres');\n  if (!body.bookingId || typeof body.bookingId !== 'string') throw new Error('orderId é obrigatório e deve ser uma string');\n  if (!body.productId || typeof body.productId !== 'string') throw new Error('productId é obrigatório e deve ser uma string');\n  if (!body.items || !Array.isArray(body.items) || body.items.length === 0) throw new Error('items é obrigatório e deve ser um array com pelo menos 1 item');\n  item.json.validated = true;\n}\nreturn $input.all();"
+      },
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 192],
+      "id": "ee32fa5a-c30b-495c-8f7b-90ddbbfb6783"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "xeco-334f5",
+        "database": "(default)",
+                "collection": "orders",
+        "documentId": "={{ $node['Webhook'].json.body.companyId }}"
+      },
+      "name": "Check Company",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [448, 192],
+      "id": "ed419a6a-b5c8-4ec9-97be-f62371af66f7",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node['Check Company'].json && $node['Check Company'].json.paymentEnabled === true && $node['Check Company'].json.asaasWalletId != null }}",
+              "value2": "={{ true }}"
+            }
+          ]
+        }
+      },
+      "name": "Check Company Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [672, 192],
+      "id": "ea098569-36f5-4364-b8dc-01497d83539f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const amount = $('Webhook').first().json.body.amount;\n\nconst platformCommission = Math.round(amount * 0.05 * 100) / 100;\nconst ownerAmount = Math.round((amount - platformCommission) * 100) / 100;\nlet productName = $('Webhook').first().json.body.packageName;\n\nlet walletId = $input.first().json.asaasWalletId;\nlet request = {\n  data: {\n  \"billingTypes\": [\n    \"CREDIT_CARD\",\n    \"PIX\"\n  ],\n  \"minutesToExpire\": 15,\n  \"chargeTypes\": [\n    \"DETACHED\"\n  ],\n  \"callback\": {\n    \"successUrl\": \"https://xeco.com.br/payment/success\",\n    \"cancelUrl\": \"https://xeco.com.br/payment/cancel\",\n    \"expiredUrl\": \"https://xeco.com.br/payment/expired\"\n  },\n  \"splits\": [\n    {\n      \"walletId\": walletId,\n      \"percentageValue\": 95\n    }\n  ],\n  \"items\": [\n    {\n      \"imageBase64\": $('Validate Input').first().json.body.items[0].imageBase64,\n      \"name\": productName,\n      \"quantity\": 1,\n      \"value\": amount,\n      \"externalReference\": $('Webhook').first().json.body.orderId\n    }\n  ]\n}\n}\n\nreturn request;"
+      },
+      "name": "Calculate Split",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 96],
+      "id": "6a23f033-95b0-4d3f-8af3-a3c9843f1541"
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api-sandbox.asaas.com/v3/checkouts",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{ $json.data }}",
+        "headerParametersJson": "{}",
+        "queryParametersJson": "{}"
+      },
+      "name": "Create Checkout",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1120, 96],
+      "id": "e7e033ca-cfb3-4c29-86bf-60abe68069dc",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CF9bQs7EXHuYlONH",
+          "name": "Asaas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Check Checkout Creation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1344, 96],
+      "id": "e630a972-fe3b-4736-b0d2-f1c4fd0aac78"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"orderId\": \"{{ $node['Webhook'].json.body.orderId }}\",\n  \"checkoutSession\": \"{{ $node['Create Checkout'].json.id }}\",\n  \"paymentStatus\": \"PENDING\",\n  \"paymentAmount\": {{ $node['Webhook'].json.body.amount }},\n  \"platformCommission\": {{ $json.platformCommission }},\n  \"ownerAmount\": {{ $json.ownerAmount }},\n  \"userId\": \"{{ $node['Webhook'].json.body.userId }}\",\n  \"date\": \"{{ $node['Webhook'].json.body.date }}\",\n  \"checkoutUrl\": \"{{ $('Create Checkout').item.json.link }}\"\n}",
+        "options": {}
+      },
+              "name": "Set Order Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1792, 0],
+      "id": "688071cb-fe78-4b89-b368-e0282cc08836"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "upsert",
+        "projectId": "xeco-334f5",
+        "database": "(default)",
+        "collection": "orders",
+        "updateKey": "orderId",
+        "columns": "=checkoutSession, paymentStatus, paymentAmount, platformCommission, ownerAmount, checkoutUrl"
+      },
+      "name": "Save Order",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [2016, 0],
+      "id": "4a51c140-3f6f-4d7c-8671-c6e542c65637",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "= { \"checkoutUrl\": \"{{ $json.checkoutUrl }}\", \"checkoutId\": \"{{ $node['Create Checkout'].json.id }}\", \"message\": \"Checkout criado com sucesso\" }",
+        "options": {}
+      },
+      "name": "Return Checkout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2240, 0],
+      "id": "8582ff9c-3607-4541-b94b-b58331ff8fee"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2464, 0],
+      "id": "225e012c-b888-46f8-bde5-47fd90f1d0a0"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "= { 'error': 'Empresa não encontrada ou não configurada para pagamentos' }",
+        "options": {}
+      },
+      "name": "Handle Company Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [896, 288],
+      "id": "783e1c26-79ce-4790-a12f-606f724f9b16"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "= { 'error': 'Erro ao criar checkout: {{ $node['Create Checkout'].json.message || 'Desconhecido' }}' }",
+        "options": {}
+      },
+      "name": "Handle Checkout Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1568, 192],
+      "id": "16747327-5dc0-41a9-b27e-0b9d6b49d382"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Company Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 288],
+      "id": "7131671d-92f7-4689-8dde-9cdf19ae848c"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Checkout Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1792, 192],
+      "id": "5a85f24e-efdf-4bc5-82f8-2cd0913bc2ab"
+    },
+    {
+      "parameters": {
+        "jsCode": "const amount = $('Webhook').first().json.body.amount;\n\nconst platformCommission = Math.round(amount * 0.05 * 100) / 100;\nconst ownerAmount = Math.round((amount - platformCommission) * 100) / 100;\nreturn [{ json: { platformCommission, ownerAmount } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1568, 0],
+      "id": "af54b8f7-fbaa-4579-8b3c-428a4bc8dc8b",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Check House",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check House": {
+      "main": [
+        [
+          {
+            "node": "Check House Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check House Status": {
+      "main": [
+        [
+          {
+            "node": "Calculate Split",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle House Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Split": {
+      "main": [
+        [
+          {
+            "node": "Create Checkout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Checkout": {
+      "main": [
+        [
+          {
+            "node": "Check Checkout Creation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Checkout Creation": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Checkout Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Save Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Booking": {
+      "main": [
+        [
+          {
+            "node": "Return Checkout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Checkout": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Company Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Company Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Checkout Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Checkout Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Set Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ec61c3d8-e81c-415f-afbe-9ce41c18fbe1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "32d5e8c09ac783b1ea07170660cf557387a2c007aa2c716760dec538774a4bd1"
+  },
+  "id": "udODGHcd1HjxyCSk",
+  "tags": []
+}

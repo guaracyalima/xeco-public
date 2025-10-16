@@ -2,6 +2,12 @@
 
 import { createContext, useContext, useReducer, ReactNode, useEffect } from 'react'
 import { Product, Cart, CartItem } from '@/types'
+import { CheckoutUserData } from '@/types/order'
+import { OrderService } from '@/services/orderService'
+import { CheckoutService } from '@/services/checkoutService'
+import { useAuth } from '@/context/AuthContext'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 interface CartContextType {
   cart: Cart
@@ -11,6 +17,7 @@ interface CartContextType {
   clearCart: () => void
   getCartItemsCount: () => number
   getCartTotal: () => number
+  startCheckout: (userData: CheckoutUserData) => Promise<string> // Retorna URL do checkout
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -184,8 +191,9 @@ interface CartProviderProps {
   children: ReactNode
 }
 
-export function CartProvider({ children }: CartProviderProps) {
+export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialCart)
+  const { firebaseUser } = useAuth() // Usar firebaseUser que tem uid e displayName
 
   // Carregar carrinho do localStorage quando o componente é montado
   useEffect(() => {
@@ -232,6 +240,76 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const getCartTotal = () => cart.totalPrice
 
+  // Função para iniciar processo de checkout
+  const startCheckout = async (userData: CheckoutUserData): Promise<string> => {
+    
+    if (!firebaseUser) {
+      throw new Error('Usuário não autenticado')
+    }
+
+    if (cart.items.length === 0) {
+      throw new Error('Carrinho vazio')
+    }
+
+    // Valida se todos os produtos são da mesma empresa
+    const companies = [...new Set(cart.items.map(item => item.product.companyOwner))]
+    if (companies.length > 1) {
+      throw new Error('Produtos de empresas diferentes no carrinho')
+    }
+
+    const companyId = companies[0]
+
+    try {
+      // Busca dados da empresa
+      const companyDoc = await getDoc(doc(db, 'companies', companyId))
+      if (!companyDoc.exists()) {
+        throw new Error('Empresa não encontrada')
+      }
+      
+      const companyData = { id: companyDoc.id, ...companyDoc.data() }
+
+      // Busca dados completos do usuário
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+      const userProfileData = userDoc.exists() ? userDoc.data() : {}
+
+      // Cria a order
+      const order = await OrderService.createOrder(
+        cart.items,
+        firebaseUser.uid,
+        firebaseUser.email || '',
+        userProfileData.name || firebaseUser.displayName || '',
+        userProfileData.phone || '',
+        companyId,
+        (companyData as any).owner || ''
+      )
+
+      // Prepara dados do usuário para o checkout
+      const checkoutUserData = {
+        id: firebaseUser.uid,
+        name: userProfileData.name || firebaseUser.displayName || '',
+        email: firebaseUser.email || '',
+        phone: userProfileData.phone || '',
+        cpf: userData.cpf
+      }
+
+      // Chama serviço de checkout
+      const checkoutResponse = await CheckoutService.createCheckout(
+        order,
+        companyData,
+        checkoutUserData
+      )
+
+      // Limpa o carrinho após sucesso
+      clearCart()
+
+      return checkoutResponse.checkoutUrl
+
+    } catch (error) {
+      console.error('❌ Erro no checkout:', error)
+      throw error
+    }
+  }
+
   return (
     <CartContext.Provider
       value={{
@@ -241,7 +319,8 @@ export function CartProvider({ children }: CartProviderProps) {
         updateQuantity,
         clearCart,
         getCartItemsCount,
-        getCartTotal
+        getCartTotal,
+        startCheckout
       }}
     >
       {children}

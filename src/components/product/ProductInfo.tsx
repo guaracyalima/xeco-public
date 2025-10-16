@@ -7,6 +7,7 @@ import { useCart } from '@/contexts/CartContext'
 import { CompanyConflictModal } from '@/components/cart/CompanyConflictModal'
 import { SuccessToast } from '@/components/ui/SuccessToast'
 import { FavoriteCompanyButton } from '@/components/favorites/FavoriteCompanyButton'
+import { useProductAnalytics, useCompanyAnalytics } from '@/hooks/useAnalytics'
 import Link from 'next/link'
 
 interface ProductInfoProps {
@@ -21,6 +22,15 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const [pendingQuantity, setPendingQuantity] = useState(1)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const { cart, addToCart, clearCart } = useCart()
+  const { trackAddToCart, trackProductView, trackProductShare } = useProductAnalytics()
+  const { trackCompanyContact } = useCompanyAnalytics()
+
+  useEffect(() => {
+    trackProductView(product, {
+      location: 'product_page',
+      source: 'direct_link'
+    })
+  }, [product, trackProductView])
 
   const handleAddToCart = async () => {
     console.log('🛒 Tentando adicionar ao carrinho:', { produto: product.name, quantidade: quantity })
@@ -35,6 +45,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
     } else {
       console.log('✅ Produto adicionado ao carrinho com sucesso!')
       console.log('📊 Estado do carrinho após adição:', cart)
+      
+      // Track successful add to cart
+      trackAddToCart(product, quantity)
+      
       // Success - show success toast
       setShowSuccessToast(true)
       // Reset quantity to 1 after adding
@@ -46,6 +60,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
     if (pendingProduct) {
       clearCart()
       addToCart(pendingProduct, pendingQuantity)
+      
+      // Track successful add to cart after clearing
+      trackAddToCart(pendingProduct, pendingQuantity)
+      
       setShowConflictModal(false)
       setPendingProduct(null)
       setPendingQuantity(1)
@@ -72,6 +90,9 @@ export function ProductInfo({ product }: ProductInfoProps) {
   }, [showSuccessToast])
 
   const handleWhatsAppContact = () => {
+    // Track WhatsApp contact
+    trackCompanyContact({ id: product.companyOwner, name: product.companyOwnerName }, 'whatsapp')
+    
     // Buscar empresa para obter WhatsApp
     const message = `Olá! Tenho interesse no produto: ${product.name}`
     const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`
@@ -86,12 +107,16 @@ export function ProductInfo({ product }: ProductInfoProps) {
           text: product.description || 'Confira este produto no Xeco!',
           url: window.location.href,
         })
+        // Track successful native share
+        trackProductShare(product, 'native')
       } catch (err) {
         console.log('Erro ao compartilhar:', err)
       }
     } else {
       // Fallback: copiar URL
       navigator.clipboard.writeText(window.location.href)
+      // Track copy share
+      trackProductShare(product, 'copy')
       alert('Link copiado para a área de transferência!')
     }
   }

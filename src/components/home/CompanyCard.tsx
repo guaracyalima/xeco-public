@@ -3,6 +3,7 @@
 import { Company } from '@/types'
 import { MapPin, Phone, Star } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useCompanyAnalytics } from '@/hooks/useAnalytics'
 
 interface CompanyCardProps {
   company: Company
@@ -11,6 +12,7 @@ interface CompanyCardProps {
 
 export function CompanyCard({ company, showBadge }: CompanyCardProps) {
   const router = useRouter()
+  const { trackCompanyContact } = useCompanyAnalytics()
 
   const handleClick = () => {
     router.push(`/company/${company.id}`)
@@ -18,11 +20,13 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
 
   const handlePhoneClick = (e: React.MouseEvent) => {
     e.stopPropagation()
+    trackCompanyContact(company, 'phone')
     window.open(`tel:${company.phone}`, '_self')
   }
 
   const handleWhatsAppClick = (e: React.MouseEvent) => {
     e.stopPropagation()
+    trackCompanyContact(company, 'whatsapp')
     window.open(`https://wa.me/${company.whatsapp.replace(/\D/g, '')}`, '_blank')
   }
 

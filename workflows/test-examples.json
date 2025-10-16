@@ -1,0 +1,113 @@
+{
+  "description": "Exemplo de dados para testar o workflow de checkout",
+  "endpoint": "https://primary-production-9acc.up.railway.app/webhook-test/create-payment",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "examples": {
+    "valid_request": {
+      "houseId": "eHtTyVWKABnJyiGxS1d1",
+      "amount": 25.50,
+      "packageName": "Consulta de Tarot Completa",
+      "userId": "Gcc28FPSOaU8qeT338Nl7rWorln2",
+      "bookingId": "uVj15JvqzRgvkGwGW1PB",
+      "serviceId": "A6lpMO7QfvjIrXCwqd1i",
+      "items": [
+        {
+          "name": "Tarot Completo",
+          "price": 25.50,
+          "quantity": 1,
+          "imageBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."
+        }
+      ]
+    },
+    "multiple_items": {
+      "houseId": "eHtTyVWKABnJyiGxS1d1",
+      "amount": 45.00,
+      "packageName": "Pacote Espiritual Completo",
+      "userId": "user123",
+      "bookingId": "booking456",
+      "serviceId": "MULTIPLE_PRODUCTS",
+      "items": [
+        {
+          "name": "Tarot",
+          "price": 25.00,
+          "quantity": 1,
+          "imageBase64": "data:image/jpeg;base64,..."
+        },
+        {
+          "name": "Limpeza Energética",
+          "price": 20.00,
+          "quantity": 1,
+          "imageBase64": "data:image/jpeg;base64,..."
+        }
+      ]
+    }
+  },
+  "expected_responses": {
+    "success": {
+      "checkoutUrl": "https://checkout-sandbox.asaas.com/v1/checkout/12345",
+      "checkoutId": "cko_12345678901234567890",
+      "message": "Checkout criado com sucesso"
+    },
+    "house_error": {
+      "error": "Casa não encontrada ou não configurada para pagamentos"
+    },
+    "validation_error": {
+      "error": "amount deve ser um número maior que zero"
+    },
+    "checkout_error": {
+      "error": "Erro ao criar checkout: Dados inválidos"
+    }
+  },
+  "test_scenarios": [
+    {
+      "name": "Checkout Válido",
+      "description": "Testa criação de checkout com dados válidos",
+      "data": "use valid_request example",
+      "expected": "success response"
+    },
+    {
+      "name": "Casa Inexistente",
+      "description": "Testa com houseId que não existe",
+      "data": "use valid_request with houseId: 'INVALID_ID'",
+      "expected": "house_error response"
+    },
+    {
+      "name": "Valor Inválido",
+      "description": "Testa com amount negativo ou zero",
+      "data": "use valid_request with amount: -10",
+      "expected": "validation_error response"
+    },
+    {
+      "name": "Package Name Curto",
+      "description": "Testa com packageName muito curto",
+      "data": "use valid_request with packageName: 'Ab'",
+      "expected": "validation_error response"
+    }
+  ],
+  "postman_collection": {
+    "info": {
+      "name": "N8N Checkout Workflow Tests",
+      "description": "Collection para testar o workflow de checkout"
+    },
+    "auth": {
+      "type": "noauth"
+    },
+    "requests": [
+      {
+        "name": "Create Checkout - Valid",
+        "method": "POST",
+        "url": "{{base_url}}/webhook-test/create-payment",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": "{{valid_request}}"
+      }
+    ]
+  }
+}

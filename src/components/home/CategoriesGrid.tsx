@@ -2,6 +2,7 @@
 
 import { CompanyCategory } from '@/types'
 import { useRouter } from 'next/navigation'
+import { useSearchAnalytics } from '@/hooks/useAnalytics'
 
 interface CategoriesGridProps {
   categories: CompanyCategory[]
@@ -9,8 +10,10 @@ interface CategoriesGridProps {
 
 export function CategoriesGrid({ categories }: CategoriesGridProps) {
   const router = useRouter()
+  const { trackCategoryClick } = useSearchAnalytics()
 
   const handleCategoryClick = (category: CompanyCategory) => {
+    trackCategoryClick(category.id, category.name, 'home_page')
     router.push(`/search?category=${category.id}`)
   }
 

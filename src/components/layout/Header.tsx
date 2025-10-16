@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/context/AuthContext'
+import { useNavigationAnalytics } from '@/hooks/useAnalytics'
 import Link from 'next/link'
 
 interface HeaderProps {
@@ -19,6 +20,15 @@ export function Header({ children, className }: HeaderProps) {
   const { getCartItemsCount } = useCart()
   const { user } = useAuth()
   const cartItemsCount = getCartItemsCount()
+  const { trackButtonClick } = useNavigationAnalytics()
+
+  const handleCartClick = () => {
+    trackButtonClick('cart_icon', 'header')
+  }
+
+  const handleFavoritesClick = () => {
+    trackButtonClick('favorites_icon', 'header')
+  }
 
   return (
     <header className={cn('bg-white shadow-sm border-b', className)}>
@@ -61,7 +71,10 @@ export function Header({ children, className }: HeaderProps) {
               {/* Favorites Icon */}
               {user && (
                 <Link href="/favoritos">
-                  <div className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
+                  <div 
+                    onClick={handleFavoritesClick}
+                    className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
+                  >
                     <Heart className="h-6 w-6" />
                   </div>
                 </Link>
@@ -69,7 +82,10 @@ export function Header({ children, className }: HeaderProps) {
 
               {/* Cart Icon */}
               <Link href="/carrinho">
-                <div className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
+                <div 
+                  onClick={handleCartClick}
+                  className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
+                >
                   <ShoppingCart className="h-6 w-6" />
                   {cartItemsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg">
@@ -86,7 +102,10 @@ export function Header({ children, className }: HeaderProps) {
             {/* Mobile Favorites Icon */}
             {user && (
               <Link href="/favoritos">
-                <div className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
+                <div 
+                  onClick={handleFavoritesClick}
+                  className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
+                >
                   <Heart className="h-6 w-6" />
                 </div>
               </Link>
@@ -94,7 +113,10 @@ export function Header({ children, className }: HeaderProps) {
 
             {/* Mobile Cart Icon */}
             <Link href="/carrinho">
-              <div className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
+              <div 
+                onClick={handleCartClick}
+                className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
+              >
                 <ShoppingCart className="h-6 w-6" />
                 {cartItemsCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg">
