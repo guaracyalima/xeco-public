@@ -10,7 +10,7 @@ interface FollowedCompanyCardProps {
 }
 
 export function FollowedCompanyCard({ company, onUnfollow }: FollowedCompanyCardProps) {
-  const logo = company.logo || '/default-company.png'
+  const logo = company.logo || '/default-fail-image.jpg'
 
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
@@ -21,7 +21,7 @@ export function FollowedCompanyCard({ company, onUnfollow }: FollowedCompanyCard
           alt={company.name}
           className="w-full h-full object-cover"
           onError={(e) => {
-            ;(e.target as HTMLImageElement).src = '/default-company.png'
+            ;(e.target as HTMLImageElement).src = '/default-fail-image.jpg'
           }}
         />
       </div>

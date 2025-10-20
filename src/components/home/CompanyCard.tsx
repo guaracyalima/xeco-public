@@ -39,13 +39,16 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
             src={company.logo} 
             alt={company.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = '/default-fail-image.jpg'
+            }}
           />
         ) : (
-          <div className="bg-gray-200 w-full h-full flex items-center justify-center">
-            <span className="text-gray-400 font-bold text-2xl">
-              {company.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
+          <img 
+            src="/default-fail-image.jpg"
+            alt={company.name}
+            className="w-full h-full object-cover"
+          />
         )}
         
         {/* Badge */}

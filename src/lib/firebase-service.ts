@@ -46,6 +46,26 @@ export const getFeaturedCompanies = async (limitCount = 5): Promise<Company[]> =
   return getCompanies({}, limitCount)
 }
 
+// Get single company by ID
+export const getCompanyById = async (companyId: string): Promise<Company | null> => {
+  try {
+    const companyDocRef = doc(db, 'companies', companyId)
+    const companyDoc = await getDoc(companyDocRef)
+    
+    if (!companyDoc.exists()) {
+      return null
+    }
+
+    return {
+      id: companyDoc.id,
+      ...companyDoc.data()
+    } as Company
+  } catch (error) {
+    console.error('Error fetching company by ID:', error)
+    return null
+  }
+}
+
 // Categories
 export const getCategories = async (): Promise<CompanyCategory[]> => {
   try {

@@ -68,11 +68,16 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
             src={product.imagesUrl[0]} 
             alt={product.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = '/default-fail-image.jpg'
+            }}
           />
         ) : (
-          <div className="bg-gray-200 w-full h-full flex items-center justify-center">
-            <Package className="w-12 h-12 text-gray-400" />
-          </div>
+          <img 
+            src="/default-fail-image.jpg"
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
         )}
         
         {/* Badge */}

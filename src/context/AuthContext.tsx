@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { User, UserProfile } from '@/types'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 interface AuthContextType {
@@ -36,9 +36,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (userDocSnap.exists()) {
             const firestoreData = userDocSnap.data()
             setUserProfile(firestoreData as UserProfile)
+          } else {
+            // Se o documento não existe, criar um perfil padrão
+            console.warn('Documento do usuário não encontrado, criando perfil padrão...')
+            const defaultProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              display_name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+              phone_number: '',
+              street: '',
+              number: '',
+              complement: '',
+              neighborhood: '',
+              city: '',
+              state: '',
+              cep: '',
+              document_number: '',
+              photo_url: '',
+              entrepreneur: 'NAO',
+              affiliated: 'NAO',
+              completed_profile: 'NAO',
+              enabled: true,
+              haveanaccount: 'SIM',
+              role: ['user'],
+              created_time: new Date().toISOString(),
+            }
+            
+            // Salvar o perfil padrão
+            await setDoc(userDocRef, defaultProfile)
+            setUserProfile(defaultProfile)
           }
         } catch (error) {
           console.error('Erro ao buscar dados do usuário:', error)
+          // Criar perfil padrão em caso de erro
+          try {
+            const userDocRef = doc(db, 'users', firebaseUser.uid)
+            const defaultProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              display_name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+              phone_number: '',
+              street: '',
+              number: '',
+              complement: '',
+              neighborhood: '',
+              city: '',
+              state: '',
+              cep: '',
+              document_number: '',
+              photo_url: '',
+              entrepreneur: 'NAO',
+              affiliated: 'NAO',
+              completed_profile: 'NAO',
+              enabled: true,
+              haveanaccount: 'SIM',
+              role: ['user'],
+              created_time: new Date().toISOString(),
+            }
+            await setDoc(userDocRef, defaultProfile)
+            setUserProfile(defaultProfile)
+          } catch (createError) {
+            console.error('Erro ao criar perfil padrão:', createError)
+            const defaultProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              display_name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+              phone_number: '',
+              street: '',
+              number: '',
+              complement: '',
+              neighborhood: '',
+              city: '',
+              state: '',
+              cep: '',
+              document_number: '',
+              photo_url: '',
+              entrepreneur: 'NAO',
+              affiliated: 'NAO',
+              completed_profile: 'NAO',
+              enabled: true,
+              haveanaccount: 'SIM',
+              role: ['user'],
+              created_time: new Date().toISOString(),
+            }
+            setUserProfile(defaultProfile)
+          }
         }
 
         const userData: User = {

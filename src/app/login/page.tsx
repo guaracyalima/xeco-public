@@ -3,8 +3,9 @@
 import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
+import { doc, setDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/Button'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -49,7 +50,33 @@ function LoginForm() {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password)
       } else {
-        await createUserWithEmailAndPassword(auth, email, password)
+        // Criar nova conta
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+        
+        // Criar documento do usuário no Firestore
+        const userRef = doc(db, 'users', userCredential.user.uid)
+        await setDoc(userRef, {
+          uid: userCredential.user.uid,
+          email: email,
+          display_name: email.split('@')[0], // Usar parte do email como nome padrão
+          phone_number: '',
+          street: '',
+          number: '',
+          complement: '',
+          neighborhood: '',
+          city: '',
+          state: '',
+          cep: '',
+          document_number: '',
+          photo_url: '',
+          entrepreneur: 'NAO',
+          affiliated: 'NAO',
+          completed_profile: 'NAO',
+          enabled: true,
+          haveanaccount: 'SIM',
+          role: ['user'],
+          created_time: new Date().toISOString(),
+        })
       }
 
       // Redirecionar após login bem-sucedido

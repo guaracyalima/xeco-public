@@ -9,6 +9,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { useNavigationAnalytics } from '@/hooks/useAnalytics'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface HeaderProps {
   children?: ReactNode

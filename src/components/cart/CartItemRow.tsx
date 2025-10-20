@@ -37,13 +37,13 @@ export function CartItemRow({ item }: CartItemRowProps) {
           <Link href={`/produto/${product.id}`}>
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden cursor-pointer group">
               <Image
-                src={product.imagesUrl[0] || '/api/placeholder/100/100'}
+                src={product.imagesUrl[0] || '/default-fail-image.jpg'}
                 alt={product.name}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-200"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
-                  target.src = '/api/placeholder/100/100'
+                  target.src = '/default-fail-image.jpg'
                 }}
               />
             </div>

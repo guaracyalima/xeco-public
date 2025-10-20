@@ -14,7 +14,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [isZoomed, setIsZoomed] = useState(false)
 
   // Se não há imagens, mostrar placeholder
-  const displayImages = images.length > 0 ? images : ['/api/placeholder/400/400']
+  const displayImages = images.length > 0 ? images : ['/default-fail-image.jpg']
 
   const nextImage = () => {
     setSelectedIndex((prev) => (prev + 1) % displayImages.length)
@@ -35,7 +35,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             const target = e.target as HTMLImageElement
-            target.src = '/api/placeholder/400/400'
+            target.src = '/default-fail-image.jpg'
           }}
         />
         
@@ -93,7 +93,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
                 className="object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
-                  target.src = '/api/placeholder/400/400'
+                  target.src = '/default-fail-image.jpg'
                 }}
               />
             </button>
@@ -116,7 +116,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
               className="object-contain max-w-full max-h-full"
               onError={(e) => {
                 const target = e.target as HTMLImageElement
-                target.src = '/api/placeholder/800/600'
+                target.src = '/default-fail-image.jpg'
               }}
             />
             <button
