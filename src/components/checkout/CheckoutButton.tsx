@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ShoppingBag, CreditCard, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CheckoutModal } from '@/components/checkout/CheckoutModal'
@@ -9,8 +10,7 @@ import { useAuth } from '@/context/AuthContext'
 import { CheckoutUserData } from '@/types/order'
 import { useNavigationAnalytics } from '@/hooks/useAnalytics'
 import { createAffiliateSale } from '@/lib/affiliate-sales-service'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { UserService } from '@/services/userService'
 import { CartDiscount } from '@/types'
 
 interface CheckoutButtonProps {
@@ -20,10 +20,12 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
   const { cart, getCartItemsCount, getCartTotal, startCheckout } = useCart()
   const { firebaseUser } = useAuth()
+  const router = useRouter()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [existingUserData, setExistingUserData] = useState<CheckoutUserData | null>(null)
   const { trackButtonClick } = useNavigationAnalytics()
 
   const itemCount = getCartItemsCount()
@@ -31,31 +33,50 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
   const discountAmount = discount?.discountAmount || 0
   const totalAmount = discount?.finalTotal || subtotalAmount
 
-  const handleCheckoutClick = () => {
+  const handleCheckoutClick = async () => {
     setError(null)
     setSuccess(null)
+    setIsLoading(true)
 
     trackButtonClick('checkout_button', 'cart_page')
 
-    // Validações básicas
-    if (!firebaseUser) {
-      setError('Você precisa estar logado para finalizar a compra')
-      return
-    }
+    try {
+      // Se não estiver logado, redirecionar para login com URL de retorno
+      if (!firebaseUser) {
+        setIsLoading(false)
+        // Redirecionar para login com returnUrl apontando para o carrinho
+        const returnUrl = encodeURIComponent('/carrinho')
+        router.push(`/login?returnUrl=${returnUrl}`)
+        return
+      }
 
-    if (itemCount === 0) {
-      setError('Seu carrinho está vazio')
-      return
-    }
+      if (itemCount === 0) {
+        setError('Seu carrinho está vazio')
+        return
+      }
 
-    // Verifica se todos os produtos são da mesma empresa
-    const companies = [...new Set(cart.items.map(item => item.product.companyOwner))]
-    if (companies.length > 1) {
-      setError('Não é possível comprar produtos de empresas diferentes ao mesmo tempo')
-      return
-    }
+      // Verifica se todos os produtos são da mesma empresa
+      const companies = [...new Set(cart.items.map(item => item.product.companyOwner))]
+      if (companies.length > 1) {
+        setError('Não é possível comprar produtos de empresas diferentes ao mesmo tempo')
+        return
+      }
 
-    setIsModalOpen(true)
+      // SEMPRE buscar dados existentes para pré-preencher o modal
+      const userProfile = await UserService.getUserProfile(firebaseUser.uid)
+      if (userProfile) {
+        setExistingUserData(UserService.profileToCheckoutData(userProfile))
+      }
+
+      // SEMPRE abrir modal - mesmo que usuário tenha dados completos
+      setIsModalOpen(true)
+
+    } catch (error) {
+      console.error('Erro ao verificar dados do usuário:', error)
+      setError('Erro ao verificar seus dados. Tente novamente.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleConfirmCheckout = async (userData: CheckoutUserData) => {
@@ -63,6 +84,17 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
     setError(null)
 
     try {
+      // Salva dados do usuário no Firestore para próximas compras
+      if (firebaseUser) {
+        await UserService.saveCheckoutData(
+          firebaseUser.uid,
+          userData,
+          firebaseUser.email || '',
+          firebaseUser.displayName || '',
+          '' // phone será adicionado quando tivermos campo para isso
+        )
+      }
+
       // Criar AffiliateSale se for cupom de afiliado
       if (discount?.affiliate) {
         try {
@@ -79,8 +111,9 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
         }
       }
 
-      const checkoutUrl = await startCheckout(userData)
+      const checkoutUrl = await startCheckout(userData, discount)
       
+      // Só fechar modal e mostrar sucesso se tudo deu certo
       setSuccess('Redirecionando para pagamento...')
       setIsModalOpen(false)
       
@@ -91,7 +124,23 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
 
     } catch (error) {
       console.error('Erro no checkout:', error)
-      setError(error instanceof Error ? error.message : 'Erro desconhecido ao processar pagamento')
+      
+      // Mantém o modal aberto e mostra erro específico
+      let errorMessage = 'Erro desconhecido ao processar pagamento'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      // Adiciona contexto específico para alguns erros
+      if (errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.'
+      } else if (errorMessage.includes('não retornou')) {
+        errorMessage = 'Problema no servidor de pagamentos. Tente novamente em alguns minutos.'
+      }
+      
+      setError(errorMessage)
+      // NÃO fechar o modal - deixar usuário tentar novamente
     } finally {
       setIsLoading(false)
     }
@@ -209,6 +258,10 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
         totalAmount={totalAmount}
         itemCount={itemCount}
         isLoading={isLoading}
+        existingData={existingUserData}
+        hasExistingCpf={!!existingUserData?.cpf}
+        error={error}
+        onErrorClear={() => setError(null)}
       />
     </>
   )

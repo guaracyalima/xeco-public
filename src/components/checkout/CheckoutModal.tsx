@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, CreditCard, User, MapPin, FileText, Loader2 } from 'lucide-react'
+import { X, CreditCard, User, MapPin, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { CheckoutUserData } from '@/types/order'
@@ -14,6 +14,10 @@ interface CheckoutModalProps {
   totalAmount: number
   itemCount: number
   isLoading?: boolean
+  existingData?: CheckoutUserData | null
+  hasExistingCpf?: boolean
+  error?: string | null
+  onErrorClear?: () => void
 }
 
 export function CheckoutModal({ 
@@ -22,7 +26,11 @@ export function CheckoutModal({
   onConfirm, 
   totalAmount, 
   itemCount,
-  isLoading = false 
+  isLoading = false,
+  existingData = null,
+  hasExistingCpf = false,
+  error = null,
+  onErrorClear
 }: CheckoutModalProps) {
   const [formData, setFormData] = useState<CheckoutUserData>({
     cpf: '',
@@ -40,6 +48,13 @@ export function CheckoutModal({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const { trackCheckoutStart, trackCheckoutProgress, trackPurchase } = useCheckoutAnalytics()
 
+  // Pré-preenche dados quando existirem
+  useEffect(() => {
+    if (existingData) {
+      setFormData(existingData)
+    }
+  }, [existingData])
+
   useEffect(() => {
     if (isOpen) {
       trackCheckoutStart(totalAmount, itemCount)
@@ -51,11 +66,13 @@ export function CheckoutModal({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Validação CPF (formato básico)
-    if (!formData.cpf) {
-      newErrors.cpf = 'CPF é obrigatório'
-    } else if (!/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/.test(formData.cpf)) {
-      newErrors.cpf = 'CPF deve ter o formato 000.000.000-00'
+    // Validação CPF (formato básico) - apenas se não existir CPF salvo
+    if (!hasExistingCpf) {
+      if (!formData.cpf) {
+        newErrors.cpf = 'CPF é obrigatório'
+      } else if (!/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/.test(formData.cpf)) {
+        newErrors.cpf = 'CPF deve ter o formato 000.000.000-00'
+      }
     }
 
     // Validação endereço
@@ -99,10 +116,16 @@ export function CheckoutModal({
 
     } catch (error) {
       console.error('Erro ao finalizar compra:', error)
+      // Erro será exibido através da prop error passada pelo pai
     }
   }
 
   const handleInputChange = (field: string, value: string) => {
+    // Limpa erro quando usuário começa a digitar
+    if (error && onErrorClear) {
+      onErrorClear()
+    }
+
     if (field.startsWith('address.')) {
       const addressField = field.replace('address.', '')
       setFormData(prev => ({
@@ -166,6 +189,24 @@ export function CheckoutModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Exibir erro se houver */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="text-red-800 font-medium mb-1">
+                    Erro ao processar pagamento
+                  </p>
+                  <p className="text-red-700">
+                    {error}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+
           {/* Dados Pessoais */}
           <div>
             <div className="flex items-center space-x-2 mb-3">
@@ -175,14 +216,21 @@ export function CheckoutModal({
             
             <div>
               <Input
-                label="CPF *"
+                label={hasExistingCpf ? "CPF (não editável)" : "CPF *"}
                 placeholder="000.000.000-00"
                 value={formData.cpf}
-                onChange={(e) => handleInputChange('cpf', formatCPF(e.target.value))}
+                onChange={(e) => !hasExistingCpf && handleInputChange('cpf', formatCPF(e.target.value))}
                 error={errors.cpf}
                 maxLength={14}
-                disabled={isLoading}
+                disabled={isLoading || hasExistingCpf}
+                readOnly={hasExistingCpf}
               />
+              {hasExistingCpf && (
+                <div className="flex items-center space-x-2 mt-1">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <p className="text-xs text-green-600">CPF já cadastrado em sua conta</p>
+                </div>
+              )}
             </div>
           </div>
 

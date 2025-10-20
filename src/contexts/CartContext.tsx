@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useReducer, ReactNode, useEffect } from 'react'
-import { Product, Cart, CartItem } from '@/types'
+import { Product, Cart, CartItem, CartDiscount } from '@/types'
 import { CheckoutUserData } from '@/types/order'
 import { OrderService } from '@/services/orderService'
 import { CheckoutService } from '@/services/checkoutService'
@@ -17,7 +17,7 @@ interface CartContextType {
   clearCart: () => void
   getCartItemsCount: () => number
   getCartTotal: () => number
-  startCheckout: (userData: CheckoutUserData) => Promise<string> // Retorna URL do checkout
+  startCheckout: (userData: CheckoutUserData, discount?: CartDiscount | null) => Promise<string> // Retorna URL do checkout
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -241,7 +241,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const getCartTotal = () => cart.totalPrice
 
   // Função para iniciar processo de checkout
-  const startCheckout = async (userData: CheckoutUserData): Promise<string> => {
+  const startCheckout = async (userData: CheckoutUserData, discount?: CartDiscount | null): Promise<string> => {
     
     if (!firebaseUser) {
       throw new Error('Usuário não autenticado')
@@ -292,15 +292,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cpf: userData.cpf
       }
 
+      // Prepara dados do afiliado se houver cupom de afiliado
+      let affiliateData = undefined
+      if (discount?.affiliate) {
+        affiliateData = {
+          walletId: discount.affiliate.walletId || '',
+          commissionPercentage: discount.affiliate.commissionRate || 0
+        }
+        console.log('🎯 Dados do afiliado para split:', affiliateData)
+      }
+
       // Chama serviço de checkout
       const checkoutResponse = await CheckoutService.createCheckout(
         order,
         companyData,
-        checkoutUserData
+        checkoutUserData,
+        affiliateData
       )
 
-      // Limpa o carrinho após sucesso
-      clearCart()
+      // NÃO limpar o carrinho automaticamente aqui!
+      // O carrinho só deve ser limpo quando o pagamento for confirmado
+      // Para isso, será necessário implementar um webhook de confirmação de pagamento
 
       return checkoutResponse.checkoutUrl
 

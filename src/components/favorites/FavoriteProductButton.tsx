@@ -2,32 +2,34 @@
 
 import { useState } from 'react'
 import { Heart } from 'lucide-react'
-import { useLikedCompanyContext } from '@/contexts/LikedCompanyContext'
+import { useLikedProductContext } from '@/contexts/LikedProductContext'
 import { useAuth } from '@/context/AuthContext'
 import { useFavoritesAnalytics } from '@/hooks/useAnalytics'
 import { cn } from '@/lib/utils'
 
-interface FavoriteCompanyButtonProps {
+interface FavoriteProductButtonProps {
+  productId: string
+  productName: string
   companyId: string
-  companyName: string
   className?: string
   size?: 'sm' | 'md' | 'lg'
   showText?: boolean
 }
 
-export function FavoriteCompanyButton({ 
-  companyId, 
-  companyName, 
+export function FavoriteProductButton({ 
+  productId, 
+  productName, 
+  companyId,
   className,
   size = 'md',
   showText = true
-}: FavoriteCompanyButtonProps) {
+}: FavoriteProductButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { favoriteCompany, unfavoriteCompany, isFavored } = useLikedCompanyContext()
+  const { favoriteProduct, unfavoriteProduct, isFavored } = useLikedProductContext()
   const { user } = useAuth()
   const { trackAddToFavorites, trackRemoveFromFavorites } = useFavoritesAnalytics()
   
-  const isAlreadyFavored = isFavored(companyId)
+  const isAlreadyFavored = isFavored(productId)
 
   const sizeClasses = {
     sm: 'px-2 py-1 text-xs',
@@ -52,11 +54,11 @@ export function FavoriteCompanyButton({
 
     try {
       if (isAlreadyFavored) {
-        await unfavoriteCompany(companyId)
-        trackRemoveFromFavorites(companyId, companyName, 'company')
+        await unfavoriteProduct(productId)
+        trackRemoveFromFavorites(productId, productName, 'product')
       } else {
-        await favoriteCompany(companyId)
-        trackAddToFavorites(companyId, companyName, 'company')
+        await favoriteProduct(productId, companyId)
+        trackAddToFavorites(productId, productName, 'product')
       }
     } catch (error) {
       console.error('Erro ao gerenciar favoritos:', error)
@@ -91,7 +93,7 @@ export function FavoriteCompanyButton({
             ? 'Aguarde...' 
             : isAlreadyFavored 
               ? 'Favoritado' 
-              : 'Favoritar empresa'
+              : 'Favoritar produto'
           }
         </span>
       )}

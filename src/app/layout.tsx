@@ -5,6 +5,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { AnalyticsProvider } from "@/contexts/AnalyticsContext";
+import { LikedCompanyProvider } from "@/contexts/LikedCompanyContext";
+import { LikedProductProvider } from "@/contexts/LikedProductContext";
 import { AnalyticsConsentBanner } from "@/components/analytics/AnalyticsConsentBanner";
 
 const workSans = Work_Sans({
@@ -29,10 +31,14 @@ export default function RootLayout({
         <AuthProvider>
           <AnalyticsProvider>
             <FavoritesProvider>
-              <CartProvider>
-                {children}
-                <AnalyticsConsentBanner />
-              </CartProvider>
+              <LikedCompanyProvider>
+                <LikedProductProvider>
+                  <CartProvider>
+                    {children}
+                    <AnalyticsConsentBanner />
+                  </CartProvider>
+                </LikedProductProvider>
+              </LikedCompanyProvider>
             </FavoritesProvider>
           </AnalyticsProvider>
         </AuthProvider>
@@ -40,3 +46,4 @@ export default function RootLayout({
     </html>
   );
 }
+

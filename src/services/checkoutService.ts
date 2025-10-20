@@ -1,5 +1,6 @@
 import { Order, CheckoutRequest, CheckoutResponse } from '@/types/order'
 import { OrderService } from './orderService'
+import { calculatePaymentSplits, convertImageToBase64, PLATFORM_FEE_PERCENTAGE } from '@/lib/payment-config'
 
 export class CheckoutService {
   private static N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || ''
@@ -10,38 +11,139 @@ export class CheckoutService {
   static async createCheckout(
     order: Order,
     companyData: any,
-    userData: any
+    userData: any,
+    affiliateData?: {
+      walletId: string
+      commissionPercentage: number
+    }
   ): Promise<CheckoutResponse> {
     try {
       console.log('🚀 Iniciando criação de checkout para order:', order.id)
+      console.log('📋 Dados da order recebida:', {
+        id: order.id,
+        customerName: order.customerName,
+        items: order.items.map(item => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity
+        }))
+      })
+      console.log('🏢 Dados da empresa:', {
+        id: companyData.id,
+        name: companyData.name
+      })
+      console.log('👤 Dados do usuário:', {
+        cpf: userData.cpf,
+        name: userData.name
+      })
       
+      // Valida se a empresa tem walletId para receber pagamentos
+      if (!companyData.walletId) {
+        throw new Error('Empresa não possui carteira configurada para receber pagamentos')
+      }
+
+      // Calcula os splits do pagamento
+      const splitCalculation = calculatePaymentSplits(
+        order.totalAmount,
+        companyData.walletId,
+        affiliateData
+      )
+
+      console.log('💰 Cálculo de splits:', {
+        total: order.totalAmount,
+        platformFee: splitCalculation.platformFee,
+        affiliateCommission: splitCalculation.affiliateCommission,
+        storeAmount: splitCalculation.storeAmount,
+        splits: splitCalculation.splits
+      })
+
+      // Converte imagens para base64
+      const itemsWithBase64Images = await Promise.all(
+        order.items.map(async (item, index) => {
+          console.log(`🔍 Item ${index + 1} sendo processado:`, {
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            imageUrl: item.productImage
+          })
+
+          const base64Image = item.productImage 
+            ? await convertImageToBase64(item.productImage)
+            : ''
+
+          return {
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            productImageBase64: base64Image
+          }
+        })
+      )
+
       // Valida configuração antes da chamada
       if (!this.validateConfiguration()) {
         throw new Error('Configuração do webhook n8n não encontrada')
       }
 
-      // Prepara os dados no formato esperado pelo n8n
+      // Prepara os dados no formato correto para o n8n
       const requestData = {
-        houseId: companyData.id, // ID da empresa (equivale ao houseId do n8n)
-        amount: order.totalAmount,
-        packageName: this.generatePackageName(order),
-        userId: order.customerId,
-        bookingId: order.id, // ID do pedido (equivale ao bookingId)
-        serviceId: order.items[0]?.productId || 'MULTIPLE_PRODUCTS',
-        items: order.items.map(item => ({
-          name: item.productName,
-          price: item.unitPrice,
-          quantity: item.quantity,
-          imageBase64: item.productImage
-        }))
+        // Dados da empresa/loja
+        companyId: companyData.id,
+        companyName: companyData.name || 'Empresa não identificada',
+        companyWalletId: companyData.walletId,
+        
+        // Dados do pedido
+        orderId: order.id,
+        orderTotal: order.totalAmount,
+        orderDescription: order.description,
+        
+        // Dados do cliente
+        customerId: order.customerId,
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        customerPhone: order.customerPhone,
+        customerCpf: userData.cpf || '',
+        
+        // Dados dos produtos com imagens em base64
+        items: itemsWithBase64Images,
+        
+        // Sistema de split de pagamento
+        paymentSplits: {
+          platformFeePercentage: PLATFORM_FEE_PERCENTAGE,
+          splits: splitCalculation.splits,
+          breakdown: {
+            platformFee: splitCalculation.platformFee,
+            affiliateCommission: splitCalculation.affiliateCommission,
+            storeAmount: splitCalculation.storeAmount
+          }
+        },
+        
+        // Dados do afiliado (se houver)
+        affiliateData: affiliateData ? {
+          walletId: affiliateData.walletId,
+          commissionPercentage: affiliateData.commissionPercentage
+        } : null,
+        
+        // Metadados
+        channel: order.channel,
+        createdAt: order.createdAt.toISOString()
       }
 
       console.log('📤 Enviando dados para n8n:', {
         url: this.N8N_WEBHOOK_URL,
-        houseId: requestData.houseId,
-        amount: requestData.amount,
-        packageName: requestData.packageName
+        companyId: requestData.companyId,
+        companyWalletId: requestData.companyWalletId,
+        orderTotal: requestData.orderTotal,
+        customerId: requestData.customerId,
+        itemsCount: requestData.items.length,
+        hasSplits: requestData.paymentSplits.splits.length > 0,
+        hasAffiliate: !!requestData.affiliateData
       })
+
+      console.log('📦 Payload completo sendo enviado para n8n:', JSON.stringify(requestData, null, 2))
 
       // Faz a chamada para o n8n
       const response = await fetch(this.N8N_WEBHOOK_URL, {
@@ -55,19 +157,33 @@ export class CheckoutService {
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ Erro na resposta do n8n:', response.status, errorText)
-        throw new Error(`Erro do servidor de pagamento: ${response.status}`)
+        throw new Error(`Erro do servidor de pagamento (${response.status}): ${errorText || 'Erro desconhecido'}`)
       }
 
       const result: CheckoutResponse = await response.json()
       
+      // Validação rigorosa da resposta
       if (result.error) {
         console.error('❌ Erro retornado pelo n8n:', result.error)
-        throw new Error(result.error)
+        throw new Error(`Erro do servidor: ${result.error}`)
       }
 
-      if (!result.checkoutUrl || !result.checkoutId) {
-        console.error('❌ Resposta inválida do n8n:', result)
-        throw new Error('Resposta inválida do servidor de pagamento')
+      if (!result.checkoutUrl) {
+        console.error('❌ URL de checkout não retornada pelo n8n:', result)
+        throw new Error('Servidor não retornou URL de pagamento. Tente novamente.')
+      }
+
+      if (!result.checkoutId) {
+        console.error('❌ ID de checkout não retornado pelo n8n:', result)
+        throw new Error('Servidor não retornou ID do pagamento. Tente novamente.')
+      }
+
+      // Valida se a URL é válida
+      try {
+        new URL(result.checkoutUrl)
+      } catch (urlError) {
+        console.error('❌ URL de checkout inválida:', result.checkoutUrl)
+        throw new Error('Servidor retornou URL de pagamento inválida. Tente novamente.')
       }
 
       // Atualiza a order com os dados do checkout
@@ -83,38 +199,16 @@ export class CheckoutService {
     } catch (error) {
       console.error('❌ Erro ao criar checkout:', error)
       
-      // Verifica se é um erro de rede
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        console.error('❌ Erro de conectividade com o webhook n8n')
-        
-        // Em desenvolvimento, simula resposta para continuar testando
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🧪 Modo desenvolvimento: simulando resposta do checkout')
-          
-          const mockResponse: CheckoutResponse = {
-            checkoutUrl: 'https://checkout.asaas.com/demo/123456',
-            checkoutId: 'mock_checkout_' + Date.now(),
-            message: 'Checkout simulado criado com sucesso (desenvolvimento)'
-          }
-          
-          // Simula a atualização dos dados no pedido
-          await OrderService.updateOrderPayment(
-            order.id,
-            mockResponse.checkoutId,
-            mockResponse.checkoutUrl
-          )
-          
-          return mockResponse
-        }
-        
-        throw new Error('Erro de conectividade com o servidor de pagamentos. Tente novamente.')
-      }
-      
       // Atualiza status da order para erro se possível
       try {
         await OrderService.updateOrderStatus(order.id, 'CANCELLED')
       } catch (updateError) {
         console.error('❌ Erro ao atualizar status da order:', updateError)
+      }
+      
+      // Verifica se é um erro de rede e fornece mensagem apropriada
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('Erro de conectividade com o servidor de pagamentos. Verifique sua conexão e tente novamente.')
       }
       
       if (error instanceof Error) {

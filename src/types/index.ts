@@ -7,6 +7,31 @@ export interface User {
   updatedAt: Date
 }
 
+export interface UserProfile {
+  uid: string
+  display_name: string
+  email: string
+  phone_number: string
+  photo_url?: string
+  street: string
+  number: string
+  complement: string
+  neighborhood: string
+  city: string
+  state: string
+  cep: string
+  document_number: string
+  location?: string
+  created_time: string
+  completed_profile: 'SIM' | 'NAO'
+  enabled: boolean
+  entrepreneur: 'SIM' | 'NAO'
+  affiliated: 'SIM' | 'NAO'
+  haveanaccount: 'SIM' | 'NAO'
+  customer_id?: string
+  role: string[]
+}
+
 export interface FirebaseError {
   code: string
   message: string

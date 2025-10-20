@@ -1,9 +1,10 @@
 'use client'
 
 import { Product } from '@/types'
-import { MapPin, Package } from 'lucide-react'
+import { MapPin, Package, Heart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useProductAnalytics } from '@/hooks/useAnalytics'
+import { useLikedProductContext } from '@/contexts/LikedProductContext'
 
 interface ProductCardProps {
   product: Product
@@ -13,6 +14,7 @@ interface ProductCardProps {
 export function ProductCard({ product, showBadge }: ProductCardProps) {
   const router = useRouter()
   const { trackProductView, trackProductClick } = useProductAnalytics()
+  const { favoriteProduct, unfavoriteProduct, isFavored } = useLikedProductContext()
 
   const handleClick = () => {
     trackProductClick(product.id, product.name, {
@@ -22,6 +24,20 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
       source: 'featured_products'
     })
     router.push(`/produto/${product.id}`)
+  }
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation() // Evita navegar ao clicar no botão
+    
+    try {
+      if (isFavored(product.id)) {
+        await unfavoriteProduct(product.id)
+      } else {
+        await favoriteProduct(product.id, product.companyOwner)
+      }
+    } catch (error) {
+      console.error('Erro ao favoritar produto:', error)
+    }
   }
 
   const formatPrice = (price: number) => {
@@ -70,6 +86,17 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
         <div className="product-overlay">
           <button className="quick-view-btn">
             Ver Detalhes
+          </button>
+          <button
+            onClick={handleFavoriteClick}
+            className="favorite-btn"
+            title={isFavored(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            <Heart
+              className="w-6 h-6"
+              fill={isFavored(product.id) ? "currentColor" : "none"}
+              color={isFavored(product.id) ? "#dc2626" : "white"}
+            />
           </button>
         </div>
       </div>
@@ -187,6 +214,28 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
         .quick-view-btn:hover {
           background: #ff5a5f;
           color: white;
+        }
+
+        .favorite-btn {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .favorite-btn:hover {
+          background: white;
+          transform: scale(1.1);
         }
 
         .product-content {

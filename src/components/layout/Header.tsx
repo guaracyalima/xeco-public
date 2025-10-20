@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { Menu, X, ShoppingCart, Heart } from 'lucide-react'
+import { Menu, X, ShoppingCart, Heart, User } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
@@ -68,6 +68,15 @@ export function Header({ children, className }: HeaderProps) {
 
             {/* Favorites and Cart Icons */}
             <div className="flex items-center space-x-2">
+              {/* Profile Icon */}
+              {user && (
+                <Link href="/perfil">
+                  <div className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
+                    <User className="h-6 w-6" />
+                  </div>
+                </Link>
+              )}
+
               {/* Favorites Icon */}
               {user && (
                 <Link href="/favoritos">
@@ -99,6 +108,15 @@ export function Header({ children, className }: HeaderProps) {
 
           {/* Mobile menu button and icons */}
           <div className="md:hidden flex items-center space-x-2">
+            {/* Mobile Profile Icon */}
+            {user && (
+              <Link href="/perfil">
+                <div className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
+                  <User className="h-6 w-6" />
+                </div>
+              </Link>
+            )}
+
             {/* Mobile Favorites Icon */}
             {user && (
               <Link href="/favoritos">
@@ -163,6 +181,16 @@ export function Header({ children, className }: HeaderProps) {
               >
                 Contato
               </a>
+              
+              {/* Mobile Profile Link */}
+              {user && (
+                <Link href="/perfil">
+                  <div className="text-gray-700 hover:text-coral-500 block px-3 py-2 text-base font-medium transition-colors">
+                    Meu Perfil
+                  </div>
+                </Link>
+              )}
+
               <Link href="/carrinho">
                 <div className="flex items-center justify-between text-gray-700 hover:text-coral-500 block px-3 py-2 text-base font-medium transition-colors">
                   <span>Carrinho</span>

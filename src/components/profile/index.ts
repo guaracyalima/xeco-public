@@ -1,0 +1,6 @@
+export { UserProfileHeader } from './UserProfileHeader'
+export { ProfileTabs } from './ProfileTabs'
+export { FollowingCompaniesTab } from './FollowingCompaniesTab'
+export { FollowedCompanyCard } from './FollowedCompanyCard'
+export { InterestedProductsTab } from './InterestedProductsTab'
+export { MyAffiliationTab } from './MyAffiliationTab'
