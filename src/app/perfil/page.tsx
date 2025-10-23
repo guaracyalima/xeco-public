@@ -39,9 +39,18 @@ function ProfileContent() {
   // Redirecionar se não estiver autenticado
   useEffect(() => {
     if (!loading && !userProfile) {
-      router.push('/login?returnUrl=%2Fperfil')
+      console.log('🚫 [ProfilePage] Usuário não autenticado, redirecionando para login...')
+      
+      // Preservar a aba atual na URL de retorno
+      const currentTab = searchParams.get('tab') || 'pedidos'
+      const returnUrl = encodeURIComponent(`/perfil?tab=${currentTab}`)
+      
+      console.log('🔗 [ProfilePage] returnUrl:', returnUrl)
+      router.push(`/login?returnUrl=${returnUrl}`)
+    } else if (userProfile) {
+      console.log('✅ [ProfilePage] Usuário autenticado:', userProfile.email)
     }
-  }, [userProfile, loading, router])
+  }, [userProfile, loading, router, searchParams])
 
   const handleLogout = async () => {
     try {

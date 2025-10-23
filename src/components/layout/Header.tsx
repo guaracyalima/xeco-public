@@ -31,6 +31,13 @@ export function Header({ children, className }: HeaderProps) {
     trackButtonClick('favorites_icon', 'header')
   }
 
+  const handleProfileClick = () => {
+    console.log('👤 [Header] Clicou no ícone de profile')
+    console.log('👤 [Header] Usuário logado?', !!user)
+    console.log('👤 [Header] Email do usuário:', user?.email || 'Não logado')
+    trackButtonClick('profile_icon', 'header')
+  }
+
   return (
     <header className={cn('bg-white shadow-sm border-b', className)}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,14 +76,15 @@ export function Header({ children, className }: HeaderProps) {
 
             {/* Favorites and Cart Icons */}
             <div className="flex items-center space-x-2">
-              {/* Profile Icon */}
-              {user && (
-                <Link href="/perfil">
-                  <div className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
-                    <User className="h-6 w-6" />
-                  </div>
-                </Link>
-              )}
+              {/* Profile Icon - sempre visível */}
+              <Link href="/perfil">
+                <div 
+                  onClick={handleProfileClick}
+                  className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
+                >
+                  <User className="h-6 w-6" />
+                </div>
+              </Link>
 
               {/* Favorites Icon */}
               {user && (
@@ -109,14 +117,15 @@ export function Header({ children, className }: HeaderProps) {
 
           {/* Mobile menu button and icons */}
           <div className="md:hidden flex items-center space-x-2">
-            {/* Mobile Profile Icon */}
-            {user && (
-              <Link href="/perfil">
-                <div className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer">
-                  <User className="h-6 w-6" />
-                </div>
-              </Link>
-            )}
+            {/* Mobile Profile Icon - sempre visível */}
+            <Link href="/perfil">
+              <div 
+                onClick={handleProfileClick}
+                className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
+              >
+                <User className="h-6 w-6" />
+              </div>
+            </Link>
 
             {/* Mobile Favorites Icon */}
             {user && (
