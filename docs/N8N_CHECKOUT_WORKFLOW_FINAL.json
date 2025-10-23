@@ -1,0 +1,807 @@
+{
+  "name": "Xeco Checkout Completo",
+  "description": "Checkout com validação total: Orders → Products → Company → Signature → Asaas → Update",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "checkout",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "id": "webhook_trigger",
+      "name": "Webhook Checkout",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 400],
+      "webhookId": "checkout-webhook-xeco"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body;\nconst errors = [];\n\nif (!payload.orderId) errors.push('orderId é obrigatório');\nif (!payload.userId) errors.push('userId é obrigatório');\nif (!payload.companyId) errors.push('companyId é obrigatório');\nif (!payload.totalAmount || payload.totalAmount <= 0) errors.push('totalAmount deve ser maior que 0');\nif (!Array.isArray(payload.productList) || payload.productList.length === 0) errors.push('productList não pode estar vazio');\nif (!payload.signature) errors.push('signature é obrigatória');\n\nif (errors.length > 0) {\n  return {\n    validation: 'failed',\n    message: 'Dados inválidos',\n    errors: errors\n  };\n}\n\nreturn {\n  validation: 'success',\n  orderId: payload.orderId,\n  userId: payload.userId,\n  companyId: payload.companyId,\n  totalAmount: payload.totalAmount,\n  productList: payload.productList,\n  signature: payload.signature,\n  customer: payload.customer,\n  billingType: payload.billingType,\n  dueDate: payload.dueDate\n};"
+      },
+      "id": "validate_fields",
+      "name": "FASE 1: Validate Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.validation }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_validation",
+      "name": "Check Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [400, 400]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "get",
+        "projectId": "xeco-334f5",
+        "collection": "orders",
+        "documentId": "={{ $json.orderId }}"
+      },
+      "id": "query_order",
+      "name": "FASE 2: Query Order",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [600, 300],
+      "credentials": {
+        "googleApi": {
+          "id": "firebase_credentials",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const orderData = $input.first().json;\nconst payload = $('Webhook Checkout').first().json.body;\n\nif (!orderData.id) {\n  return {\n    orderValid: false,\n    error: 'AUDIT:ORDER_NOT_FOUND:' + payload.orderId\n  };\n}\n\nif (orderData.customerId !== payload.userId) {\n  return {\n    orderValid: false,\n    error: 'AUDIT:USER_MISMATCH:' + orderData.customerId + ' vs ' + payload.userId\n  };\n}\n\nif (orderData.companyId !== payload.companyId) {\n  return {\n    orderValid: false,\n    error: 'AUDIT:COMPANY_MISMATCH:' + orderData.companyId + ' vs ' + payload.companyId\n  };\n}\n\nif (orderData.status !== 'PENDING_PAYMENT' && orderData.status !== 'CREATED') {\n  return {\n    orderValid: false,\n    error: 'AUDIT:INVALID_ORDER_STATUS:' + orderData.status\n  };\n}\n\nreturn {\n  orderValid: true,\n  orderId: orderData.id,\n  customerId: orderData.customerId,\n  companyId: orderData.companyId,\n  status: orderData.status\n};"
+      },
+      "id": "validate_order",
+      "name": "FASE 2: Validate Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.orderValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_order",
+      "name": "Check Order Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "get",
+        "projectId": "xeco-334f5",
+        "collection": "companies",
+        "documentId": "={{ $json.companyId }}"
+      },
+      "id": "query_company",
+      "name": "FASE 2: Query Company",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [1200, 200],
+      "credentials": {
+        "googleApi": {
+          "id": "firebase_credentials",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const companyData = $input.first().json;\n\nif (!companyData.id) {\n  return {\n    companyValid: false,\n    error: 'AUDIT:COMPANY_NOT_FOUND'\n  };\n}\n\nif (companyData.active === false) {\n  return {\n    companyValid: false,\n    error: 'AUDIT:COMPANY_INACTIVE'\n  };\n}\n\nreturn {\n  companyValid: true,\n  companyId: companyData.id,\n  companyName: companyData.name,\n  active: companyData.active\n};"
+      },
+      "id": "validate_company",
+      "name": "FASE 2: Validate Company",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.companyValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_company",
+      "name": "Check Company Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1600, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Webhook Checkout').first().json.body;\nreturn payload.productList;"
+      },
+      "id": "extract_products",
+      "name": "FASE 3: Extract Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 100]
+    },
+    {
+      "parameters": {
+        "mode": "splitInBatches",
+        "options": {}
+      },
+      "id": "loop_products",
+      "name": "FASE 3: Loop Products",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [2000, 100]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "get",
+        "projectId": "xeco-334f5",
+        "collection": "products",
+        "documentId": "={{ $json.productId }}"
+      },
+      "id": "query_product",
+      "name": "FASE 3: Query Product",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [2200, 100],
+      "credentials": {
+        "googleApi": {
+          "id": "firebase_credentials",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const productData = $input.first().json;\nconst item = $('FASE 3: Loop Products').first().json;\n\nif (!productData.id) {\n  return {\n    productValid: false,\n    error: 'PRODUCT:NOT_FOUND:' + item.productId\n  };\n}\n\nconst salePrice = parseFloat(productData.salePrice || 0);\nconst stock = parseInt(productData.stock || 0);\n\nif (Math.abs(salePrice - item.unitPrice) > 0.01) {\n  return {\n    productValid: false,\n    error: 'PRODUCT:PRICE_MISMATCH:' + item.productId + ' expected=' + salePrice + ' got=' + item.unitPrice\n  };\n}\n\nif (stock < item.quantity) {\n  return {\n    productValid: false,\n    error: 'PRODUCT:INSUFFICIENT_STOCK:' + item.productId + ' available=' + stock + ' requested=' + item.quantity\n  };\n}\n\nconst calculated = parseFloat((item.quantity * item.unitPrice).toFixed(2));\nif (Math.abs(calculated - item.totalPrice) > 0.01) {\n  return {\n    productValid: false,\n    error: 'PRODUCT:ITEM_TOTAL_MISMATCH:' + item.productId + ' calculated=' + calculated + ' got=' + item.totalPrice\n  };\n}\n\nreturn {\n  productValid: true,\n  productId: item.productId,\n  productName: item.productName,\n  quantity: item.quantity,\n  unitPrice: item.unitPrice,\n  totalPrice: item.totalPrice\n};"
+      },
+      "id": "validate_product",
+      "name": "FASE 3: Validate Product",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.productValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_product",
+      "name": "Check Product Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2600, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "let sum = 0;\nconst products = $input.all();\n\nproducts.forEach(p => {\n  sum += parseFloat(p.json.totalPrice || 0);\n});\n\nconst payload = $('Webhook Checkout').first().json.body;\nconst requestTotal = payload.totalAmount;\nsum = parseFloat(sum.toFixed(2));\n\nif (Math.abs(sum - requestTotal) > 0.01) {\n  return {\n    totalValid: false,\n    error: 'TOTAL_MISMATCH:' + sum + ' vs ' + requestTotal\n  };\n}\n\nreturn {\n  totalValid: true,\n  totalCalculated: sum,\n  totalRequested: requestTotal,\n  itemCount: products.length\n};"
+      },
+      "id": "sum_totals",
+      "name": "FASE 3: Sum Totals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2800, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.totalValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_total",
+      "name": "Check Total Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3000, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst payload = $('Webhook Checkout').first().json.body;\n\nconst data = {\n  companyId: payload.companyId,\n  totalAmount: payload.totalAmount,\n  items: payload.productList.map(p => ({\n    productId: p.productId,\n    quantity: p.quantity,\n    unitPrice: p.unitPrice\n  }))\n};\n\nconst secret = process.env.CHECKOUT_SIGNATURE_SECRET;\nif (!secret) {\n  return {\n    signatureValid: false,\n    error: 'SECURITY:MISSING_SECRET'\n  };\n}\n\nconst calculated = crypto.createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex');\n\nlet isValid = false;\ntry {\n  isValid = crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(payload.signature));\n} catch (e) {\n  isValid = false;\n}\n\nif (!isValid) {\n  return {\n    signatureValid: false,\n    error: 'SECURITY:INVALID_SIGNATURE'\n  };\n}\n\nreturn {\n  signatureValid: true,\n  method: 'HMAC-SHA256'\n};"
+      },
+      "id": "validate_signature",
+      "name": "FASE 4: Validate Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3200, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.signatureValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_signature",
+      "name": "Check Signature Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3400, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Webhook Checkout').first().json.body;\n\nconst asaasPayload = {\n  billingType: payload.billingType || 'CREDIT_CARD',\n  customer: payload.customer,\n  value: payload.totalAmount,\n  dueDate: payload.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],\n  description: 'Pedido #' + payload.orderId,\n  externalReference: payload.orderId\n};\n\nreturn asaasPayload;"
+      },
+      "id": "prepare_asaas",
+      "name": "FASE 5: Prepare Asaas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3600, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.asaas.com/v3/payments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "asaas_api",
+      "name": "FASE 5: Asaas API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3800, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "asaas_credentials",
+          "name": "Asaas API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const asaasResponse = $input.first().json;\nconst payload = $('Webhook Checkout').first().json.body;\n\nif (asaasResponse.object === 'payment' && asaasResponse.id) {\n  return {\n    asaasSuccess: true,\n    orderId: payload.orderId,\n    asaasPaymentId: asaasResponse.id,\n    checkoutUrl: asaasResponse.invoiceUrl || asaasResponse.bankSlipUrl,\n    asaasStatus: asaasResponse.status\n  };\n} else {\n  let errorMessage = 'Erro ao criar pagamento no Asaas';\n  \n  if (asaasResponse.errors && Array.isArray(asaasResponse.errors)) {\n    errorMessage = asaasResponse.errors.map(e => e.description || e.message).join(', ');\n  } else if (asaasResponse.message) {\n    errorMessage = asaasResponse.message;\n  }\n  \n  return {\n    asaasSuccess: false,\n    error: 'ASAAS_ERROR:' + errorMessage\n  };\n}"
+      },
+      "id": "process_asaas_response",
+      "name": "FASE 5: Process Asaas Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4000, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.asaasSuccess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check_asaas",
+      "name": "Check Asaas Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [4200, 0]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"_id\": \"{{ $json.orderId }}\",\n  \"asaasPaymentId\": \"{{ $json.asaasPaymentId }}\",\n  \"checkoutUrl\": \"{{ $json.checkoutUrl }}\",\n  \"status\": \"CHECKOUT_CREATED\",\n  \"asaasStatus\": \"{{ $json.asaasStatus }}\",\n  \"updated_at\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "format_update",
+      "name": "FASE 5: Format Update",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [4400, 0]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "upsert",
+        "projectId": "xeco-334f5",
+        "collection": "orders",
+        "updateKey": "_id",
+        "columns": "asaasPaymentId,checkoutUrl,status,asaasStatus,updated_at"
+      },
+      "id": "update_order",
+      "name": "FASE 5: Update Order",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [4600, 0],
+      "credentials": {
+        "googleApi": {
+          "id": "firebase_credentials",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"checkoutUrl\": \"{{ $('FASE 5: Process Asaas Response').first().json.checkoutUrl }}\",\n  \"orderId\": \"{{ $('FASE 5: Process Asaas Response').first().json.orderId }}\",\n  \"asaasPaymentId\": \"{{ $('FASE 5: Process Asaas Response').first().json.asaasPaymentId }}\",\n  \"status\": \"CHECKOUT_CREATED\",\n  \"message\": \"Checkout criado com sucesso\"\n}",
+        "options": {}
+      },
+      "id": "respond_success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [4800, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const errorNode = $input.first().json;\nconst payload = $('Webhook Checkout')?.first?.()?.json?.body || {};\n\nlet errorMessage = errorNode.error || errorNode.errors?.join(', ') || errorNode.message || 'Erro desconhecido';\nlet errorCode = 400;\nlet errorType = 'UNKNOWN_ERROR';\n\nif (errorMessage.includes('AUDIT:')) {\n  errorType = 'AUDIT_ERROR';\n  errorCode = 403;\n} else if (errorMessage.includes('PRODUCT:')) {\n  errorType = 'PRODUCT_ERROR';\n  errorCode = 409;\n} else if (errorMessage.includes('TOTAL_MISMATCH')) {\n  errorType = 'FRAUD_DETECTION';\n  errorCode = 403;\n} else if (errorMessage.includes('SECURITY:')) {\n  errorType = 'SECURITY_ERROR';\n  errorCode = 403;\n} else if (errorMessage.includes('ASAAS_ERROR:')) {\n  errorType = 'PAYMENT_ERROR';\n  errorCode = 502;\n} else if (errorMessage.includes('Dados inválidos')) {\n  errorType = 'VALIDATION_ERROR';\n  errorCode = 400;\n}\n\nreturn {\n  success: false,\n  error: errorMessage,\n  errorType: errorType,\n  code: errorCode,\n  orderId: payload.orderId || 'unknown',\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "error_handler",
+      "name": "FASE 6: Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4000, 800]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "respond_error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [4200, 800]
+    }
+  ],
+  "connections": {
+    "Webhook Checkout": {
+      "main": [
+        [
+          {
+            "node": "FASE 1: Validate Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 1: Validate Fields": {
+      "main": [
+        [
+          {
+            "node": "Check Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation": {
+      "main": [
+        [
+          {
+            "node": "FASE 2: Query Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 6: Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 2: Query Order": {
+      "main": [
+        [
+          {
+            "node": "FASE 2: Validate Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 2: Validate Order": {
+      "main": [
+        [
+          {
+            "node": "Check Order Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Order Valid": {
+      "main": [
+        [
+          {
+            "node": "FASE 2: Query Company",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 6: Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 2: Query Company": {
+      "main": [
+        [
+          {
+            "node": "FASE 2: Validate Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 2: Validate Company": {
+      "main": [
+        [
+          {
+            "node": "Check Company Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Company Valid": {
+      "main": [
+        [
+          {
+            "node": "FASE 3: Extract Products",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 6: Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 3: Extract Products": {
+      "main": [
+        [
+          {
+            "node": "FASE 3: Loop Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 3: Loop Products": {
+      "main": [
+        [
+          {
+            "node": "FASE 3: Query Product",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 3: Sum Totals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 3: Query Product": {
+      "main": [
+        [
+          {
+            "node": "FASE 3: Validate Product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 3: Validate Product": {
+      "main": [
+        [
+          {
+            "node": "Check Product Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Product Valid": {
+      "main": [
+        [
+          {
+            "node": "FASE 3: Loop Products",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 6: Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 3: Sum Totals": {
+      "main": [
+        [
+          {
+            "node": "Check Total Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Total Valid": {
+      "main": [
+        [
+          {
+            "node": "FASE 4: Validate Signature",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 6: Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 4: Validate Signature": {
+      "main": [
+        [
+          {
+            "node": "Check Signature Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Signature Valid": {
+      "main": [
+        [
+          {
+            "node": "FASE 5: Prepare Asaas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 6: Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 5: Prepare Asaas": {
+      "main": [
+        [
+          {
+            "node": "FASE 5: Asaas API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 5: Asaas API": {
+      "main": [
+        [
+          {
+            "node": "FASE 5: Process Asaas Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 5: Process Asaas Response": {
+      "main": [
+        [
+          {
+            "node": "Check Asaas Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Asaas Success": {
+      "main": [
+        [
+          {
+            "node": "FASE 5: Format Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FASE 6: Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 5: Format Update": {
+      "main": [
+        [
+          {
+            "node": "FASE 5: Update Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 5: Update Order": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FASE 6: Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true,
+  "tags": []
+}

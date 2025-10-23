@@ -1,0 +1,206 @@
+{
+  "name": "Checkout - Validação Completa",
+  "description": "Frontend → Validação Completa → Asaas → Firestore",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "checkout",
+        "responseMode": "responseNode",
+        "authentication": "none"
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [50, 100]
+    },
+    {
+      "parameters": {
+        "code": "if(!$json.body.orderId || !$json.body.userId || !$json.body.companyId || !$json.body.totalAmount || !Array.isArray($json.body.productList)) throw new Error('MISSING_FIELDS');\nreturn {valid: true};"
+      },
+      "id": "validate_fields",
+      "name": "Validate Fields",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "documentId": "={{$json.body.orderId}}",
+        "collection": "orders"
+      },
+      "id": "query_order",
+      "name": "Query Order",
+      "type": "n8n-nodes-base.firebaseRealtimeDatabase",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "code": "if(!$json.body) throw new Error('ORDER_NOT_FOUND');\nif($json.body.customerId !== $input.first().body.userId) throw new Error('USER_MISMATCH');\nif($json.body.company !== $input.first().body.companyId) throw new Error('COMPANY_MISMATCH');\nif($json.body.status !== 'PENDING_PAYMENT') throw new Error('INVALID_ORDER_STATUS');\nreturn {valid: true};"
+      },
+      "id": "validate_order",
+      "name": "Validate Order",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "documentId": "={{$input.first().body.companyId}}",
+        "collection": "companies"
+      },
+      "id": "query_company",
+      "name": "Query Company",
+      "type": "n8n-nodes-base.firebaseRealtimeDatabase",
+      "typeVersion": 1,
+      "position": [850, 100]
+    },
+    {
+      "parameters": {
+        "code": "if(!$json.body) throw new Error('COMPANY_NOT_FOUND');\nif(!$json.body.active) throw new Error('COMPANY_INACTIVE');\nreturn {valid: true};"
+      },
+      "id": "validate_company",
+      "name": "Validate Company",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1050, 100]
+    },
+    {
+      "parameters": {
+        "loopOver": "={{$input.first().body.productList}}",
+        "dataPropertyName": "current_product"
+      },
+      "id": "loop_products",
+      "name": "Loop Products",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [1250, 100]
+    },
+    {
+      "parameters": {
+        "documentId": "={{$json.current_product.productId}}",
+        "collection": "products"
+      },
+      "id": "query_product",
+      "name": "Query Product",
+      "type": "n8n-nodes-base.firebaseRealtimeDatabase",
+      "typeVersion": 1,
+      "position": [1450, 100]
+    },
+    {
+      "parameters": {
+        "code": "const prod = $json.body;\nconst item = $json.current_product;\nif(!prod) throw new Error('PRODUCT_NOT_FOUND: '+item.productId);\nif(prod.salePrice !== item.unitPrice) throw new Error('PRICE_MISMATCH: '+item.productId);\nif(prod.stock < item.quantity) throw new Error('INSUFFICIENT_STOCK: '+item.productId);\nconst calc = item.quantity * item.unitPrice;\nif(Math.abs(calc - item.totalPrice) > 0.01) throw new Error('ITEM_TOTAL_MISMATCH: '+item.productId);\nreturn {valid: true, total: item.totalPrice};"
+      },
+      "id": "validate_product",
+      "name": "Validate Product",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1650, 100]
+    },
+    {
+      "parameters": {
+        "code": "let sum = 0;\nif(Array.isArray($input)) $input.all().forEach(i => {if(i.json.total) sum += i.json.total;});\nconst req = $input.first().body.totalAmount;\nif(Math.abs(sum - req) > 0.01) throw new Error('TOTAL_MISMATCH');\nreturn {cumulativeTotal: sum, requestTotal: req, valid: true};"
+      },
+      "id": "sum_totals",
+      "name": "Sum Totals",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 100]
+    },
+    {
+      "parameters": {
+        "code": "const crypto = require('crypto');\nconst data = {companyId: $input.first().body.companyId, totalAmount: $input.first().body.totalAmount, items: $input.first().body.productList.map(p => ({productId: p.productId, quantity: p.quantity, unitPrice: p.unitPrice}))};\nconst secret = process.env.CHECKOUT_SIGNATURE_SECRET;\nconst calculated = crypto.createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex');\nlet isValid = false;\ntry {isValid = crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from($input.first().body.signature));} catch(e) {isValid = false;}\nif(!isValid) throw new Error('INVALID_SIGNATURE');\nreturn {valid: true};"
+      },
+      "id": "validate_signature",
+      "name": "Validate Signature",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2050, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://api.asaas.com/v3/payments",
+        "method": "POST",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "={{$secret.ASAAS_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "body": "={{JSON.stringify({billingTypes: $input.first().body.billingTypes, chargeTypes: $input.first().body.chargeTypes, items: $input.first().body.items, customerData: $input.first().body.customerData, totalAmount: $input.first().body.totalAmount, dueDate: $input.first().body.dueDate, description: 'Order: '+$input.first().body.orderId, externalReference: $input.first().body.orderId})}}"
+      },
+      "id": "asaas_api",
+      "name": "Asaas API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2250, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://firestore.googleapis.com/v1/projects/={{$secret.FIREBASE_PROJECT_ID}}/databases/(default)/documents/orders/={{$input.first().body.orderId}}",
+        "method": "PATCH",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$secret.FIREBASE_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "body": "={{JSON.stringify({fields: {asaasPaymentId: {stringValue: $json.id}, checkoutUrl: {stringValue: $json.checkoutUrl}, status: {stringValue: 'CHECKOUT_CREATED'}, updatedAt: {timestampValue: new Date().toISOString()}}})}}"
+      },
+      "id": "update_firestore",
+      "name": "Update Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2450, 100]
+    },
+    {
+      "parameters": {
+        "responseData": "={{JSON.stringify({success: true, checkoutUrl: $json.checkoutUrl, orderId: $input.first().body.orderId, asaasPaymentId: $json.id})}}"
+      },
+      "id": "response_ok",
+      "name": "Response OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2650, 100]
+    },
+    {
+      "parameters": {
+        "responseData": "={{JSON.stringify({success: false, error: $error.message, code: 400, orderId: $input.first().body?.orderId || 'unknown'})}}"
+      },
+      "id": "response_error",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2650, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": [{"node": "Validate Fields", "type": "main", "index": 0}],
+    "Validate Fields": [{"node": "Query Order", "type": "main", "index": 0}],
+    "Query Order": [{"node": "Validate Order", "type": "main", "index": 0}],
+    "Validate Order": [{"node": "Query Company", "type": "main", "index": 0}],
+    "Query Company": [{"node": "Validate Company", "type": "main", "index": 0}],
+    "Validate Company": [{"node": "Loop Products", "type": "main", "index": 0}],
+    "Loop Products": [{"node": "Query Product", "type": "main", "index": 0}],
+    "Query Product": [{"node": "Validate Product", "type": "main", "index": 0}],
+    "Validate Product": [{"node": "Sum Totals", "type": "main", "index": 0}],
+    "Sum Totals": [{"node": "Validate Signature", "type": "main", "index": 0}],
+    "Validate Signature": [{"node": "Asaas API", "type": "main", "index": 0}],
+    "Asaas API": [{"node": "Update Firestore", "type": "main", "index": 0}],
+    "Update Firestore": [{"node": "Response OK", "type": "main", "index": 0}]
+  }
+}

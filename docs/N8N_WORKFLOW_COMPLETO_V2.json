@@ -1,0 +1,322 @@
+{
+  "name": "Xeco Checkout - Workflow Completo 100%",
+  "description": "FASE 1-6: Google Cloud Firestore Query → Produtos → Segurança → Asaas → Firestore → Error Handling",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "checkout",
+        "responseMode": "responseNode",
+        "authentication": "none"
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [50, 100]
+    },
+    {
+      "parameters": {
+        "code": "const payload = $json.body;\nif (!payload.orderId) throw new Error('MISSING_FIELD:orderId');\nif (!payload.userId) throw new Error('MISSING_FIELD:userId');\nif (!payload.companyId) throw new Error('MISSING_FIELD:companyId');\nif (!payload.totalAmount) throw new Error('MISSING_FIELD:totalAmount');\nif (!Array.isArray(payload.productList) || payload.productList.length === 0) throw new Error('MISSING_FIELD:productList');\nif (!payload.signature) throw new Error('MISSING_FIELD:signature');\nreturn {valid: true, timestamp: new Date().toISOString()};"
+      },
+      "id": "fase1_validate_fields",
+      "name": "FASE 1: Validate Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "operation": "query",
+        "jsonQuery": "={{JSON.stringify({\"structuredQuery\":{\"from\":[{\"collectionId\":\"orders\"}],\"where\":{\"fieldFilter\":{\"field\":{\"fieldPath\":\"id\"},\"op\":\"EQUAL\",\"value\":{\"stringValue\":$json.body.orderId}}}}})}}"
+      },
+      "id": "fase2_query_order",
+      "name": "FASE 2: Query Order",
+      "type": "n8n-nodes-base.googleCloudFirestore",
+      "typeVersion": 2,
+      "position": [450, 100],
+      "credentials": {
+        "googleCloudFirestoreOAuth2Api": "google_cloud_firestore"
+      }
+    },
+    {
+      "parameters": {
+        "code": "const docs = $json.documents || [];\nif (docs.length === 0) throw new Error('AUDIT:ORDER_NOT_FOUND:' + $input.first().json.body.orderId);\nconst orderDoc = docs[0].fields || {};\nconst payload = $input.first().json.body;\nconst customerId = orderDoc.customerId?.stringValue;\nconst company = orderDoc.company?.stringValue;\nconst orderStatus = orderDoc.status?.stringValue || 'UNKNOWN';\nif (customerId !== payload.userId) throw new Error('AUDIT:USER_MISMATCH:' + customerId + ' vs ' + payload.userId);\nif (company !== payload.companyId) throw new Error('AUDIT:COMPANY_MISMATCH:' + company + ' vs ' + payload.companyId);\nif (orderStatus !== 'PENDING_PAYMENT') throw new Error('AUDIT:INVALID_ORDER_STATUS:' + orderStatus);\nreturn {orderId: payload.orderId, customerId, company, status: orderStatus, valid: true};"
+      },
+      "id": "fase2_validate_order",
+      "name": "FASE 2: Validate Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "operation": "query",
+        "jsonQuery": "={{JSON.stringify({\"structuredQuery\":{\"from\":[{\"collectionId\":\"companies\"}],\"where\":{\"fieldFilter\":{\"field\":{\"fieldPath\":\"id\"},\"op\":\"EQUAL\",\"value\":{\"stringValue\":$json.company}}}}})}}"
+      },
+      "id": "fase2_query_company",
+      "name": "FASE 2: Query Company",
+      "type": "n8n-nodes-base.googleCloudFirestore",
+      "typeVersion": 2,
+      "position": [850, 100],
+      "credentials": {
+        "googleCloudFirestoreOAuth2Api": "google_cloud_firestore"
+      }
+    },
+    {
+      "parameters": {
+        "code": "const docs = $json.documents || [];\nif (docs.length === 0) throw new Error('AUDIT:COMPANY_NOT_FOUND:' + $input.first().json.company);\nconst company = docs[0].fields || {};\nconst isActive = company.active?.booleanValue !== false;\nif (!isActive) throw new Error('AUDIT:COMPANY_INACTIVE');\nreturn {companyName: company.name?.stringValue, active: isActive, valid: true};"
+      },
+      "id": "fase2_validate_company",
+      "name": "FASE 2: Validate Company",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 100]
+    },
+    {
+      "parameters": {
+        "code": "return $input.first().json.body.productList;"
+      },
+      "id": "fase3_extract_products",
+      "name": "FASE 3: Extract Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 100]
+    },
+    {
+      "parameters": {
+        "loopOver": "={{$json}}",
+        "dataPropertyName": "product"
+      },
+      "id": "fase3_loop_products",
+      "name": "FASE 3: Loop Products",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [1450, 100]
+    },
+    {
+      "parameters": {
+        "operation": "query",
+        "jsonQuery": "={{JSON.stringify({\"structuredQuery\":{\"from\":[{\"collectionId\":\"products\"}],\"where\":{\"fieldFilter\":{\"field\":{\"fieldPath\":\"id\"},\"op\":\"EQUAL\",\"value\":{\"stringValue\":$json.product.productId}}}}})}}"
+      },
+      "id": "fase3_query_product",
+      "name": "FASE 3: Query Product",
+      "type": "n8n-nodes-base.googleCloudFirestore",
+      "typeVersion": 2,
+      "position": [1650, 100],
+      "credentials": {
+        "googleCloudFirestoreOAuth2Api": "google_cloud_firestore"
+      }
+    },
+    {
+      "parameters": {
+        "code": "const docs = $json.documents || [];\nif (docs.length === 0) throw new Error('PRODUCT:NOT_FOUND:' + $input.first().json.product.productId);\nconst productDoc = docs[0].fields || {};\nconst item = $input.first().json.product;\nconst salePrice = parseFloat(productDoc.salePrice?.doubleValue || productDoc.salePrice?.integerValue || 0);\nconst stock = parseInt(productDoc.stock?.integerValue || 0);\nif (Math.abs(salePrice - item.unitPrice) > 0.01) throw new Error('PRODUCT:PRICE_MISMATCH:' + item.productId + ' expected=' + salePrice + ' got=' + item.unitPrice);\nif (stock < item.quantity) throw new Error('PRODUCT:INSUFFICIENT_STOCK:' + item.productId + ' available=' + stock + ' requested=' + item.quantity);\nconst calculated = parseFloat((item.quantity * item.unitPrice).toFixed(2));\nif (Math.abs(calculated - item.totalPrice) > 0.01) throw new Error('PRODUCT:ITEM_TOTAL_MISMATCH:' + item.productId + ' calculated=' + calculated + ' got=' + item.totalPrice);\nreturn {productId: item.productId, productName: item.productName, quantity: item.quantity, unitPrice: item.unitPrice, totalPrice: item.totalPrice, stockOk: true};"
+      },
+      "id": "fase3_validate_product",
+      "name": "FASE 3: Validate Product",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 100]
+    },
+    {
+      "parameters": {
+        "code": "let sum = 0;\nconst products = $input.all();\nproducts.forEach(p => {\n  sum += parseFloat(p.json.totalPrice || 0);\n});\nconst requestTotal = $input.first().json.body.totalAmount;\nsum = parseFloat(sum.toFixed(2));\nif (Math.abs(sum - requestTotal) > 0.01) throw new Error('TOTAL_MISMATCH:' + sum + ' vs ' + requestTotal);\nreturn {totalCalculated: sum, totalRequested: requestTotal, itemCount: products.length, allProductsValid: true};"
+      },
+      "id": "fase3_sum_totals",
+      "name": "FASE 3: Sum Totals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 100]
+    },
+    {
+      "parameters": {
+        "code": "const crypto = require('crypto');\nconst payload = $input.first().json.body;\nconst data = {\n  companyId: payload.companyId,\n  totalAmount: payload.totalAmount,\n  items: payload.productList.map(p => ({\n    productId: p.productId,\n    quantity: p.quantity,\n    unitPrice: p.unitPrice\n  }))\n};\nconst secret = process.env.CHECKOUT_SIGNATURE_SECRET;\nif (!secret) throw new Error('SECURITY:MISSING_SECRET');\nconst calculated = crypto.createHmac('sha256', secret).update(JSON.stringify(data)).digest('hex');\nlet isValid = false;\ntry {\n  isValid = crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(payload.signature));\n} catch (e) {\n  isValid = false;\n}\nif (!isValid) throw new Error('SECURITY:INVALID_SIGNATURE');\nreturn {signatureValid: true, method: 'HMAC-SHA256'};"
+      },
+      "id": "fase4_validate_signature",
+      "name": "FASE 4: Validate Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 100]
+    },
+    {
+      "parameters": {
+        "code": "const payload = $input.first().json.body;\nconst asaasPayload = {\n  billingType: payload.billingType || 'CREDIT_CARD',\n  chargeType: payload.chargeType || 'DETECTED',\n  customer: payload.customer,\n  items: payload.items || payload.productList.map(p => ({\n    name: p.productName,\n    quantity: p.quantity,\n    price: p.unitPrice\n  })),\n  value: payload.totalAmount,\n  dueDate: payload.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],\n  description: 'Order: ' + payload.orderId,\n  externalReference: payload.orderId,\n  notificationUrl: process.env.ASAAS_WEBHOOK_URL || ''\n};\nreturn asaasPayload;"
+      },
+      "id": "fase5_prepare_asaas",
+      "name": "FASE 5: Prepare Asaas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 100]
+    },
+    {
+      "parameters": {
+        "url": "https://api.asaas.com/v3/payments",
+        "method": "POST",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "={{$secret.ASAAS_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "body": "={{JSON.stringify($json)}}"
+      },
+      "id": "fase5_asaas_api",
+      "name": "FASE 5: Asaas API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2650, 100]
+    },
+    {
+      "parameters": {
+        "code": "const orderId = $input.first().json.body.orderId;\nconst asaasResponse = $json;\nreturn {\n  orderId,\n  asaasPaymentId: asaasResponse.id,\n  checkoutUrl: asaasResponse.invoiceUrl || asaasResponse.checkoutUrl,\n  asaasStatus: asaasResponse.status\n};"
+      },
+      "id": "fase5_extract_asaas_response",
+      "name": "FASE 5: Extract Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2850, 100]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "documentId": "={{$json.orderId}}",
+        "collection": "orders",
+        "jsonData": "={{JSON.stringify({asaasPaymentId:$json.asaasPaymentId,checkoutUrl:$json.checkoutUrl,status:\"CHECKOUT_CREATED\",asaasStatus:$json.asaasStatus,updatedAt:new Date().toISOString()})}}"
+      },
+      "id": "fase5_update_firestore",
+      "name": "FASE 5: Update Firestore",
+      "type": "n8n-nodes-base.googleCloudFirestore",
+      "typeVersion": 2,
+      "position": [3050, 100],
+      "credentials": {
+        "googleCloudFirestoreOAuth2Api": "google_cloud_firestore"
+      }
+    },
+    {
+      "parameters": {
+        "responseData": "={{JSON.stringify({success: true, checkoutUrl: $json.checkoutUrl, orderId: $json.orderId, asaasPaymentId: $json.asaasPaymentId, status: 'CHECKOUT_CREATED', message: 'Payment checkout URL generated successfully'})}}"
+      },
+      "id": "response_ok",
+      "name": "Response OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3250, 100]
+    },
+    {
+      "parameters": {
+        "code": "const error = $error;\nconst orderId = $input?.first?.()?.json?.body?.orderId || 'unknown';\nlet errorCode = 400;\nlet errorType = 'UNKNOWN_ERROR';\n\nif (error.message.startsWith('MISSING_FIELD:')) {\n  errorType = 'VALIDATION_ERROR';\n  errorCode = 400;\n} else if (error.message.startsWith('AUDIT:')) {\n  errorType = 'AUDIT_ERROR';\n  errorCode = 403;\n} else if (error.message.startsWith('PRODUCT:')) {\n  errorType = 'PRODUCT_ERROR';\n  errorCode = 409;\n} else if (error.message.startsWith('TOTAL_MISMATCH')) {\n  errorType = 'FRAUD_DETECTION';\n  errorCode = 403;\n} else if (error.message.startsWith('SECURITY:')) {\n  errorType = 'SECURITY_ERROR';\n  errorCode = 403;\n}\n\nreturn {\n  success: false,\n  error: error.message,\n  errorType,\n  code: errorCode,\n  orderId,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "fase6_error_handler",
+      "name": "FASE 6: Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3250, 400]
+    },
+    {
+      "parameters": {
+        "responseData": "={{JSON.stringify($json)}}"
+      },
+      "id": "response_error",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3450, 400]
+    },
+    {
+      "parameters": {
+        "code": "console.log('N8N CHECKOUT LOG:', {\n  timestamp: new Date().toISOString(),\n  event: 'checkout_success',\n  orderId: $json.orderId,\n  asaasPaymentId: $json.asaasPaymentId,\n  checkoutUrl: $json.checkoutUrl\n});\nreturn $json;"
+      },
+      "id": "logging_success",
+      "name": "Logging Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3250, 250]
+    },
+    {
+      "parameters": {
+        "code": "console.error('N8N CHECKOUT ERROR LOG:', {\n  timestamp: new Date().toISOString(),\n  event: 'checkout_error',\n  error: $json.error,\n  errorType: $json.errorType,\n  code: $json.code,\n  orderId: $json.orderId\n});\nreturn $json;"
+      },
+      "id": "logging_error",
+      "name": "Logging Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3450, 500]
+    }
+  ],
+  "connections": {
+    "Webhook": [
+      {"node": "FASE 1: Validate Fields", "type": "main", "index": 0}
+    ],
+    "FASE 1: Validate Fields": [
+      {"node": "FASE 2: Query Order", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 2: Query Order": [
+      {"node": "FASE 2: Validate Order", "type": "main", "index": 0}
+    ],
+    "FASE 2: Validate Order": [
+      {"node": "FASE 2: Query Company", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 2: Query Company": [
+      {"node": "FASE 2: Validate Company", "type": "main", "index": 0}
+    ],
+    "FASE 2: Validate Company": [
+      {"node": "FASE 3: Extract Products", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 3: Extract Products": [
+      {"node": "FASE 3: Loop Products", "type": "main", "index": 0}
+    ],
+    "FASE 3: Loop Products": [
+      {"node": "FASE 3: Query Product", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 3: Query Product": [
+      {"node": "FASE 3: Validate Product", "type": "main", "index": 0}
+    ],
+    "FASE 3: Validate Product": [
+      {"node": "FASE 3: Sum Totals", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 3: Sum Totals": [
+      {"node": "FASE 4: Validate Signature", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 4: Validate Signature": [
+      {"node": "FASE 5: Prepare Asaas", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 5: Prepare Asaas": [
+      {"node": "FASE 5: Asaas API", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 5: Asaas API": [
+      {"node": "FASE 5: Extract Response", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 5: Extract Response": [
+      {"node": "FASE 5: Update Firestore", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "FASE 5: Update Firestore": [
+      {"node": "Logging Success", "type": "main", "index": 0},
+      {"node": "FASE 6: Error Handler", "type": "error"}
+    ],
+    "Logging Success": [
+      {"node": "Response OK", "type": "main", "index": 0}
+    ],
+    "FASE 6: Error Handler": [
+      {"node": "Logging Error", "type": "main", "index": 0}
+    ],
+    "Logging Error": [
+      {"node": "Response Error", "type": "main", "index": 0}
+    ]
+  }
+}

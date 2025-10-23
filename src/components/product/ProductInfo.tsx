@@ -56,10 +56,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
     }
   }
 
-  const handleClearAndAdd = () => {
+  const handleClearAndAdd = async () => {
     if (pendingProduct) {
-      clearCart()
-      addToCart(pendingProduct, pendingQuantity)
+      await clearCart()
+      await addToCart(pendingProduct, pendingQuantity)
       
       // Track successful add to cart after clearing
       trackAddToCart(pendingProduct, pendingQuantity)

@@ -105,11 +105,44 @@ export class OrderService {
       
       if (docSnap.exists()) {
         const data = docSnap.data()
+        
+        console.log('🔍 Dados da order no Firebase:', {
+          hasItems: !!data.items,
+          itemsLength: data.items?.length,
+          hasProducts: !!data.products,
+          productsLength: data.products?.length,
+          keys: Object.keys(data)
+        })
+        
+        // ⚠️ COMPATIBILIDADE: Se Firebase salvou como 'products', mapear para 'items'
+        const items = data.items || data.products || []
+        
+        // Converte createdAt e updatedAt (pode ser Timestamp ou string)
+        let createdAt = new Date()
+        let updatedAt = new Date()
+        
+        if (data.createdAt) {
+          if (typeof data.createdAt === 'string') {
+            createdAt = new Date(data.createdAt)
+          } else if (data.createdAt.toDate) {
+            createdAt = data.createdAt.toDate()
+          }
+        }
+        
+        if (data.updatedAt) {
+          if (typeof data.updatedAt === 'string') {
+            updatedAt = new Date(data.updatedAt)
+          } else if (data.updatedAt.toDate) {
+            updatedAt = data.updatedAt.toDate()
+          }
+        }
+        
         return {
           ...data,
           id: docSnap.id,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date()
+          items, // ← Usa items mapeado (products ou items)
+          createdAt,
+          updatedAt
         } as Order
       }
       
@@ -117,6 +150,40 @@ export class OrderService {
     } catch (error) {
       console.error('❌ Erro ao buscar order:', error)
       throw new Error('Falha ao buscar pedido')
+    }
+  }
+
+  /**
+   * Atualiza items de uma order existente
+   */
+  static async updateOrderItems(orderId: string, cartItems: CartItem[]): Promise<void> {
+    try {
+      // Converte items do carrinho para OrderItems
+      const orderItems: OrderItem[] = cartItems.map(item => ({
+        id: item.product.id,
+        productId: item.product.id,
+        productName: item.product.name,
+        productReference: `/product/${item.product.id}`,
+        quantity: item.quantity,
+        unitPrice: Number(item.product.salePrice),
+        totalPrice: item.quantity * Number(item.product.salePrice),
+        productImage: item.product.imagesUrl[0]
+      }))
+
+      // Calcula o total geral
+      const totalAmount = orderItems.reduce((total, item) => total + item.totalPrice, 0)
+
+      const docRef = doc(db, this.COLLECTION, orderId)
+      await updateDoc(docRef, {
+        items: orderItems,
+        totalAmount,
+        updatedAt: serverTimestamp()
+      })
+
+      console.log('🔄 Items da order atualizados:', orderId)
+    } catch (error) {
+      console.error('❌ Erro ao atualizar items da order:', error)
+      throw new Error('Falha ao atualizar items do pedido')
     }
   }
 

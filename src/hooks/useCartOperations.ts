@@ -16,9 +16,9 @@ export function useCartOperations() {
     }
   }
 
-  const removeProductFromCart = (productId: string) => {
+  const removeProductFromCart = async (productId: string) => {
     try {
-      removeFromCart(productId)
+      await removeFromCart(productId)
       return { success: true }
     } catch (error) {
       console.error('Erro ao remover produto do carrinho:', error)
@@ -26,9 +26,9 @@ export function useCartOperations() {
     }
   }
 
-  const updateProductQuantity = (productId: string, newQuantity: number) => {
+  const updateProductQuantity = async (productId: string, newQuantity: number) => {
     try {
-      updateQuantity(productId, newQuantity)
+      await updateQuantity(productId, newQuantity)
       return { success: true }
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error)
@@ -36,9 +36,9 @@ export function useCartOperations() {
     }
   }
 
-  const clearCartCompletely = () => {
+  const clearCartCompletely = async () => {
     try {
-      clearCart()
+      await clearCart()
       return { success: true }
     } catch (error) {
       console.error('Erro ao limpar carrinho:', error)

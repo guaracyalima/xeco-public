@@ -14,11 +14,11 @@ export function CartItemRow({ item }: CartItemRowProps) {
   const { updateQuantity, removeFromCart } = useCart()
   const { product, quantity, total } = item
 
-  const handleQuantityChange = (newQuantity: number) => {
+  const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeFromCart(product.id)
+      await removeFromCart(product.id)
     } else if (newQuantity <= product.stockQuantity) {
-      updateQuantity(product.id, newQuantity)
+      await updateQuantity(product.id, newQuantity)
     }
   }
 

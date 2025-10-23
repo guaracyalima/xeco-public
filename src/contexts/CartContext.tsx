@@ -10,11 +10,11 @@ import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 interface CartContextType {
-  cart: Cart
+  cart: Cart & { orderId?: string }
   addToCart: (product: Product, quantity: number) => Promise<boolean>
-  removeFromCart: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
-  clearCart: () => void
+  removeFromCart: (productId: string) => Promise<void>
+  updateQuantity: (productId: string, quantity: number) => Promise<void>
+  clearCart: () => Promise<void>
   getCartItemsCount: () => number
   getCartTotal: () => number
   startCheckout: (userData: CheckoutUserData, discount?: CartDiscount | null) => Promise<string> // Retorna URL do checkout
@@ -29,6 +29,8 @@ type CartAction =
   | { type: 'CLEAR_CART' }
   | { type: 'SET_COMPANY'; payload: { companyId: string; companyName: string } }
   | { type: 'LOAD_CART'; payload: Cart }
+  | { type: 'SET_ORDER_ID'; payload: { orderId: string } }
+  | { type: 'CLEAR_ORDER_ID' }
 
 const CART_STORAGE_KEY = 'xeco-cart'
 
@@ -182,6 +184,16 @@ function cartReducer(state: Cart, action: CartAction): Cart {
       saveCartToStorage(newState)
       return newState
 
+    case 'SET_ORDER_ID':
+      return {
+        ...state,
+        orderId: action.payload.orderId
+      } as any
+
+    case 'CLEAR_ORDER_ID':
+      const { orderId: _orderId, ...stateWithoutOrderId } = state as any
+      return stateWithoutOrderId
+
     default:
       return state
   }
@@ -213,24 +225,137 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return false // Will trigger company conflict modal
     }
 
-    dispatch({ type: 'ADD_ITEM', payload: { product, quantity } })
-    console.log('✅ CartContext: Produto adicionado com sucesso!')
-    return true
+    try {
+      const cartWithNewItem: Cart & { orderId?: string } = {
+        ...cart,
+        items: [...cart.items, { product, quantity, total: product.salePrice * quantity }]
+      }
+
+      // Se é PRIMEIRO item, cria Order no Firestore
+      if (cart.items.length === 0 && firebaseUser) {
+        console.log('📝 Criando nova Order (primeiro item)...')
+        
+        // Busca dados da empresa
+        const companyDoc = await getDoc(doc(db, 'companies', product.companyOwner))
+        if (!companyDoc.exists()) {
+          throw new Error('Empresa não encontrada')
+        }
+        
+        const companyData = { id: companyDoc.id, ...companyDoc.data() }
+
+        // Busca dados completos do usuário
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+        const userProfileData = userDoc.exists() ? userDoc.data() : {}
+
+        // Cria a order
+        const newOrder = await OrderService.createOrder(
+          [{ product, quantity, total: product.salePrice * quantity }],
+          firebaseUser.uid,
+          firebaseUser.email || '',
+          userProfileData.name || firebaseUser.displayName || '',
+          userProfileData.phone || '',
+          product.companyOwner,
+          (companyData as any).owner || ''
+        )
+
+        console.log('✅ Order criada com sucesso:', newOrder.id)
+        dispatch({ type: 'SET_ORDER_ID', payload: { orderId: newOrder.id } })
+      } else if (cart.items.length > 0 && (cart as any).orderId) {
+        // Se já existe order, atualiza items
+        console.log('🔄 Atualizando items na Order existente:', (cart as any).orderId)
+        const newCartItems: CartItem[] = [
+          ...cart.items,
+          { product, quantity, total: product.salePrice * quantity }
+        ]
+        await OrderService.updateOrderItems((cart as any).orderId, newCartItems)
+      }
+
+      dispatch({ type: 'ADD_ITEM', payload: { product, quantity } })
+      console.log('✅ CartContext: Produto adicionado com sucesso!')
+      return true
+    } catch (error) {
+      console.error('❌ Erro ao adicionar produto:', error)
+      return false
+    }
   }
 
-  const removeFromCart = (productId: string) => {
-    console.log('🗑️ Removendo produto do carrinho:', productId)
-    dispatch({ type: 'REMOVE_ITEM', payload: { productId } })
+  const removeFromCart = async (productId: string) => {
+    try {
+      console.log('🗑️ Removendo produto do carrinho:', productId)
+      
+      // Remove do estado local
+      dispatch({ type: 'REMOVE_ITEM', payload: { productId } })
+      
+      // Se existe order, atualiza ou cancela
+      const orderId = (cart as any).orderId
+      if (orderId) {
+        // Filtra os items que vão ficar
+        const remainingItems = cart.items.filter(item => item.product.id !== productId)
+        
+        if (remainingItems.length === 0) {
+          // Se carrinho ficou vazio, cancela order
+          console.log('❌ Cancelando order (carrinho vazio):', orderId)
+          await OrderService.updateOrderStatus(orderId, 'CANCELLED')
+          dispatch({ type: 'CLEAR_ORDER_ID' })
+        } else {
+          // Se ainda tem items, atualiza order
+          console.log('🔄 Atualizando items da order:', orderId)
+          await OrderService.updateOrderItems(orderId, remainingItems)
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao remover produto:', error)
+    }
   }
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    console.log('🔄 Atualizando quantidade:', { productId, quantity })
-    dispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity } })
+  const updateQuantity = async (productId: string, quantity: number) => {
+    try {
+      console.log('🔄 Atualizando quantidade:', { productId, quantity })
+      dispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity } })
+
+      // Se existe order, atualiza items
+      const orderId = (cart as any).orderId
+      if (orderId) {
+        const updatedItems = cart.items.map(item =>
+          item.product.id === productId
+            ? { ...item, quantity, total: quantity * item.product.salePrice }
+            : item
+        )
+        
+        if (quantity <= 0) {
+          // Remover item se quantidade <= 0
+          const remainingItems = updatedItems.filter(item => item.product.id !== productId)
+          if (remainingItems.length === 0) {
+            await OrderService.updateOrderStatus(orderId, 'CANCELLED')
+            dispatch({ type: 'CLEAR_ORDER_ID' })
+          } else {
+            await OrderService.updateOrderItems(orderId, remainingItems)
+          }
+        } else {
+          await OrderService.updateOrderItems(orderId, updatedItems)
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao atualizar quantidade:', error)
+    }
   }
 
-  const clearCart = () => {
-    console.log('🧹 Limpando carrinho completo')
-    dispatch({ type: 'CLEAR_CART' })
+  const clearCart = async () => {
+    try {
+      console.log('🧹 Limpando carrinho completo')
+      
+      // Se existe order, cancela
+      const orderId = (cart as any).orderId
+      if (orderId) {
+        console.log('❌ Cancelando order:', orderId)
+        await OrderService.updateOrderStatus(orderId, 'CANCELLED')
+        dispatch({ type: 'CLEAR_ORDER_ID' })
+      }
+      
+      dispatch({ type: 'CLEAR_CART' })
+    } catch (error) {
+      console.error('❌ Erro ao limpar carrinho:', error)
+    }
   }
 
   const getCartItemsCount = () => {
@@ -272,16 +397,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
       const userProfileData = userDoc.exists() ? userDoc.data() : {}
 
-      // Cria a order
-      const order = await OrderService.createOrder(
-        cart.items,
-        firebaseUser.uid,
-        firebaseUser.email || '',
-        userProfileData.name || firebaseUser.displayName || '',
-        userProfileData.phone || '',
-        companyId,
-        (companyData as any).owner || ''
-      )
+      // ✅ Atualiza order EXISTENTE (foi criada quando adicionou primeiro produto)
+      const orderId = (cart as any).orderId
+      if (!orderId) {
+        throw new Error('Nenhuma order foi criada. Adicione produtos ao carrinho primeiro.')
+      }
+
+      console.log('✅ Usando order existente:', orderId)
+      await OrderService.updateOrderStatus(orderId, 'PENDING_PAYMENT')
+
+      // Busca a order para ter os dados atualizados
+      const order = await OrderService.getOrder(orderId)
+      if (!order) {
+        throw new Error('Order não encontrada')
+      }
 
       // Prepara dados do usuário para o checkout
       const checkoutUserData = {
@@ -289,7 +418,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         name: userProfileData.name || firebaseUser.displayName || '',
         email: firebaseUser.email || '',
         phone: userProfileData.phone || '',
-        cpf: userData.cpf
+        cpf: userData.cpf,
+        address: userData.address // Passa o endereço completo do formulário
       }
 
       // Prepara dados do afiliado se houver cupom de afiliado

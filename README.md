@@ -105,6 +105,9 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=seu_project_id
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=seu_projeto.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=seu_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=seu_app_id
+
+# n8n Webhook URL
+NEXT_PUBLIC_N8N_URL=https://primary-production-9acc.up.railway.app
 ```
 
 ### 4. Execute o projeto
@@ -138,6 +141,33 @@ O projeto está configurado para usar os seguintes serviços do Firebase:
 - **Authentication** - Para login e registro de usuários
 - **Firestore** - Banco de dados NoSQL
 - **Storage** - Armazenamento de arquivos
+
+## 💳 Integração de Pagamento (n8n)
+
+O sistema utiliza integração com n8n para processar pagamentos via Asaas.
+
+### Recursos
+- ✅ Suporte a PIX e Cartão de Crédito
+- ✅ Sistema de splits (plataforma + afiliado + loja)
+- ✅ Conversão automática de imagens para base64
+- ✅ Tratamento robusto de erros
+- ✅ Callbacks de sucesso/cancelamento/expiração
+
+### Documentação Completa
+- [Integração n8n Payment](./docs/N8N_PAYMENT_INTEGRATION.md)
+- [Guia de Testes](./docs/N8N_TESTING_GUIDE.md)
+- [Changelog](./docs/N8N_CHANGELOG.md)
+
+### Configuração Rápida
+1. Configure a variável `NEXT_PUBLIC_N8N_URL` no `.env.local`
+2. Execute a aplicação
+3. Teste o checkout
+
+### Teste a Integração
+```javascript
+// No console do navegador
+await window.n8nTests.runAllTests()
+```
 
 ## 🧩 Componentes Principais
 

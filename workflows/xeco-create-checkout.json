@@ -1,0 +1,728 @@
+{
+  "name": "Xeco - Create Checkout",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xeco-create-checkout",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -4000,
+        0
+      ],
+      "id": "webhook-node",
+      "webhookId": "webhook-xeco-checkout"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validar estrutura básica do request\nconst body = $input.first().json.body;\n\nif (!body) throw new Error('Request body é obrigatório');\nif (!body.orderId) throw new Error('orderId é obrigatório');\nif (!body.userId) throw new Error('userId é obrigatório');\nif (!body.companyId) throw new Error('companyId é obrigatório');\nif (!body.cartItems || !Array.isArray(body.cartItems) || body.cartItems.length === 0) throw new Error('cartItems é obrigatório e deve ter pelo menos 1 item');\nif (!body.customerData) throw new Error('customerData é obrigatório');\nif (body.finalTotal === undefined || typeof body.finalTotal !== 'number') throw new Error('finalTotal é obrigatório e deve ser um número');\n\nreturn $input.all();"
+      },
+      "name": "Validate Request Structure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        0
+      ],
+      "id": "validate-structure-node"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "xeco-334f5",
+        "collection": "companies",
+        "documentId": "={{ $node['Webhook'].json.body.companyId }}"
+      },
+      "name": "Get Company",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        -3200,
+        0
+      ],
+      "id": "get-company-node",
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-service-account",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.status === 'active' && $json.asaasWalletId }}",
+              "value2": "={{ true }}"
+            }
+          ]
+        }
+      },
+      "name": "Check Company Active and Has Wallet",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -2800,
+        0
+      ],
+      "id": "check-company-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const companyId = $('Webhook').first().json.body.companyId;\nconst cartItems = $('Webhook').first().json.body.cartItems;\n\n// Validar que todos os produtos pertencem à empresa\nfor (const item of cartItems) {\n  if (item.companyOwner !== companyId) {\n    throw new Error(`Produto ${item.id} não pertence à empresa ${companyId}`);\n  }\n}\n\nreturn $input.all();"
+      },
+      "name": "Validate Products Belong to Company",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2400,
+        0
+      ],
+      "id": "validate-products-company-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cartItems = $('Webhook').first().json.body.cartItems;\nconst queries = [];\n\n// Buscar todos os produtos para validar stock\nfor (const item of cartItems) {\n  queries.push({\n    index: item.id,\n    id: item.id,\n    quantity: item.quantity\n  });\n}\n\nreturn [{ json: { productValidations: queries } }];"
+      },
+      "name": "Prepare Stock Validations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2000,
+        0
+      ],
+      "id": "prepare-stock-validations-node"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "xeco-334f5",
+        "collection": "products",
+        "documentId": "={{ $node['Webhook'].json.body.cartItems[0].id }}"
+      },
+      "name": "Get Product 1 Stock",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        -1600,
+        -200
+      ],
+      "id": "get-product-1-stock-node",
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-service-account",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const products = [];\nconst inputs = $input.all();\n\n// Coletar dados de todos os produtos validados\nfor (const input of inputs) {\n  if (input.json.stock !== undefined) {\n    products.push(input.json);\n  }\n}\n\n// Validar stock de cada produto\nconst cartItems = $('Webhook').first().json.body.cartItems;\nfor (const item of cartItems) {\n  const product = products.find(p => p.id === item.id);\n  if (!product) throw new Error(`Produto ${item.id} não encontrado`);\n  if (product.stock < item.quantity) {\n    throw new Error(`Produto ${product.name} não tem estoque suficiente. Disponível: ${product.stock}, Solicitado: ${item.quantity}`);\n  }\n}\n\nreturn $input.all();"
+      },
+      "name": "Validate Stock Quantity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        0
+      ],
+      "id": "validate-stock-quantity-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const couponCode = $('Webhook').first().json.body.couponCode;\nconst companyId = $('Webhook').first().json.body.companyId;\n\nif (!couponCode) {\n  // Sem cupom\n  return [{ json: { hasCoupon: false, couponData: null } }];\n}\n\n// Com cupom - vai buscar\nreturn [{ json: { hasCoupon: true, couponCode, companyId } }];"
+      },
+      "name": "Check if Has Coupon",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        -300
+      ],
+      "id": "check-has-coupon-node"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.hasCoupon }}",
+              "value2": "={{ true }}"
+            }
+          ]
+        }
+      },
+      "name": "Has Coupon?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        -300
+      ],
+      "id": "has-coupon-if-node"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "xeco-334f5",
+        "collection": "coupons",
+        "documentId": "={{ $json.couponCode }}"
+      },
+      "name": "Get Coupon Data",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        -300
+      ],
+      "id": "get-coupon-data-node",
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-service-account",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const coupon = $input.first().json;\nconst companyId = $('Check if Has Coupon').first().json.companyId;\n\nif (!coupon.code) throw new Error('Cupom não encontrado');\nif (coupon.status !== 'active') throw new Error('Cupom não está ativo');\nif (coupon.companyId !== companyId) throw new Error('Cupom não pertence à esta empresa');\n\nreturn $input.all();"
+      },
+      "name": "Validate Coupon",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        -300
+      ],
+      "id": "validate-coupon-node"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "xeco-334f5",
+        "collection": "affiliates",
+        "documentId": "={{ $json.affiliateId }}"
+      },
+      "name": "Get Affiliate Data",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        -300
+      ],
+      "id": "get-affiliate-data-node",
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-service-account",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sem cupom - retornar dados vazios\nreturn [{ json: { hasCoupon: false, couponData: null, affiliateData: null } }];"
+      },
+      "name": "No Coupon Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        -100
+      ],
+      "id": "no-coupon-data-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhook = $('Webhook').first().json.body;\nconst hasCoupon = $('Has Coupon?').first().json.hasCoupon !== false;\nlet couponData = null;\nlet affiliateData = null;\n\nif (hasCoupon) {\n  couponData = $input.first().json;\n  if (couponData.type === 'affiliate') {\n    // Vai buscar dados do afiliado\n    affiliateData = $('Get Affiliate Data').first().json;\n  }\n}\n\n// Calcular total com desconto\nlet subtotal = webhook.subtotal;\nlet discount = 0;\nlet finalTotal = webhook.finalTotal;\n\nif (hasCoupon && couponData.discountValue) {\n  discount = couponData.discountValue;\n}\n\n// Double-check: quantidade × preço deve bater com total\nlet calculatedTotal = 0;\nfor (const item of webhook.cartItems) {\n  calculatedTotal += item.price * item.quantity;\n}\n\nif (Math.abs(calculatedTotal - (webhook.subtotal || 0)) > 0.01) {\n  throw new Error(`Erro de cálculo de preço. Calculado: ${calculatedTotal}, Recebido: ${webhook.subtotal}`);\n}\n\nconst finalTotalWithDiscount = calculatedTotal - discount;\nif (Math.abs(finalTotalWithDiscount - finalTotal) > 0.01) {\n  throw new Error(`Erro no total final. Esperado: ${finalTotalWithDiscount}, Recebido: ${finalTotal}`);\n}\n\nreturn [{ json: { \n  hasCoupon,\n  couponData,\n  affiliateData,\n  subtotal: calculatedTotal,\n  discount,\n  finalTotal: finalTotalWithDiscount\n} }];"
+      },
+      "name": "Validate and Prepare Coupon Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        -200
+      ],
+      "id": "validate-prepare-coupon-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const couponValidation = $input.first().json;\nconst company = $('Get Company').first().json;\nconst webhook = $('Webhook').first().json.body;\n\nconst hasCoupon = couponValidation.hasCoupon;\nconst affiliateData = couponValidation.affiliateData;\nconst discountValue = couponValidation.discount || 0;\nconst finalTotal = couponValidation.finalTotal;\n\n// 8% para plataforma (sempre)\nconst platformAmount = Math.round(finalTotal * 0.08 * 100) / 100;\n\n// Se não tem cupom afiliado: 92% para empresa\n// Se tem cupom afiliado: (92 - discountPercentage)% para empresa + discountPercentage% para afiliado\n\nlet splits = [];\nlet companyAmount;\nlet affiliateAmount = 0;\n\nif (hasCoupon && affiliateData) {\n  // Tem afiliado - dividir 92% entre empresa e afiliado\n  const discountPercentage = (discountValue / finalTotal) * 100;\n  const companyPercentage = 92 - discountPercentage;\n  \n  companyAmount = Math.round(finalTotal * (companyPercentage / 100) * 100) / 100;\n  affiliateAmount = Math.round(finalTotal * (discountPercentage / 100) * 100) / 100;\n  \n  splits = [\n    {\n      walletId: company.asaasWalletId,\n      value: companyAmount,\n      description: `Empresa - ${companyPercentage.toFixed(2)}%`\n    },\n    {\n      walletId: affiliateData.walletId,\n      value: affiliateAmount,\n      description: `Afiliado - ${discountPercentage.toFixed(2)}%`\n    }\n  ];\n} else {\n  // Sem afiliado: 92% para empresa\n  companyAmount = Math.round(finalTotal * 0.92 * 100) / 100;\n  \n  splits = [\n    {\n      walletId: company.asaasWalletId,\n      value: companyAmount,\n      description: 'Empresa - 92%'\n    }\n  ];\n}\n\nreturn [{ json: { \n  platformAmount,\n  companyAmount,\n  affiliateAmount,\n  splits,\n  finalTotal\n} }];"
+      },
+      "name": "Calculate Splits",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        -200
+      ],
+      "id": "calculate-splits-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhook = $('Webhook').first().json.body;\nconst splits = $input.first().json.splits;\nconst couponValidation = $('Validate and Prepare Coupon Data').first().json;\n\nconst asaasPayload = {\n  billingType: 'CHECKOUT',\n  chargeType: 'ASAAS_SUBSCRIPTION',\n  currency: 'BRL',\n  redirect: webhook.callbacks,\n  items: webhook.cartItems.map(item => ({\n    name: item.name,\n    description: item.description || '',\n    quantity: item.quantity,\n    value: item.price,\n    image: item.image || undefined\n  })),\n  customer: {\n    name: webhook.customerData.name,\n    email: webhook.customerData.email,\n    phone: webhook.customerData.phone,\n    cpfCnpj: webhook.customerData.cpfCnpj,\n    address: webhook.customerData.address\n  },\n  splits: splits,\n  externalReference: webhook.orderId,\n  minutesToExpire: 15\n};\n\nreturn [{ json: { asaasPayload } }];"
+      },
+      "name": "Mount Asaas Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        -200
+      ],
+      "id": "mount-asaas-payload-node"
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api-sandbox.asaas.com/v3/checkouts",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ $json.asaasPayload }}",
+        "options": {}
+      },
+      "name": "Create Checkout Asaas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        2600,
+        -200
+      ],
+      "id": "create-checkout-asaas-node",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "asaas-credentials",
+          "name": "Asaas API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.id && $json.link }}",
+              "value2": "={{ true }}"
+            }
+          ]
+        }
+      },
+      "name": "Check Asaas Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        3000,
+        -200
+      ],
+      "id": "check-asaas-success-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhook = $('Webhook').first().json.body;\nconst asaasResponse = $('Create Checkout Asaas').first().json;\nconst splits = $('Calculate Splits').first().json;\nconst couponValidation = $('Validate and Prepare Coupon Data').first().json;\n\nconst orderData = {\n  orderId: webhook.orderId,\n  userId: webhook.userId,\n  companyId: webhook.companyId,\n  products: webhook.cartItems.map(item => ({\n    id: item.id,\n    name: item.name,\n    price: item.price,\n    quantity: item.quantity,\n    companyId: item.companyOwner\n  })),\n  subtotal: couponValidation.subtotal,\n  discount: couponValidation.discount,\n  finalTotal: couponValidation.finalTotal,\n  status: 'PENDING',\n  checkoutId: asaasResponse.id,\n  checkoutUrl: asaasResponse.link,\n  splits: {\n    platform: splits.platformAmount,\n    company: splits.companyAmount,\n    affiliate: splits.affiliateAmount\n  },\n  coupon: webhook.couponCode ? {\n    code: webhook.couponCode,\n    discountValue: couponValidation.discount\n  } : null,\n  createdAt: new Date().toISOString(),\n  asaasCheckoutId: asaasResponse.id,\n  asaasCheckoutLink: asaasResponse.link\n};\n\nreturn [{ json: { orderData } }];"
+      },
+      "name": "Prepare Order Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3400,
+        -300
+      ],
+      "id": "prepare-order-data-node"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "upsert",
+        "projectId": "xeco-334f5",
+        "collection": "orders",
+        "updateKey": "orderId",
+        "columns": "=orderId, userId, companyId, products, subtotal, discount, finalTotal, status, checkoutId, checkoutUrl, splits, coupon, createdAt, asaasCheckoutId, asaasCheckoutLink"
+      },
+      "name": "Save Order to Firebase",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        3800,
+        -300
+      ],
+      "id": "save-order-firebase-node",
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-service-account",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": true,\n  \"checkoutId\": \"{{ $node['Create Checkout Asaas'].json.id }}\",\n  \"checkoutUrl\": \"{{ $node['Create Checkout Asaas'].json.link }}\",\n  \"orderId\": \"{{ $node['Webhook'].json.body.orderId }}\"\n}"
+      },
+      "name": "Return Success",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4200,
+        -300
+      ],
+      "id": "return-success-node"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": false,\n  \"error\": \"Erro ao criar checkout no Asaas: {{ $node['Create Checkout Asaas'].json.message || 'Desconhecido' }}\"\n}"
+      },
+      "name": "Return Asaas Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3400,
+        100
+      ],
+      "id": "return-asaas-error-node"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": false,\n  \"error\": \"Empresa não encontrada ou não configurada para receber pagamentos\"\n}"
+      },
+      "name": "Return Company Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2400,
+        200
+      ],
+      "id": "return-company-error-node"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        -300
+      ],
+      "id": "respond-success-node"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        3800,
+        100
+      ],
+      "id": "respond-error-node"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Request Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Request Structure": {
+      "main": [
+        [
+          {
+            "node": "Get Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Company": {
+      "main": [
+        [
+          {
+            "node": "Check Company Active and Has Wallet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Company Active and Has Wallet": {
+      "main": [
+        [
+          {
+            "node": "Validate Products Belong to Company",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Company Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Products Belong to Company": {
+      "main": [
+        [
+          {
+            "node": "Prepare Stock Validations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Stock Validations": {
+      "main": [
+        [
+          {
+            "node": "Get Product 1 Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product 1 Stock": {
+      "main": [
+        [
+          {
+            "node": "Validate Stock Quantity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Stock Quantity": {
+      "main": [
+        [
+          {
+            "node": "Check if Has Coupon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Has Coupon": {
+      "main": [
+        [
+          {
+            "node": "Has Coupon?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Coupon?": {
+      "main": [
+        [
+          {
+            "node": "Get Coupon Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Coupon Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Coupon Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Coupon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Coupon": {
+      "main": [
+        [
+          {
+            "node": "Get Affiliate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Affiliate Data": {
+      "main": [
+        [
+          {
+            "node": "Validate and Prepare Coupon Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Coupon Data": {
+      "main": [
+        [
+          {
+            "node": "Validate and Prepare Coupon Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate and Prepare Coupon Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Splits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Splits": {
+      "main": [
+        [
+          {
+            "node": "Mount Asaas Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mount Asaas Payload": {
+      "main": [
+        [
+          {
+            "node": "Create Checkout Asaas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Checkout Asaas": {
+      "main": [
+        [
+          {
+            "node": "Check Asaas Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Asaas Success": {
+      "main": [
+        [
+          {
+            "node": "Prepare Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Asaas Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Order Data": {
+      "main": [
+        [
+          {
+            "node": "Save Order to Firebase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Order to Firebase": {
+      "main": [
+        [
+          {
+            "node": "Return Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Company Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Asaas Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "v1",
+  "meta": {
+    "instanceId": "xeco-instance",
+    "description": "Workflow COMPLETO Xeco - Valida empresa, produtos, stock, cupom, calcula splits e cria checkout no Asaas"
+  },
+  "id": "xeco-checkout-complete-workflow",
+  "tags": ["xeco", "checkout", "asaas", "payment", "validation"]
+}

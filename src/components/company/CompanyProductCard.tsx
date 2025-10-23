@@ -39,10 +39,10 @@ export function CompanyProductCard({ product, showBadge }: CompanyProductCardPro
     }
   }
 
-  const handleClearAndAdd = () => {
+  const handleClearAndAdd = async () => {
     if (pendingProduct) {
-      clearCart()
-      addToCart(pendingProduct, 1)
+      await clearCart()
+      await addToCart(pendingProduct, 1)
       setShowConflictModal(false)
       setPendingProduct(null)
       setShowSuccessToast(true)
