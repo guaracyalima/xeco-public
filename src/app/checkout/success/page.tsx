@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useCart } from '@/contexts/CartContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Layout } from '@/components/layout/Layout'
 import { CheckCircle, Loader2 } from 'lucide-react'
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const { clearCart } = useCart()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -98,5 +98,19 @@ export default function CheckoutSuccessPage() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-coral-500" />
+        </div>
+      </Layout>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
   )
 }

@@ -6,7 +6,7 @@ import { CheckoutUserData } from '@/types/order'
 import { OrderService } from '@/services/orderService'
 import { CheckoutService } from '@/services/checkoutService'
 import { useAuth } from '@/context/AuthContext'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 interface CartContextType {
@@ -207,13 +207,61 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialCart)
   const { firebaseUser } = useAuth() // Usar firebaseUser que tem uid e displayName
 
-  // Carregar carrinho do localStorage quando o componente é montado
+  // 🔍 Verificar se há orders pagas/canceladas e limpar carrinho
   useEffect(() => {
-    const savedCart = loadCartFromStorage()
-    if (savedCart.totalItems > 0) {
-      dispatch({ type: 'LOAD_CART', payload: savedCart })
+    const checkPendingOrders = async () => {
+      if (!firebaseUser) return
+
+      try {
+        const savedCart = loadCartFromStorage()
+        const orderId = (savedCart as any).orderId
+
+        // Se tem um orderId no carrinho, verificar status
+        if (orderId) {
+          console.log('🔍 Verificando status da order:', orderId)
+          
+          const order = await OrderService.getOrder(orderId)
+          
+          if (order) {
+            const shouldClearCart = 
+              order.paymentStatus === 'CONFIRMED' || 
+              order.paymentStatus === 'PAID' ||
+              order.status === 'CONFIRMED' ||
+              order.status === 'PAID' ||
+              order.status === 'CANCELLED' ||
+              order.status === 'EXPIRED'
+
+            if (shouldClearCart) {
+              console.log('🧹 Order já foi processada/cancelada. Limpando carrinho...', {
+                paymentStatus: order.paymentStatus,
+                status: order.status
+              })
+              
+              // Limpar carrinho
+              localStorage.removeItem(CART_STORAGE_KEY)
+              dispatch({ type: 'CLEAR_CART' })
+              return // Não carregar carrinho antigo
+            }
+          }
+        }
+
+        // Se passou nas verificações, carregar carrinho normal
+        if (savedCart.totalItems > 0) {
+          dispatch({ type: 'LOAD_CART', payload: savedCart })
+        }
+
+      } catch (error) {
+        console.error('❌ Erro ao verificar orders pendentes:', error)
+        // Em caso de erro, carrega carrinho normalmente
+        const savedCart = loadCartFromStorage()
+        if (savedCart.totalItems > 0) {
+          dispatch({ type: 'LOAD_CART', payload: savedCart })
+        }
+      }
     }
-  }, [])
+
+    checkPendingOrders()
+  }, [firebaseUser])
 
   const addToCart = async (product: Product, quantity: number): Promise<boolean> => {
     console.log('🛒 CartContext: Tentando adicionar produto:', { nome: product.name, quantidade: quantity })
