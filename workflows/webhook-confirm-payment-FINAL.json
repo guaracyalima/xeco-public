@@ -1,0 +1,415 @@
+{
+  "name": "Xeco - Confirm Payment Webhook (PRODUCTION)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xeco-confirm-payment",
+        "options": {}
+      },
+      "name": "Webhook: Payment Confirmed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-2816, 608],
+      "id": "webhook-payment-confirmed",
+      "webhookId": "xeco-confirm-payment"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔐 FASE 1: Validar Webhook do Asaas\nconst body = $input.first().json.body;\n\nconsole.log('🔔 Webhook Asaas recebido:', JSON.stringify(body, null, 2));\n\n// Validação do evento\nif (!body.event || body.event !== 'PAYMENT_CONFIRMED') {\n  throw new Error(`❌ Evento inválido: ${body.event}. Esperado: PAYMENT_CONFIRMED`);\n}\n\n// Validação do payment\nif (!body.payment) {\n  throw new Error('❌ Campo \"payment\" ausente');\n}\n\n// ⚠️ CRÍTICO: checkoutSession é o asaasPaymentId que salvamos\nif (!body.payment.checkoutSession) {\n  throw new Error('❌ Campo \"payment.checkoutSession\" ausente');\n}\n\nif (!body.payment.id) {\n  throw new Error('❌ Campo \"payment.id\" ausente');\n}\n\nconsole.log('✅ Webhook validado');\nconsole.log('🔑 Checkout Session:', body.payment.checkoutSession);\nconsole.log('💳 Payment ID:', body.payment.id);\nconsole.log('💰 Valor:', body.payment.value);\nconsole.log('💰 Valor Líquido:', body.payment.netValue);\nconsole.log('📊 Status:', body.payment.status);\n\nreturn $input.all();"
+      },
+      "name": "1. Validate Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2592, 608],
+      "id": "validate-webhook"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "query",
+        "projectId": "xeco-334f5",
+        "query": "={\n  \"structuredQuery\": {\n    \"where\": {\n      \"fieldFilter\": {\n        \"field\": { \"fieldPath\": \"asaasPaymentId\" },\n        \"op\": \"EQUAL\",\n        \"value\": { \"stringValue\": \"{{ $json.body.payment.checkoutSession }}\" }\n      }\n    },\n    \"from\": [{ \"collectionId\": \"orders\" }],\n    \"limit\": 1\n  }\n}"
+      },
+      "name": "2. Find Order by checkoutSession",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [-2368, 608],
+      "id": "find-order",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.length > 0 }}"
+            }
+          ]
+        }
+      },
+      "name": "3. Check Order Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-2144, 608],
+      "id": "check-order-exists"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔍 FASE 2: Validar Idempotência\nconst order = $input.first().json;\nconst payment = $('1. Validate Webhook').first().json.body.payment;\n\nconsole.log('📦 Order encontrada:', order._id);\nconsole.log('📊 Status atual:', order.status);\nconsole.log('💳 Payment Status:', order.paymentStatus);\n\n// ⚠️ IDEMPOTÊNCIA: Verificar se já processou\nif (order.paymentStatus === 'CONFIRMED' && order.status === 'CONFIRMED') {\n  console.log('⚠️ Pagamento já processado anteriormente!');\n  return [{\n    json: {\n      alreadyProcessed: true,\n      orderId: order._id,\n      message: 'Pagamento já foi processado'\n    }\n  }];\n}\n\n// Validar se order está em status válido\nif (order.status !== 'PENDING_PAYMENT' && order.paymentStatus !== 'CONFIRMED') {\n  console.log('⚠️ Order em status inválido:', order.status);\n}\n\nconsole.log('✅ Order válida para processar');\n\nreturn [{\n  json: {\n    alreadyProcessed: false,\n    order: order,\n    payment: payment\n  }\n}];"
+      },
+      "name": "4. Validate Idempotency",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1920, 512],
+      "id": "validate-idempotency"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.alreadyProcessed }}"
+            }
+          ]
+        }
+      },
+      "name": "5. Check Not Processed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-1696, 512],
+      "id": "check-not-processed"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📦 FASE 3: Buscar Produtos da Order\nconst order = $input.first().json.order;\n\nconsole.log('🔍 Buscando produtos da order...');\nconsole.log('📋 Items:', JSON.stringify(order.items, null, 2));\n\nif (!order.items || order.items.length === 0) {\n  throw new Error('❌ Order não tem items!');\n}\n\n// Preparar array de productIds para buscar no Firebase\nconst productIds = order.items.map(item => item.productId || item.id);\n\nconsole.log('🔍 Product IDs:', productIds);\n\nreturn [{\n  json: {\n    order: order,\n    productIds: productIds,\n    items: order.items\n  }\n}];"
+      },
+      "name": "6. Prepare Products Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1472, 416],
+      "id": "prepare-products-query"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔄 FASE 4: Processar cada produto e validar estoque\nconst data = $input.first().json;\nconst order = data.order;\nconst items = data.items;\n\nconsole.log('🔄 Processando estoque de', items.length, 'produtos...');\n\nconst results = [];\n\nfor (const item of items) {\n  const productId = item.productId || item.id;\n  const quantityOrdered = item.quantity || item.requestedQuantity || 1;\n  \n  console.log(`📦 Produto ${productId}: ${quantityOrdered} unidades`);\n  \n  results.push({\n    json: {\n      orderId: order._id,\n      productId: productId,\n      quantityOrdered: quantityOrdered,\n      itemTotal: item.itemTotal || item.totalPrice || 0,\n      unitPrice: item.unitPrice || 0\n    }\n  });\n}\n\nconsole.log('✅ Preparados', results.length, 'produtos para processar');\n\nreturn results;"
+      },
+      "name": "7. Split Items for Processing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1248, 416],
+      "id": "split-items"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "xeco-334f5",
+        "collection": "product",
+        "documentId": "={{ $json.productId }}",
+        "simple": false
+      },
+      "name": "8. Get Product from Firebase",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [-1024, 416],
+      "id": "get-product",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📊 FASE 5: Validar e Baixar Estoque\nconst allInputs = $input.all();\nconst results = [];\n\nconsole.log(`🔄 Processando ${allInputs.length} produtos...`);\n\nfor (const inputItem of allInputs) {\n  const productData = inputItem.json;\n  \n  // 🔍 Extrair dados do Firebase (estrutura found.fields)\n  const fields = productData.found?.fields || productData.fields || {};\n  const productId = productData.found?.id || productData.id || productData.productId;\n  \n  // Extrair valores dos campos (Firebase retorna {stringValue: \"...\", integerValue: \"...\"})\n  const productName = fields.name?.stringValue || 'Produto sem nome';\n  const stockQuantity = parseInt(fields.stockQuantity?.integerValue || fields.stockQuantity?.stringValue || '0');\n  \n  // Dados do pedido (vêm junto no input)\n  const quantityOrdered = parseInt(productData.quantityOrdered || '1');\n  const orderId = productData.orderId;\n  const itemTotal = productData.itemTotal || 0;\n  const unitPrice = productData.unitPrice || 0;\n  \n  console.log(`📦 Produto ${productId}: ${productName}`);\n  console.log(`📊 Estoque atual: ${stockQuantity}`);\n  console.log(`🛒 Quantidade pedido: ${quantityOrdered}`);\n  \n  const hasStock = stockQuantity >= quantityOrdered;\n  const newStock = hasStock ? stockQuantity - quantityOrdered : stockQuantity;\n  \n  if (!hasStock) {\n    console.log(`⚠️ ESTOQUE INSUFICIENTE! Disponível: ${stockQuantity}, Pedido: ${quantityOrdered}`);\n  } else {\n    console.log(`✅ Estoque OK! Novo estoque será: ${newStock}`);\n  }\n  \n  results.push({\n    json: {\n      productId: productId,\n      productName: productName,\n      currentStock: stockQuantity,\n      quantityOrdered: quantityOrdered,\n      hasStock: hasStock,\n      newStock: newStock,\n      orderId: orderId,\n      itemTotal: itemTotal,\n      unitPrice: unitPrice\n    }\n  });\n}\n\nconsole.log(`✅ Processados ${results.length} produtos`);\n\nreturn results;"
+      },
+      "name": "9. Validate Stock",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-800, 416],
+      "id": "validate-stock"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 💾 FASE 6: Atualizar Estoque de TODOS os Produtos\nconst allProducts = $input.all();\n\nconsole.log(`💾 Atualizando estoque de ${allProducts.length} produtos...`);\n\nconst results = [];\nconst outOfStock = [];\n\nfor (const item of allProducts) {\n  const data = item.json;\n  \n  if (data.hasStock === true) {\n    console.log(`✅ ${data.productName}: ${data.currentStock} → ${data.newStock}`);\n    \n    results.push({\n      json: {\n        productId: data.productId,\n        productName: data.productName,\n        currentStock: data.currentStock,\n        newStock: data.newStock,\n        quantityOrdered: data.quantityOrdered,\n        hasStock: true,\n        needsUpdate: true,\n        orderId: data.orderId,\n        itemTotal: data.itemTotal,\n        unitPrice: data.unitPrice\n      }\n    });\n  } else {\n    console.log(`⚠️ ${data.productName} - SEM ESTOQUE`);\n    \n    outOfStock.push({\n      json: {\n        productId: data.productId,\n        productName: data.productName,\n        currentStock: data.currentStock,\n        quantityOrdered: data.quantityOrdered,\n        shortfall: data.quantityOrdered - data.currentStock,\n        hasStock: false,\n        needsUpdate: false,\n        orderId: data.orderId\n      }\n    });\n    \n    // Também adicionar ao results para continuar o fluxo\n    results.push({\n      json: {\n        productId: data.productId,\n        productName: data.productName,\n        hasStock: false,\n        needsUpdate: false,\n        orderId: data.orderId\n      }\n    });\n  }\n}\n\nconsole.log(`✅ Com estoque: ${results.filter(r => r.json.hasStock).length}`);\nconsole.log(`⚠️ Sem estoque: ${outOfStock.length}`);\n\n// Retornar TODOS (com e sem estoque)\nreturn results;"
+      },
+      "name": "10. Prepare Stock Updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-576, 416],
+      "id": "prepare-stock-updates"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "projectId": "xeco-334f5",
+        "collection": "product",
+        "documentId": "={{ $json.productId }}",
+        "updateAllFields": false,
+        "fields": {
+          "stockQuantity": "={{ $json.newStock }}",
+          "updatedAt": "={{ new Date().toISOString() }}"
+        },
+        "options": {}
+      },
+      "name": "11. Update Product Stock",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [-352, 416],
+      "id": "update-product-stock",
+      "executeOnce": false,
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📊 FASE 7: Agregar Resultados\nconst allResults = $input.all();\n\nconsole.log('📊 Agregando', allResults.length, 'resultados...');\n\n// Contar sucessos e falhas\nconst withStock = allResults.filter(r => r.json.hasStock === true);\nconst withoutStock = allResults.filter(r => r.json.hasStock === false);\n\nconsole.log('✅ Atualizados com sucesso:', withStock.length);\nconsole.log('⚠️ Sem estoque:', withoutStock.length);\n\nreturn allResults;"
+      },
+      "name": "12. Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-128, 416],
+      "id": "aggregate-results"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📊 FASE 8: Preparar Atualização da Order\nconst payment = $node['1. Validate Webhook'].json.body.payment;\nconst order = $node['4. Validate Idempotency'].json.order;\nconst stockResults = $input.all();\n\nconsole.log('📊 Preparando atualização da order...');\n\n// Verificar se todos produtos tinham estoque\nconst allHadStock = stockResults.every(r => r.json.hasStock !== false);\nconst outOfStockItems = stockResults.filter(r => r.json.hasStock === false);\n\nconsole.log('✅ Estoque OK:', allHadStock);\nif (!allHadStock) {\n  console.log('⚠️ Produtos sem estoque:', outOfStockItems.length);\n}\n\nreturn [{\n  json: {\n    orderId: order._id,\n    \n    // Status do pagamento (do webhook)\n    paymentStatus: payment.status,\n    status: allHadStock ? 'CONFIRMED' : 'PARTIAL_STOCK',\n    \n    // Dados do Asaas\n    asaasPaymentId: payment.checkoutSession,\n    asaasTransactionId: payment.id,\n    asaasCustomerId: payment.customer,\n    \n    // Valores\n    grossValue: payment.value,\n    netValue: payment.netValue,\n    \n    // Pagamento\n    billingType: payment.billingType,\n    confirmedDate: payment.confirmedDate,\n    clientPaymentDate: payment.clientPaymentDate,\n    creditDate: payment.creditDate,\n    estimatedCreditDate: payment.estimatedCreditDate,\n    \n    // URLs\n    invoiceUrl: payment.invoiceUrl,\n    invoiceNumber: payment.invoiceNumber,\n    transactionReceiptUrl: payment.transactionReceiptUrl,\n    \n    // Split (afiliado)\n    splitInfo: payment.split || null,\n    \n    // Estoque\n    hasFullStock: allHadStock,\n    outOfStockCount: outOfStockItems.length,\n    \n    // Timestamps\n    paymentConfirmedAt: new Date().toISOString(),\n    updatedAt: new Date().toISOString(),\n    webhookProcessedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "13. Prepare Order Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [96, 416],
+      "id": "prepare-order-update"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "projectId": "xeco-334f5",
+        "collection": "orders",
+        "documentId": "={{ $json.orderId }}",
+        "updateAllFields": false,
+        "fields": {
+          "paymentStatus": "={{ $json.paymentStatus }}",
+          "status": "={{ $json.status }}",
+          "asaasPaymentId": "={{ $json.asaasPaymentId }}",
+          "asaasTransactionId": "={{ $json.asaasTransactionId }}",
+          "asaasCustomerId": "={{ $json.asaasCustomerId }}",
+          "grossValue": "={{ $json.grossValue }}",
+          "netValue": "={{ $json.netValue }}",
+          "billingType": "={{ $json.billingType }}",
+          "confirmedDate": "={{ $json.confirmedDate }}",
+          "clientPaymentDate": "={{ $json.clientPaymentDate }}",
+          "creditDate": "={{ $json.creditDate }}",
+          "estimatedCreditDate": "={{ $json.estimatedCreditDate }}",
+          "invoiceUrl": "={{ $json.invoiceUrl }}",
+          "invoiceNumber": "={{ $json.invoiceNumber }}",
+          "transactionReceiptUrl": "={{ $json.transactionReceiptUrl }}",
+          "splitInfo": "={{ $json.splitInfo }}",
+          "hasFullStock": "={{ $json.hasFullStock }}",
+          "outOfStockCount": "={{ $json.outOfStockCount }}",
+          "paymentConfirmedAt": "={{ $json.paymentConfirmedAt }}",
+          "updatedAt": "={{ $json.updatedAt }}",
+          "webhookProcessedAt": "={{ $json.webhookProcessedAt }}"
+        }
+      },
+      "name": "14. Update Order",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [320, 416],
+      "id": "update-order",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📊 FASE 9: Criar Analytics Sale\nconst order = $node['4. Validate Idempotency'].json.order;\nconst payment = $node['1. Validate Webhook'].json.body.payment;\n\nconsole.log('📊 Criando registro de venda para analytics...');\n\nreturn [{\n  json: {\n    orderId: order._id,\n    companyId: order.companyId,\n    userId: order.userId,\n    grossValue: payment.value,\n    netValue: payment.netValue,\n    platformFee: payment.value - payment.netValue,\n    paymentMethod: payment.billingType,\n    paymentStatus: payment.status,\n    paidAt: payment.clientPaymentDate,\n    itemsCount: order.items?.length || 0,\n    products: order.items?.map(item => ({\n      productId: item.productId || item.id,\n      quantity: item.quantity || item.requestedQuantity,\n      unitPrice: item.unitPrice,\n      total: item.itemTotal\n    })) || [],\n    hasAffiliate: payment.split && payment.split.length > 0,\n    affiliateCommission: payment.split?.[0]?.totalValue || 0,\n    createdAt: new Date().toISOString(),\n    saleDate: payment.confirmedDate,\n    source: 'webhook_payment_confirmed'\n  }\n}];"
+      },
+      "name": "15. Prepare Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [544, 416],
+      "id": "prepare-analytics"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "create",
+        "projectId": "xeco-334f5",
+        "collection": "sales"
+      },
+      "name": "16. Create Sale Analytics",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [768, 416],
+      "id": "create-analytics",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": true,\n  \"message\": \"Pagamento processado com sucesso\",\n  \"orderId\": \"{{ $node['4. Validate Idempotency'].json.order._id }}\",\n  \"paymentId\": \"{{ $node['1. Validate Webhook'].json.body.payment.id }}\",\n  \"paymentStatus\": \"{{ $node['1. Validate Webhook'].json.body.payment.status }}\",\n  \"orderStatus\": \"{{ $node['13. Prepare Order Update'].json.status }}\",\n  \"hasFullStock\": {{ $node['13. Prepare Order Update'].json.hasFullStock }},\n  \"netValue\": {{ $node['1. Validate Webhook'].json.body.payment.netValue }},\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "name": "17. Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [992, 416],
+      "id": "success-response"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "18. Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1216, 416],
+      "id": "respond-success"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": true,\n  \"message\": \"Pagamento já foi processado anteriormente\",\n  \"orderId\": \"{{ $json.orderId }}\",\n  \"alreadyProcessed\": true,\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "name": "Already Processed Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1472, 608],
+      "id": "already-processed-response"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Already Processed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-1248, 608],
+      "id": "respond-already-processed"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": false,\n  \"error\": \"ORDER_NOT_FOUND\",\n  \"message\": \"Pedido não encontrado\",\n  \"checkoutSession\": \"{{ $node['1. Validate Webhook'].json.body.payment.checkoutSession }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "name": "Order Not Found Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1920, 704],
+      "id": "order-not-found-response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "name": "Respond Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-1696, 704],
+      "id": "respond-not-found"
+    }
+  ],
+  "connections": {
+    "Webhook: Payment Confirmed": {
+      "main": [[{"node": "1. Validate Webhook", "type": "main", "index": 0}]]
+    },
+    "1. Validate Webhook": {
+      "main": [[{"node": "2. Find Order by checkoutSession", "type": "main", "index": 0}]]
+    },
+    "2. Find Order by checkoutSession": {
+      "main": [[{"node": "3. Check Order Exists", "type": "main", "index": 0}]]
+    },
+    "3. Check Order Exists": {
+      "main": [
+        [{"node": "4. Validate Idempotency", "type": "main", "index": 0}],
+        [{"node": "Order Not Found Response", "type": "main", "index": 0}]
+      ]
+    },
+    "4. Validate Idempotency": {
+      "main": [[{"node": "5. Check Not Processed", "type": "main", "index": 0}]]
+    },
+    "5. Check Not Processed": {
+      "main": [
+        [{"node": "6. Prepare Products Query", "type": "main", "index": 0}],
+        [{"node": "Already Processed Response", "type": "main", "index": 0}]
+      ]
+    },
+    "6. Prepare Products Query": {
+      "main": [[{"node": "7. Split Items for Processing", "type": "main", "index": 0}]]
+    },
+    "7. Split Items for Processing": {
+      "main": [[{"node": "8. Get Product from Firebase", "type": "main", "index": 0}]]
+    },
+    "8. Get Product from Firebase": {
+      "main": [[{"node": "9. Validate Stock", "type": "main", "index": 0}]]
+    },
+    "9. Validate Stock": {
+      "main": [[{"node": "10. Prepare Stock Updates", "type": "main", "index": 0}]]
+    },
+    "10. Prepare Stock Updates": {
+      "main": [[{"node": "11. Update Product Stock", "type": "main", "index": 0}]]
+    },
+    "11. Update Product Stock": {
+      "main": [[{"node": "12. Aggregate Results", "type": "main", "index": 0}]]
+    },
+    "12. Aggregate Results": {
+      "main": [[{"node": "13. Prepare Order Update", "type": "main", "index": 0}]]
+    },
+    "13. Prepare Order Update": {
+      "main": [[{"node": "14. Update Order", "type": "main", "index": 0}]]
+    },
+    "14. Update Order": {
+      "main": [[{"node": "15. Prepare Analytics", "type": "main", "index": 0}]]
+    },
+    "15. Prepare Analytics": {
+      "main": [[{"node": "16. Create Sale Analytics", "type": "main", "index": 0}]]
+    },
+    "16. Create Sale Analytics": {
+      "main": [[{"node": "17. Success Response", "type": "main", "index": 0}]]
+    },
+    "17. Success Response": {
+      "main": [[{"node": "18. Respond Success", "type": "main", "index": 0}]]
+    },
+    "Already Processed Response": {
+      "main": [[{"node": "Respond Already Processed", "type": "main", "index": 0}]]
+    },
+    "Order Not Found Response": {
+      "main": [[{"node": "Respond Not Found", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "xeco-production"
+  },
+  "tags": ["xeco", "payment", "webhook", "asaas", "production"]
+}

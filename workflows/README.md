@@ -1,111 +1,174 @@
-# 🤖 N8N Workflows - Xeco Platform
+# 🔄 N8N Workflows - Xeco
 
-## � Estrutura da Pasta
+Webhooks e automações N8N para o sistema Xeco.
+
+## 📁 Estrutura
 
 ```
-/workflows/
-├── README.md                 # Este arquivo - documentação geral
-├── DEPLOY.md                # Guia de configuração e deploy
-├── CHANGELOG.md             # Histórico de versões e mudanças
-├── checkout-workflow.json   # Workflow principal de checkout
-└── test-examples.json       # Exemplos para teste
+workflows/
+├── README.md                          # Este arquivo
+├── webhook-confirm-payment.json       # Webhook de confirmação de pagamento
+├── checkout-workflow.json             # Workflow de criação de checkout (legado)
+└── test-examples.json                 # Exemplos de teste
 ```
 
-## � Workflows Disponíveis
+## 🎯 Workflows Disponíveis
 
-### 1. 🛒 Create Checkout Services
-**Arquivo**: `checkout-workflow.json`
-**Status**: ✅ Ativo em Produção
-**Versão**: 1.0.0
+### 1. � Webhook: Confirm Payment
 
-**Descrição**: Workflow responsável por criar checkouts de pagamento através da integração com a API do Asaas, validando dados da empresa e calculando comissões da plataforma.
+**Arquivo:** `webhook-confirm-payment.json`  
+**Status:** ✅ Pronto para uso  
+**Documentação:** [WEBHOOK_CONFIRM_PAYMENT.md](../docs/WEBHOOK_CONFIRM_PAYMENT.md)
 
-**Features**:
-- ✅ Validação rigorosa de entrada
-- ✅ Integração Firebase Firestore
-- ✅ Split de pagamento (8% plataforma, 92% proprietário)
-- ✅ Tratamento completo de erros
-- ✅ Callback URLs configuradas
+**Função:** Processa notificação do Asaas quando pagamento é confirmado
 
-## 🔗 Links Importantes
+**Endpoint:**
+```
+POST /webhook/xeco-confirm-payment
+```
 
-- **N8N Produção**: https://primary-production-9acc.up.railway.app
-- **Webhook Checkout**: `/webhook-test/create-payment`
-- **Firebase Project**: xeco-334f5
-- **Asaas API**: Sandbox Environment
+**Fluxo:**
+1. Recebe evento `PAYMENT_CONFIRMED` do Asaas
+2. Valida dados obrigatórios
+3. Busca order no Firebase
+4. Atualiza status e dados de pagamento
+5. Notifica empresa/cliente (opcional)
+6. Responde sucesso/erro
 
-## 🛠️ Como Usar
-
-### 1. **Importar Workflow**
+**Deploy:**
 ```bash
-# 1. Acesse o N8N em produção
-# 2. Vá em Workflows > Import from JSON  
-# 3. Copie o conteúdo de checkout-workflow.json
-# 4. Configure as credenciais necessárias
+# 1. Importar no N8N
+# 2. Configurar credencial Firebase
+# 3. Ativar workflow
+# 4. Configurar URL no Asaas Dashboard
 ```
-
-### 2. **Configurar Credenciais**
-- Firebase Service Account
-- Asaas API Header Auth
-
-### 3. **Testar Workflow**
-```bash
-# Use os exemplos em test-examples.json
-curl -X POST [WEBHOOK_URL] \
-  -H "Content-Type: application/json" \
-  -d @test-examples.json
-```
-
-## 📋 Pré-requisitos
-
-- Acesso ao painel N8N
-- Credenciais Firebase configuradas
-- Token da API Asaas
-- Empresas cadastradas no Firestore
-
-## � Desenvolvimento
-
-### Adicionar Novo Workflow
-1. Crie o arquivo `.json` na pasta `/workflows/`
-2. Documente no README.md
-3. Adicione exemplos de teste
-4. Atualize o CHANGELOG.md
-
-### Atualizar Workflow Existente
-1. Modifique o arquivo `.json`
-2. Incremente a versão
-3. Documente mudanças no CHANGELOG.md
-4. Teste em ambiente de desenvolvimento
-
-## � Monitoramento
-
-### Métricas Importantes
-- Taxa de sucesso dos checkouts
-- Tempo médio de resposta
-- Erros de validação
-- Falhas de API externa
-
-### Logs Estruturados
-- Entrada de dados
-- Validações realizadas
-- Chamadas para APIs externas
-- Respostas e erros
-
-## 🆘 Suporte
-
-### Problemas Comuns
-- **Credenciais inválidas**: Verificar tokens e service accounts
-- **Dados de entrada**: Validar estrutura JSON
-- **API Asaas**: Verificar status do serviço
-- **Firebase**: Confirmar permissões e conectividade
-
-### Contatos
-- **Desenvolvedor**: Equipe Xeco Platform
-- **Infraestrutura**: Railway Support
-- **APIs**: Documentação Asaas
 
 ---
 
-**📝 Última Atualização**: 15 de outubro de 2025
-**🔄 Versão**: 1.0.0
-**🎯 Status**: Produção Ativa
+### 2. � Workflow: Create Checkout (LEGADO)
+
+**Arquivo:** `checkout-workflow.json`  
+**Status:** ⚠️ Substituído por API Route  
+**Uso:** Apenas referência histórica
+
+**Nota:** Este workflow foi substituído pela API Route `/api/checkout/create-payment`. Não usar em produção.
+
+---
+
+## � Como Usar
+
+### 1. Importar Workflow no N8N
+
+```bash
+# Copiar JSON
+cat workflows/webhook-confirm-payment.json | pbcopy
+
+# No N8N UI:
+# 1. Add workflow > Import from file
+# 2. Colar JSON
+# 3. Salvar
+```
+
+### 2. Configurar Credenciais
+
+**Firebase Service Account:**
+- Nome: `Firebase Service Account`
+- Tipo: Google Service Account
+- JSON: Service account do projeto Firebase
+
+### 3. Ativar Workflow
+
+- Toggle "Active" no canto superior direito
+- Copiar URL do webhook gerado
+
+### 4. Configurar Webhook no Asaas
+
+```
+Dashboard Asaas > Configurações > Webhooks
+URL: https://seu-n8n.railway.app/webhook/xeco-confirm-payment
+Eventos: PAYMENT_CONFIRMED
+```
+
+## 🧪 Testar Workflows
+
+### Teste Manual (cURL)
+
+```bash
+curl -X POST https://seu-n8n.railway.app/webhook/xeco-confirm-payment \
+  -H "Content-Type: application/json" \
+  -d @workflows/test-examples.json
+```
+
+### Teste no Asaas Sandbox
+
+1. Criar pagamento teste
+2. Confirmar pagamento
+3. Asaas dispara webhook automaticamente
+4. Verificar logs no N8N > Executions
+
+## 📊 Monitoramento
+
+### Ver Execuções
+
+```
+N8N UI > Executions (menu lateral)
+- Ver todas execuções
+- Filtrar por sucesso/erro
+- Ver dados de entrada/saída de cada node
+```
+
+### Logs Úteis
+
+Cada node tem `console.log()` para debug:
+- ✅ Dados validados
+- 📋 Order encontrada
+- 🔄 Dados atualizados
+- ❌ Erros capturados
+
+## 🐛 Troubleshooting
+
+### Webhook não é chamado
+
+- [ ] Workflow está ativo?
+- [ ] URL configurada no Asaas está correta?
+- [ ] Testar com cURL funciona?
+
+### Order não atualiza
+
+- [ ] Credenciais Firebase estão configuradas?
+- [ ] `externalReference` no Asaas = `orderId` no Firebase?
+- [ ] Ver erro no node "Update Order"
+
+### Erro 404 Not Found
+
+- [ ] Order existe no Firebase?
+- [ ] `externalReference` está correto?
+- [ ] Ver logs do node "Find Order"
+
+## 📚 Workflows Futuros
+
+### Em Desenvolvimento
+
+- [ ] **Webhook: Payment Received** - Quando pagamento é recebido (não só confirmado)
+- [ ] **Webhook: Payment Overdue** - Cobrança vencida
+- [ ] **Webhook: Payment Refunded** - Reembolso processado
+- [ ] **Workflow: Daily Sales Report** - Relatório diário de vendas
+- [ ] **Workflow: Low Stock Alert** - Alerta de estoque baixo
+
+### Ideias
+
+- [ ] Auto-reembolso para produtos fora de estoque
+- [ ] Notificação WhatsApp para empresas
+- [ ] Sincronização com ERP externo
+- [ ] Analytics e métricas automáticas
+
+## 🔗 Links Úteis
+
+- [N8N Docs](https://docs.n8n.io/)
+- [Asaas Webhooks](https://docs.asaas.com/docs/webhooks)
+- [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
+- [N8N Community](https://community.n8n.io/)
+
+---
+
+**� Feito com café, cigarro e muito código pelo Opala 6 cilindros** 🔥

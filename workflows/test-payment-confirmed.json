@@ -1,0 +1,71 @@
+{
+  "confirmPaymentWebhook": {
+    "description": "Exemplo de payload enviado pelo Asaas quando um pagamento é confirmado",
+    "event": "PAYMENT_CONFIRMED",
+    "payment": {
+      "id": "pay_test_1234567890",
+      "customer": "cus_000000000001",
+      "externalReference": "hqAmTlS7VT6nL11FQB2T",
+      "value": 142.32,
+      "netValue": 135.80,
+      "status": "CONFIRMED",
+      "billingType": "CREDIT_CARD",
+      "confirmedDate": "2025-10-22",
+      "paymentDate": "2025-10-22T10:30:00Z",
+      "creditDate": null,
+      "estimatedCreditDate": "2025-10-23",
+      "invoiceUrl": "https://sandbox.asaas.com/invoice/123456",
+      "invoiceNumber": "123456",
+      "transactionReceiptUrl": "https://sandbox.asaas.com/receipt/123456",
+      "bankSlipUrl": null,
+      "split": [
+        {
+          "walletId": "8bb75cbd-b0de-442a-807a-ffdb1abdcb6a",
+          "fixedValue": null,
+          "percentualValue": 92.0,
+          "totalValue": 125.14,
+          "status": "CONFIRMED"
+        }
+      ]
+    }
+  },
+  "confirmPaymentPix": {
+    "description": "Exemplo de pagamento PIX confirmado",
+    "event": "PAYMENT_CONFIRMED",
+    "payment": {
+      "id": "pay_pix_test_456",
+      "customer": "cus_000000000001",
+      "externalReference": "order_pix_test",
+      "value": 50.00,
+      "netValue": 48.50,
+      "status": "RECEIVED",
+      "billingType": "PIX",
+      "confirmedDate": "2025-10-22",
+      "paymentDate": "2025-10-22T14:25:30Z",
+      "creditDate": "2025-10-22",
+      "estimatedCreditDate": "2025-10-22",
+      "invoiceUrl": "https://sandbox.asaas.com/invoice/pix456",
+      "transactionReceiptUrl": "https://sandbox.asaas.com/receipt/pix456"
+    }
+  },
+  "confirmPaymentBoleto": {
+    "description": "Exemplo de boleto confirmado",
+    "event": "PAYMENT_CONFIRMED",
+    "payment": {
+      "id": "pay_boleto_789",
+      "customer": "cus_000000000002",
+      "externalReference": "order_boleto_test",
+      "value": 250.00,
+      "netValue": 246.25,
+      "status": "CONFIRMED",
+      "billingType": "BOLETO",
+      "confirmedDate": "2025-10-23",
+      "paymentDate": "2025-10-23T09:15:00Z",
+      "creditDate": null,
+      "estimatedCreditDate": "2025-10-24",
+      "invoiceUrl": "https://sandbox.asaas.com/invoice/bol789",
+      "bankSlipUrl": "https://sandbox.asaas.com/boleto/bol789",
+      "transactionReceiptUrl": "https://sandbox.asaas.com/receipt/bol789"
+    }
+  }
+}

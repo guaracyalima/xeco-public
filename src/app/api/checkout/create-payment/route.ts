@@ -18,7 +18,7 @@ import { collection, doc, setDoc, updateDoc } from 'firebase/firestore'
 import { imageUrlToBase64 } from '@/lib/base64-converter'
 
 const N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 
-                        'https://primary-production-9acc.up.railway.app/webhook-test/xeco-create-checkout'
+                        'https://primary-production-9acc.up.railway.app/webhook/xeco-create-checkout'
 
 export async function POST(request: NextRequest) {
   try {

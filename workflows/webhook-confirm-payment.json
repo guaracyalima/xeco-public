@@ -1,0 +1,309 @@
+{
+  "name": "Xeco - Confirm Payment Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xeco-confirm-payment",
+        "options": {}
+      },
+      "name": "Webhook: Payment Confirmed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        400
+      ],
+      "id": "webhook-confirm-payment-xeco",
+      "webhookId": "xeco-confirm-payment"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔐 Valida o webhook do Asaas\nconst body = $input.first().json.body;\n\nconsole.log('🔔 Webhook recebido:', JSON.stringify(body, null, 2));\n\n// Validação do evento\nif (!body.event) {\n  throw new Error('❌ Campo \"event\" ausente no payload');\n}\n\nif (body.event !== 'PAYMENT_CONFIRMED') {\n  throw new Error(`❌ Evento inválido: ${body.event}. Esperado: PAYMENT_CONFIRMED`);\n}\n\n// Validação dos dados do pagamento\nif (!body.payment) {\n  throw new Error('❌ Campo \"payment\" ausente no payload');\n}\n\nif (!body.payment.id) {\n  throw new Error('❌ Campo \"payment.id\" ausente');\n}\n\n// ⚠️ CRÍTICO: Asaas envia externalReference (que é o orderId)\nif (!body.payment.externalReference) {\n  throw new Error('❌ Campo \"payment.externalReference\" ausente (orderId)');\n}\n\nconsole.log('✅ Webhook validado com sucesso');\nconsole.log('📋 Order ID:', body.payment.externalReference);\nconsole.log('💳 Payment ID:', body.payment.id);\nconsole.log('💰 Status:', body.payment.status);\n\nreturn $input.all();"
+      },
+      "name": "Validate Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        400
+      ],
+      "id": "validate-webhook-xeco"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "get",
+        "projectId": "xeco-334f5",
+        "database": "(default)",
+        "collection": "orders",
+        "documentId": "={{ $json.body.payment.externalReference }}"
+      },
+      "name": "Find Order",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        400
+      ],
+      "id": "find-order-xeco",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json._id !== undefined && $json._id !== null }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Check Order Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        400
+      ],
+      "id": "check-order-exists"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔄 Prepara dados para atualizar a order no Firebase\nconst payment = $node['Validate Webhook'].json.body.payment;\nconst order = $input.first().json;\n\nconsole.log('📦 Preparando atualização da order:', order._id);\n\nreturn [{\n  json: {\n    // ID da order (para update)\n    orderId: order._id,\n    \n    // Dados do pagamento Asaas\n    asaasPaymentId: payment.id,\n    asaasCustomerId: payment.customer,\n    \n    // Status e valores\n    paymentStatus: payment.status, // CONFIRMED, RECEIVED, etc\n    status: 'PAYMENT_CONFIRMED', // Status interno da order\n    netValue: payment.netValue, // Valor líquido (após taxas Asaas)\n    grossValue: payment.value, // Valor bruto\n    \n    // Informações de pagamento\n    billingType: payment.billingType, // CREDIT_CARD, PIX, BOLETO\n    confirmedDate: payment.confirmedDate,\n    paymentDate: payment.paymentDate || payment.confirmedDate,\n    \n    // URLs importantes\n    invoiceUrl: payment.invoiceUrl,\n    transactionReceiptUrl: payment.transactionReceiptUrl,\n    bankSlipUrl: payment.bankSlipUrl || null,\n    invoiceNumber: payment.invoiceNumber || null,\n    \n    // Datas de crédito\n    estimatedCreditDate: payment.estimatedCreditDate,\n    creditDate: payment.creditDate || null,\n    \n    // Splits (afiliado)\n    splitInfo: payment.split || null,\n    \n    // Timestamps\n    paymentConfirmedAt: new Date().toISOString(),\n    updatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Prepare Order Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        280
+      ],
+      "id": "prepare-order-update"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "projectId": "xeco-334f5",
+        "database": "(default)",
+        "collection": "orders",
+        "documentId": "={{ $json.orderId }}",
+        "updateAllFields": false,
+        "fields": "asaasPaymentId,asaasCustomerId,paymentStatus,status,netValue,grossValue,billingType,confirmedDate,paymentDate,invoiceUrl,transactionReceiptUrl,bankSlipUrl,invoiceNumber,estimatedCreditDate,creditDate,splitInfo,paymentConfirmedAt,updatedAt"
+      },
+      "name": "Update Order",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        280
+      ],
+      "id": "update-order-xeco",
+      "credentials": {
+        "googleApi": {
+          "id": "dDMc0BmviGIa1qbI",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📧 Notifica a empresa sobre o pagamento confirmado\nconst order = $node['Find Order'].json;\nconst payment = $node['Validate Webhook'].json.body.payment;\n\nconsole.log('📧 Preparando notificação para empresa:', order.companyId);\n\n// TODO: Implementar envio de email/push notification\n// Possíveis integrações:\n// - SendGrid / Resend para email\n// - FCM para push notification mobile\n// - WhatsApp Business API\n\nreturn [{\n  json: {\n    notificationType: 'PAYMENT_CONFIRMED',\n    orderId: order._id || order.id,\n    companyId: order.companyId,\n    userId: order.userId,\n    paymentValue: payment.netValue,\n    billingType: payment.billingType,\n    message: `Pagamento confirmado! Pedido #${order._id || order.id} - R$ ${payment.netValue}`,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Prepare Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        280
+      ],
+      "id": "prepare-notification",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": true,\n  \"message\": \"Pagamento confirmado com sucesso\",\n  \"orderId\": \"{{ $node['Validate Webhook'].json.body.payment.externalReference }}\",\n  \"paymentId\": \"{{ $node['Validate Webhook'].json.body.payment.id }}\",\n  \"status\": \"{{ $node['Validate Webhook'].json.body.payment.status }}\",\n  \"netValue\": {{ $node['Validate Webhook'].json.body.payment.netValue }},\n  \"billingType\": \"{{ $node['Validate Webhook'].json.body.payment.billingType }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "name": "Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        280
+      ],
+      "id": "success-response"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        720,
+        280
+      ],
+      "id": "respond-success"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": false,\n  \"error\": \"ORDER_NOT_FOUND\",\n  \"message\": \"Pedido não encontrado no Firebase\",\n  \"orderId\": \"{{ $node['Validate Webhook'].json.body.payment.externalReference }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "name": "Error: Order Not Found",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        520
+      ],
+      "id": "error-not-found"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "name": "Respond Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        520
+      ],
+      "id": "respond-not-found"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Payment Confirmed": {
+      "main": [
+        [
+          {
+            "node": "Validate Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Webhook": {
+      "main": [
+        [
+          {
+            "node": "Find Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Order": {
+      "main": [
+        [
+          {
+            "node": "Check Order Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Order Exists": {
+      "main": [
+        [
+          {
+            "node": "Prepare Order Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Order Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Order Update": {
+      "main": [
+        [
+          {
+            "node": "Update Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Order": {
+      "main": [
+        [
+          {
+            "node": "Prepare Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Notification": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: Order Not Found": {
+      "main": [
+        [
+          {
+            "node": "Respond Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "xeco-production"
+  },
+  "tags": ["xeco", "payment", "webhook", "asaas"]
+}

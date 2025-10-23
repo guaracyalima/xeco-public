@@ -38,14 +38,34 @@ export interface Order {
   description: string
   
   // Controle e status
-  status: 'CREATED' | 'PENDING_PAYMENT' | 'PAID' | 'CANCELLED' | 'EXPIRED'
+  status: 'CREATED' | 'PENDING_PAYMENT' | 'PAID' | 'CANCELLED' | 'EXPIRED' | 'CONFIRMED' | 'PARTIAL_STOCK'
   channel: 'WEB' | 'MOBILE' | 'WHATSAPP'
   type: 'PRODUCT'
   
   // Dados de pagamento (preenchidos após n8n)
   checkoutId?: string
   checkoutUrl?: string
-  paymentStatus?: 'PENDING' | 'PAID' | 'CANCELLED' | 'EXPIRED'
+  paymentStatus?: 'PENDING' | 'PAID' | 'CANCELLED' | 'EXPIRED' | 'CONFIRMED' | 'PENDING_PAYMENT'
+  
+  // Dados adicionais do Asaas (preenchidos pelo webhook)
+  asaasPaymentId?: string
+  asaasTransactionId?: string
+  asaasCustomerId?: string
+  grossValue?: number
+  netValue?: number
+  billingType?: string
+  confirmedDate?: string
+  clientPaymentDate?: string
+  creditDate?: string
+  estimatedCreditDate?: string
+  invoiceUrl?: string
+  invoiceNumber?: string
+  transactionReceiptUrl?: string
+  splitInfo?: any
+  hasFullStock?: boolean
+  outOfStockCount?: number
+  paymentConfirmedAt?: string
+  webhookProcessedAt?: string
   
   // Timestamps
   createdAt: Date
