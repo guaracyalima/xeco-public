@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Layout } from '@/components/layout/Layout'
 import {
@@ -10,20 +10,31 @@ import {
   FollowingCompaniesTab,
   InterestedProductsTab,
   MyAffiliationTab,
+  MyOrdersTab,
 } from '@/components/profile'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 
 const PROFILE_TABS = [
+  { id: 'pedidos', label: 'Meus Pedidos', icon: '📦' },
   { id: 'following', label: 'Empresas que Sigo', icon: '🏢' },
   { id: 'interested', label: 'Produtos de Interesse', icon: '❤️' },
   { id: 'affiliation', label: 'Minha Afiliação', icon: '🤝' },
 ]
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { userProfile, loading } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('following')
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState('pedidos')
+
+  // Ler tab da URL
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam && PROFILE_TABS.some(t => t.id === tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   // Redirecionar se não estiver autenticado
   useEffect(() => {
@@ -75,6 +86,7 @@ export default function ProfilePage() {
 
             {/* Conteúdo das Abas */}
             <div>
+              {activeTab === 'pedidos' && <MyOrdersTab />}
               {activeTab === 'following' && <FollowingCompaniesTab />}
               {activeTab === 'interested' && <InterestedProductsTab />}
               {activeTab === 'affiliation' && <MyAffiliationTab />}
@@ -83,5 +95,22 @@ export default function ProfilePage() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coral-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Carregando perfil...</p>
+          </div>
+        </div>
+      </Layout>
+    }>
+      <ProfileContent />
+    </Suspense>
   )
 }

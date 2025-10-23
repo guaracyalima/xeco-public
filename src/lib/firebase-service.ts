@@ -12,6 +12,21 @@ import {
 import { db } from '@/lib/firebase'
 import { Company, CompanyCategory, Product, SearchFilters } from '@/types'
 
+/**
+ * 🛡️ Filtra produtos com estoque zerado (stockQuantity === 0)
+ * Para proteger clientes de comprarem produtos indisponíveis
+ */
+const filterOutOfStockProducts = (products: Product[]): Product[] => {
+  return products.filter(product => {
+    // Se stockQuantity for 0, não mostrar o produto
+    if (product.stockQuantity === 0) {
+      console.log(`⚠️ Produto "${product.name}" (${product.id}) oculto: estoque zerado`)
+      return false
+    }
+    return true
+  })
+}
+
 // Companies
 export const getCompanies = async (filters?: SearchFilters, limitCount = 10): Promise<Company[]> => {
   try {
@@ -103,10 +118,13 @@ export const getProducts = async (filters?: SearchFilters, limitCount = 10): Pro
     const q = query(collection(db, 'product'), ...constraints)
     const querySnapshot = await getDocs(q)
     
-    return querySnapshot.docs.map(doc => ({
+    const allProducts = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     } as Product))
+
+    // 🛡️ Filtrar produtos com estoque zerado
+    return filterOutOfStockProducts(allProducts)
   } catch (error) {
     console.error('Error fetching products:', error)
     return []
@@ -122,14 +140,17 @@ export const getFeaturedProducts = async (limitCount = 5): Promise<Product[]> =>
     )
     const querySnapshot = await getDocs(q)
     
-    const products = querySnapshot.docs.map(doc => ({
+    const allProducts = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     } as Product))
 
+    // 🛡️ Filtrar produtos com estoque zerado
+    const productsInStock = filterOutOfStockProducts(allProducts)
+
     // Buscar nomes das empresas para cada produto
     const productsWithCompanyNames = await Promise.all(
-      products.map(async (product) => {
+      productsInStock.map(async (product) => {
         try {
           if (product.companyOwner) {
             const companyDocRef = doc(db, 'companies', product.companyOwner)
@@ -213,17 +234,20 @@ export const getRelatedProducts = async (companyId: string, excludeProductId: st
     )
     const querySnapshot = await getDocs(q)
     
-    const products = querySnapshot.docs
+    const allProducts = querySnapshot.docs
       .map(doc => ({
         id: doc.id,
         ...doc.data()
       } as Product))
+
+    // 🛡️ Filtrar produtos com estoque zerado
+    const productsInStock = filterOutOfStockProducts(allProducts)
       .filter(product => product.id !== excludeProductId) // Excluir o produto atual
       .slice(0, limitCount) // Limitar ao número desejado
 
     // Buscar nomes das empresas para cada produto
     const productsWithCompanyNames = await Promise.all(
-      products.map(async (product) => {
+      productsInStock.map(async (product) => {
         try {
           if (product.companyOwner) {
             const companyDocRef = doc(db, 'companies', product.companyOwner)

@@ -247,27 +247,90 @@ export class OrderService {
    */
   static async getUserOrders(userId: string): Promise<Order[]> {
     try {
+      console.log('🔍 [getUserOrders] Iniciando busca para userId:', userId)
+      
       const q = query(
         collection(db, this.COLLECTION),
         where('customerId', '==', userId)
       )
       
+      console.log('📡 [getUserOrders] Query criada, executando getDocs...')
       const querySnapshot = await getDocs(q)
+      console.log('📦 [getUserOrders] getDocs retornou:', querySnapshot.size, 'documentos')
+      
       const orders: Order[] = []
       
       querySnapshot.forEach((doc) => {
         const data = doc.data()
-        orders.push({
+        
+        console.log('📄 [getUserOrders] Processando doc:', doc.id)
+        console.log('📄 [getUserOrders] Tipo de createdAt:', typeof data.createdAt)
+        console.log('📄 [getUserOrders] createdAt value:', data.createdAt)
+        console.log('📄 [getUserOrders] createdAt tem toDate?:', typeof data.createdAt?.toDate)
+        
+        // Converte createdAt e updatedAt (pode ser Timestamp, string ou Date)
+        let createdAt = new Date()
+        let updatedAt = new Date()
+        
+        if (data.createdAt) {
+          if (typeof data.createdAt === 'string') {
+            console.log('📅 [getUserOrders] createdAt é string, convertendo...')
+            createdAt = new Date(data.createdAt)
+          } else if (data.createdAt.toDate && typeof data.createdAt.toDate === 'function') {
+            console.log('📅 [getUserOrders] createdAt é Timestamp, usando toDate()...')
+            createdAt = data.createdAt.toDate()
+          } else if (data.createdAt instanceof Date) {
+            console.log('📅 [getUserOrders] createdAt já é Date')
+            createdAt = data.createdAt
+          } else {
+            console.log('⚠️ [getUserOrders] createdAt em formato desconhecido, usando Date()')
+            createdAt = new Date()
+          }
+        }
+        
+        if (data.updatedAt) {
+          if (typeof data.updatedAt === 'string') {
+            console.log('📅 [getUserOrders] updatedAt é string, convertendo...')
+            updatedAt = new Date(data.updatedAt)
+          } else if (data.updatedAt.toDate && typeof data.updatedAt.toDate === 'function') {
+            console.log('📅 [getUserOrders] updatedAt é Timestamp, usando toDate()...')
+            updatedAt = data.updatedAt.toDate()
+          } else if (data.updatedAt instanceof Date) {
+            console.log('📅 [getUserOrders] updatedAt já é Date')
+            updatedAt = data.updatedAt
+          } else {
+            console.log('⚠️ [getUserOrders] updatedAt em formato desconhecido, usando Date()')
+            updatedAt = new Date()
+          }
+        }
+        
+        const order = {
           ...data,
           id: doc.id,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date()
-        } as Order)
+          createdAt,
+          updatedAt
+        } as Order
+        
+        console.log('✅ [getUserOrders] Order processada:', {
+          id: order.id,
+          status: order.status,
+          createdAt: createdAt.toISOString(),
+          totalAmount: order.totalAmount
+        })
+        
+        orders.push(order)
       })
       
-      return orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      console.log('🎯 [getUserOrders] Total de orders encontradas:', orders.length)
+      
+      const sortedOrders = orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      console.log('✅ [getUserOrders] Orders ordenadas por data (mais recente primeiro)')
+      
+      return sortedOrders
     } catch (error) {
-      console.error('❌ Erro ao buscar orders do usuário:', error)
+      console.error('❌ [getUserOrders] ERRO ao buscar orders do usuário:', error)
+      console.error('❌ [getUserOrders] Stack trace:', (error as Error).stack)
+      console.error('❌ [getUserOrders] userId que causou erro:', userId)
       throw new Error('Falha ao buscar pedidos do usuário')
     }
   }

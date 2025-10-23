@@ -57,17 +57,25 @@ export async function getFavoredProducts(userId: string): Promise<Product[]> {
         const productSnap = await getDoc(productRef)
         
         if (productSnap.exists()) {
-          products.push({
+          const productData = {
             id: productSnap.id,
             ...productSnap.data()
-          } as Product)
+          } as Product
+
+          // 🛡️ Filtrar produtos com estoque zerado
+          if (productData.stockQuantity === 0) {
+            console.log(`⚠️ Produto favoritado "${productData.name}" oculto: estoque zerado`)
+            continue
+          }
+
+          products.push(productData)
         }
       } catch (error) {
         console.error('Erro ao buscar detalhes do produto:', error)
       }
     }
 
-    console.log(`✅ Encontrados ${products.length} produtos favoritados`)
+    console.log(`✅ Encontrados ${products.length} produtos favoritados (com estoque)`)
     return products
   } catch (error) {
     console.error('❌ Erro ao buscar produtos favoritados:', error)
@@ -111,10 +119,18 @@ export function onFavoredProductsChange(
           const productSnap = await getDoc(productRef)
           
           if (productSnap.exists()) {
-            products.push({
+            const productData = {
               id: productSnap.id,
               ...productSnap.data()
-            } as Product)
+            } as Product
+
+            // 🛡️ Filtrar produtos com estoque zerado
+            if (productData.stockQuantity === 0) {
+              console.log(`⚠️ Produto favoritado "${productData.name}" oculto: estoque zerado`)
+              continue
+            }
+
+            products.push(productData)
           }
         } catch (error) {
           console.error('Erro ao buscar detalhes do produto no listener:', error)

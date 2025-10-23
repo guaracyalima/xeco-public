@@ -110,14 +110,23 @@ export default function CompanyDetailsPage() {
         )
         
         const productsSnap = await getDocs(productsQuery)
-        const productsData = productsSnap.docs.map(doc => ({
+        const allProducts = productsSnap.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
           createdAt: doc.data().createdAt?.toDate() || new Date(),
           updatedAt: doc.data().updatedAt?.toDate() || new Date()
         })) as Product[]
 
-        setProducts(productsData)
+        // 🛡️ Filtrar produtos com estoque zerado
+        const productsInStock = allProducts.filter(product => {
+          if (product.stockQuantity === 0) {
+            console.log(`⚠️ Produto "${product.name}" oculto: estoque zerado`)
+            return false
+          }
+          return true
+        })
+
+        setProducts(productsInStock)
 
       } catch (err) {
         console.error('Erro ao carregar dados da empresa:', err)
