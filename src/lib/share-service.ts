@@ -271,15 +271,7 @@ export async function shareProduct(
   try {
     console.log('📤 Iniciando compartilhamento de produto:', product.name)
     
-    // Verificar se Web Share API está disponível
-    if (!navigator.share) {
-      console.warn('⚠️ Web Share API não disponível')
-      // Fallback: copiar link
-      await fallbackCopyLink('product', product.id)
-      return false
-    }
-    
-    // Gerar imagem
+    // Gerar imagem SEMPRE
     console.log('🎨 Gerando imagem de compartilhamento...')
     const imageBlob = await generateShareImage({
       type: 'product',
@@ -294,44 +286,83 @@ export async function shareProduct(
       { type: 'image/jpeg' }
     )
     
-    // Montar texto do compartilhamento
-    const shareText = `${product.name}\n\n💰 R$ ${product.salePrice.toFixed(2).replace('.', ',')}\n\n${
-      product.description ? product.description.substring(0, 100) + '...' : ''
-    }\n\n${companyName ? `Vendido por: ${companyName}\n\n` : ''}Veja no Xeco:`
-    
     // URL do produto
     const productUrl = `${window.location.origin}/produto/${product.id}`
     
-    // Compartilhar
-    await navigator.share({
-      title: product.name,
-      text: shareText,
-      url: productUrl,
-      files: [imageFile]
-    })
+    // Montar texto do compartilhamento
+    const priceValue = typeof product.salePrice === 'number' 
+      ? product.salePrice 
+      : parseFloat(String(product.salePrice) || '0')
+    const shareText = `${product.name}\n\n💰 R$ ${priceValue.toFixed(2).replace('.', ',')}\n\n${
+      product.description ? product.description.substring(0, 100) + '...' : ''
+    }\n\n${companyName ? `Vendido por: ${companyName}\n\n` : ''}Veja no Xeco: ${productUrl}`
     
-    console.log('✅ Produto compartilhado com sucesso')
+    // Verificar se Web Share API está disponível E suporta arquivos
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+      try {
+        // Compartilhar com imagem via API nativa
+        await navigator.share({
+          files: [imageFile],
+          title: product.name,
+          text: shareText
+        })
+        
+        console.log('✅ Produto compartilhado com imagem via API nativa')
+        
+        // Analytics
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'share', {
+            content_type: 'product',
+            item_id: product.id,
+            method: 'web_share_api'
+          })
+        }
+        
+        return true
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('ℹ️ Usuário cancelou o compartilhamento')
+          return false
+        }
+        console.warn('⚠️ Erro ao usar Web Share API:', error.message)
+        // Continua para o fallback
+      }
+    }
+    
+    // FALLBACK: Download da imagem + copiar texto
+    console.log('📥 Usando fallback: download da imagem')
+    
+    // Fazer download da imagem
+    const url = URL.createObjectURL(imageBlob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `xeco-${product.name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    // Copiar texto + link para clipboard
+    await navigator.clipboard.writeText(shareText)
+    
+    // Mostrar alerta com instruções
+    alert('🎉 Imagem baixada!\n\n📋 Texto copiado para área de transferência!\n\n👉 Agora é só compartilhar a imagem e colar o texto no WhatsApp, Instagram, etc!')
+    
+    console.log('✅ Imagem baixada e texto copiado')
     
     // Analytics
     if (typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('event', 'share', {
         content_type: 'product',
         item_id: product.id,
-        method: 'web_share_api'
+        method: 'download_fallback'
       })
     }
     
     return true
   } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.log('ℹ️ Usuário cancelou o compartilhamento')
-      return false
-    }
-    
     console.error('❌ Erro ao compartilhar produto:', error)
-    
-    // Fallback: copiar link
-    await fallbackCopyLink('product', product.id)
+    alert('❌ Erro ao gerar imagem. Tente novamente.')
     return false
   }
 }
@@ -343,14 +374,7 @@ export async function shareCompany(company: Company): Promise<boolean> {
   try {
     console.log('📤 Iniciando compartilhamento de empresa:', company.name)
     
-    // Verificar se Web Share API está disponível
-    if (!navigator.share) {
-      console.warn('⚠️ Web Share API não disponível')
-      await fallbackCopyLink('company', company.id)
-      return false
-    }
-    
-    // Gerar imagem
+    // Gerar imagem SEMPRE
     console.log('🎨 Gerando imagem de compartilhamento...')
     const imageBlob = await generateShareImage({
       type: 'company',
@@ -364,46 +388,82 @@ export async function shareCompany(company: Company): Promise<boolean> {
       { type: 'image/jpeg' }
     )
     
+    // URL da empresa
+    const companyUrl = `${window.location.origin}/company/${company.id}`
+    
     // Montar texto do compartilhamento
     const shareText = `${company.name}\n\n${
       company.about ? company.about.substring(0, 100) + '...\n\n' : ''
     }${
       company.city && company.state ? `📍 ${company.city}, ${company.state}\n\n` : ''
-    }Conheça no Xeco:`
+    }Conheça no Xeco: ${companyUrl}`
     
-    // URL da empresa
-    const companyUrl = `${window.location.origin}/company/${company.id}`
+    // Verificar se Web Share API está disponível E suporta arquivos
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+      try {
+        // Compartilhar com imagem via API nativa
+        await navigator.share({
+          files: [imageFile],
+          title: company.name,
+          text: shareText
+        })
+        
+        console.log('✅ Empresa compartilhada com imagem via API nativa')
+        
+        // Analytics
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'share', {
+            content_type: 'company',
+            item_id: company.id,
+            method: 'web_share_api'
+          })
+        }
+        
+        return true
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('ℹ️ Usuário cancelou o compartilhamento')
+          return false
+        }
+        console.warn('⚠️ Erro ao usar Web Share API:', error.message)
+        // Continua para o fallback
+      }
+    }
     
-    // Compartilhar
-    await navigator.share({
-      title: company.name,
-      text: shareText,
-      url: companyUrl,
-      files: [imageFile]
-    })
+    // FALLBACK: Download da imagem + copiar texto
+    console.log('📥 Usando fallback: download da imagem')
     
-    console.log('✅ Empresa compartilhada com sucesso')
+    // Fazer download da imagem
+    const url = URL.createObjectURL(imageBlob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `xeco-${company.name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    // Copiar texto + link para clipboard
+    await navigator.clipboard.writeText(shareText)
+    
+    // Mostrar alerta com instruções
+    alert('🎉 Imagem baixada!\n\n📋 Texto copiado para área de transferência!\n\n👉 Agora é só compartilhar a imagem e colar o texto no WhatsApp, Instagram, etc!')
+    
+    console.log('✅ Imagem baixada e texto copiado')
     
     // Analytics
     if (typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('event', 'share', {
         content_type: 'company',
         item_id: company.id,
-        method: 'web_share_api'
+        method: 'download_fallback'
       })
     }
     
     return true
   } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.log('ℹ️ Usuário cancelou o compartilhamento')
-      return false
-    }
-    
     console.error('❌ Erro ao compartilhar empresa:', error)
-    
-    // Fallback: copiar link
-    await fallbackCopyLink('company', company.id)
+    alert('❌ Erro ao gerar imagem. Tente novamente.')
     return false
   }
 }
