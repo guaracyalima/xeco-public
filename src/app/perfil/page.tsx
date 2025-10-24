@@ -14,6 +14,8 @@ import {
 } from '@/components/profile'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { useAnalytics } from '@/hooks/useAnalytics'
+import { EventName } from '@/types/analytics'
 
 const PROFILE_TABS = [
   { id: 'pedidos', label: 'Meus Pedidos', icon: '📦' },
@@ -27,6 +29,20 @@ function ProfileContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('pedidos')
+  const { trackEvent } = useAnalytics()
+
+  // Track profile view
+  useEffect(() => {
+    if (!loading && userProfile) {
+      trackEvent(EventName.PROFILE_VIEW, {
+        eventData: {
+          userId: userProfile.uid,
+          category: 'profile',
+          label: 'profile_page_view'
+        }
+      })
+    }
+  }, [loading, userProfile, trackEvent])
 
   // Ler tab da URL
   useEffect(() => {
@@ -35,6 +51,19 @@ function ProfileContent() {
       setActiveTab(tabParam)
     }
   }, [searchParams])
+
+  // Track tab switch
+  useEffect(() => {
+    if (userProfile && activeTab) {
+      trackEvent(EventName.TAB_SWITCH, {
+        eventData: {
+          category: 'profile',
+          tab: activeTab,
+          label: `profile_tab_${activeTab}`
+        }
+      })
+    }
+  }, [activeTab, userProfile, trackEvent])
 
   // Redirecionar se não estiver autenticado
   useEffect(() => {
@@ -54,6 +83,15 @@ function ProfileContent() {
 
   const handleLogout = async () => {
     try {
+      // Track logout
+      trackEvent(EventName.LOGOUT, {
+        eventData: {
+          userId: userProfile?.uid,
+          category: 'authentication',
+          label: 'user_logout'
+        }
+      })
+      
       await signOut(auth)
       router.push('/')
     } catch (error) {

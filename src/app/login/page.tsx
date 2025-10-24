@@ -9,6 +9,8 @@ import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/Button'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { useAnalytics } from '@/hooks/useAnalytics'
+import { EventName } from '@/types/analytics'
 
 function LoginForm() {
   const [isLogin, setIsLogin] = useState(true)
@@ -20,6 +22,7 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
+  const { trackEvent } = useAnalytics()
 
   // Redirecionar se já estiver logado
   useEffect(() => {
@@ -48,8 +51,28 @@ function LoginForm() {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password)
+        // Login
+        const userCredential = await signInWithEmailAndPassword(auth, email, password)
+        
+        // Track login success
+        trackEvent(EventName.LOGIN, {
+          eventData: {
+            userId: userCredential.user.uid,
+            method: 'email',
+            category: 'authentication',
+            label: 'login_success'
+          }
+        })
       } else {
+        // Track signup start
+        trackEvent(EventName.SIGN_UP_START, {
+          eventData: {
+            method: 'email',
+            category: 'authentication',
+            label: 'signup_start'
+          }
+        })
+        
         // Criar nova conta
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         
@@ -77,6 +100,16 @@ function LoginForm() {
           role: ['user'],
           created_time: new Date().toISOString(),
         })
+        
+        // Track signup complete
+        trackEvent(EventName.SIGN_UP_COMPLETE, {
+          eventData: {
+            userId: userCredential.user.uid,
+            method: 'email',
+            category: 'authentication',
+            label: 'signup_complete'
+          }
+        })
       }
 
       // Redirecionar após login bem-sucedido
@@ -91,7 +124,18 @@ function LoginForm() {
       
       router.push(returnUrl)
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Erro desconhecido')
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      setError(errorMessage)
+      
+      // Track login/signup failure
+      trackEvent(EventName.LOGIN_FAILED, {
+        eventData: {
+          method: 'email',
+          error: errorMessage,
+          category: 'authentication',
+          label: isLogin ? 'login_failed' : 'signup_failed'
+        }
+      })
     } finally {
       setLoading(false)
     }
@@ -113,6 +157,16 @@ function LoginForm() {
 
       if (!userDoc.exists()) {
         console.log('📝 Criando novo perfil de usuário no Firestore...')
+        
+        // Track signup start
+        trackEvent(EventName.SIGN_UP_START, {
+          eventData: {
+            method: 'google',
+            category: 'authentication',
+            label: 'signup_start_google'
+          }
+        })
+        
         // Criar documento do usuário no Firestore
         await setDoc(userRef, {
           uid: user.uid,
@@ -137,8 +191,28 @@ function LoginForm() {
           created_time: new Date().toISOString(),
         })
         console.log('✅ Perfil criado com sucesso')
+        
+        // Track signup complete
+        trackEvent(EventName.SIGN_UP_COMPLETE, {
+          eventData: {
+            userId: user.uid,
+            method: 'google',
+            category: 'authentication',
+            label: 'signup_complete_google'
+          }
+        })
       } else {
         console.log('ℹ️ Usuário já existe no Firestore')
+        
+        // Track login
+        trackEvent(EventName.LOGIN, {
+          eventData: {
+            userId: user.uid,
+            method: 'google',
+            category: 'authentication',
+            label: 'login_success_google'
+          }
+        })
       }
 
       // Redirecionar após login bem-sucedido
@@ -155,6 +229,18 @@ function LoginForm() {
       router.push(returnUrl)
     } catch (error: unknown) {
       console.error('❌ Erro no login com Google:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      
+      // Track login failure
+      trackEvent(EventName.LOGIN_FAILED, {
+        eventData: {
+          method: 'google',
+          error: errorMessage,
+          category: 'authentication',
+          label: 'login_failed_google'
+        }
+      })
+      
       if (error instanceof Error) {
         setError(`Erro ao fazer login com Google: ${error.message}`)
       } else {

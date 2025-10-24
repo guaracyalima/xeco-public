@@ -9,6 +9,7 @@ import { Product, Company } from '@/types'
 import { collection, query, where, orderBy, limit, startAfter, getDocs, getDoc, doc, QueryConstraint, DocumentData } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Search, MapPin, Building2, Package, ChevronDown } from 'lucide-react'
+import { useSearchAnalytics } from '@/hooks/useAnalytics'
 
 const ITEMS_PER_PAGE = 12
 
@@ -29,6 +30,7 @@ function SearchPageContent() {
   const searchQuery = searchParams.get('q') || ''
   const cityParam = searchParams.get('city') || ''
   const stateParam = searchParams.get('state') || ''
+  const { trackSearch, trackSearchResults, trackFilterApplied } = useSearchAnalytics()
 
   const [products, setProducts] = useState<Product[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
@@ -134,10 +136,15 @@ function SearchPageContent() {
       setLastProductDoc(snapshot.docs[snapshot.docs.length - 1])
       setHasMoreProducts(snapshot.docs.length === ITEMS_PER_PAGE)
 
+      // Track search results para produtos (apenas na primeira carga)
+      if (!isLoadMore) {
+        trackSearchResults(searchQuery, newProducts)
+      }
+
     } catch (error) {
       console.error('❌ [SEARCH-PRODUCTS] Erro:', error)
     }
-  }, [searchQuery, userLocation, lastProductDoc])
+  }, [searchQuery, userLocation, lastProductDoc, trackSearchResults])
 
   const loadCompanies = useCallback(async (isLoadMore: boolean = false) => {
     if (!userLocation.city || !userLocation.state || !searchQuery.trim()) return
@@ -215,10 +222,15 @@ function SearchPageContent() {
       setLastCompanyDoc(snapshot.docs[snapshot.docs.length - 1])
       setHasMoreCompanies(snapshot.docs.length === ITEMS_PER_PAGE)
 
+      // Track search results para empresas (apenas na primeira carga)
+      if (!isLoadMore) {
+        trackSearchResults(searchQuery, newCompanies)
+      }
+
     } catch (error) {
       console.error('❌ [SEARCH-COMPANIES] Erro:', error)
     }
-  }, [searchQuery, userLocation, lastCompanyDoc])
+  }, [searchQuery, userLocation, lastCompanyDoc, trackSearchResults])
 
   // Carregar resultados
   useEffect(() => {
@@ -234,6 +246,14 @@ function SearchPageContent() {
       setLastProductDoc(null)
       setLastCompanyDoc(null)
 
+      // Track inicial da busca
+      trackSearch(searchQuery, 0, {
+        city: userLocation.city,
+        state: userLocation.state,
+        searchType,
+        source: 'search_page'
+      })
+
       if (searchType === 'all' || searchType === 'products') {
         await loadProducts(false)
       }
@@ -246,7 +266,7 @@ function SearchPageContent() {
     }
 
     loadResults()
-  }, [searchQuery, userLocation, searchType])
+  }, [searchQuery, userLocation, searchType, trackSearch, loadProducts, loadCompanies])
 
   // Scroll infinito
   useEffect(() => {
@@ -304,7 +324,10 @@ function SearchPageContent() {
             {/* Filter tabs */}
             <div className="flex gap-2">
               <button
-                onClick={() => setSearchType('all')}
+                onClick={() => {
+                  setSearchType('all')
+                  trackFilterApplied('search_type', 'all')
+                }}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   searchType === 'all'
                     ? 'bg-coral-500 text-white'
@@ -314,7 +337,10 @@ function SearchPageContent() {
                 Todos ({totalResults})
               </button>
               <button
-                onClick={() => setSearchType('products')}
+                onClick={() => {
+                  setSearchType('products')
+                  trackFilterApplied('search_type', 'products')
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                   searchType === 'products'
                     ? 'bg-coral-500 text-white'
@@ -325,7 +351,10 @@ function SearchPageContent() {
                 Produtos ({products.length})
               </button>
               <button
-                onClick={() => setSearchType('companies')}
+                onClick={() => {
+                  setSearchType('companies')
+                  trackFilterApplied('search_type', 'companies')
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                   searchType === 'companies'
                     ? 'bg-coral-500 text-white'

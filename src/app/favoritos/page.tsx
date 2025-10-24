@@ -8,10 +8,26 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { useAuth } from '@/context/AuthContext'
 import { Heart, Building2, ArrowLeft } from 'lucide-react'
 import { FavoriteCompanyButton } from '@/components/favorites/FavoriteCompanyButton'
+import { useAnalytics } from '@/hooks/useAnalytics'
+import { EventName } from '@/types/analytics'
 
 export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth()
   const { favorites, loading: favoritesLoading } = useFavorites()
+  const { trackEvent } = useAnalytics()
+
+  // Track page view
+  useEffect(() => {
+    if (!authLoading && user) {
+      trackEvent(EventName.FAVORITES_VIEW, {
+        eventData: {
+          favoritesCount: favorites.length,
+          category: 'favorites',
+          label: 'favorites_page_view'
+        }
+      })
+    }
+  }, [authLoading, user, favorites.length, trackEvent])
 
   if (authLoading) {
     return (
