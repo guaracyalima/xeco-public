@@ -17,12 +17,13 @@ import {
   Package
 } from 'lucide-react'
 import Link from 'next/link'
-import { Product } from '@/types'
+import { Product, Company } from '@/types'
 import { FavoriteCompanyButton } from '@/components/favorites/FavoriteCompanyButton'
 import { CompanyProductCard } from '@/components/company/CompanyProductCard'
+import { ShareCompanyButton } from '@/components/company/ShareCompanyButton'
 import { useCompanyAnalytics } from '@/hooks/useAnalytics'
 
-interface Company {
+interface CompanyDetails {
   id: string
   name: string
   about?: string
@@ -46,7 +47,7 @@ export default function CompanyDetailsPage() {
   const companyId = params.id as string
   const { trackCompanyView, trackCompanyShare, trackCompanyContact } = useCompanyAnalytics()
   
-  const [company, setCompany] = useState<Company | null>(null)
+  const [company, setCompany] = useState<CompanyDetails | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [categoryName, setCategoryName] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -72,7 +73,7 @@ export default function CompanyDetailsPage() {
           id: companySnap.id,
           ...companySnap.data(),
           createdAt: companySnap.data().createdAt?.toDate() || new Date()
-        } as Company
+        } as CompanyDetails
 
         setCompany(companyData)
 
@@ -259,12 +260,23 @@ export default function CompanyDetailsPage() {
 
             {/* Share button */}
             <div className="absolute top-6 right-6">
-              <button
-                onClick={handleShare}
-                className="p-3 text-white/90 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-sm rounded-lg transition-all"
-              >
-                <Share2 className="h-5 w-5" />
-              </button>
+              <ShareCompanyButton 
+                company={{
+                  id: company.id,
+                  name: company.name,
+                  about: company.about || '',
+                  logo: company.logo,
+                  phone: company.phone || '',
+                  whatsapp: company.phone || '',
+                  city: company.cidade,
+                  state: company.uf,
+                  categoryId: company.category || '',
+                  status: company.status === 'ATIVO',
+                  createdAt: company.createdAt,
+                  updatedAt: company.createdAt,
+                }}
+                variant="button"
+              />
             </div>
           </div>
 

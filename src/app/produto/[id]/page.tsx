@@ -7,6 +7,7 @@ import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductInfo } from '@/components/product/ProductInfo'
 import { ProductTabs } from '@/components/product/ProductTabs'
 import { RelatedProducts } from '@/components/product/RelatedProducts'
+import { ShareProductButton } from '@/components/product/ShareProductButton'
 import { getProductById, getRelatedProducts } from '@/lib/firebase-service'
 import { Product } from '@/types'
 import { ArrowLeft } from 'lucide-react'
@@ -85,13 +86,22 @@ export default function ProductDetailPage() {
         {/* Back Button */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <button
-              onClick={() => router.back()}
-              className="inline-flex items-center text-gray-600 hover:text-coral-500 transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Voltar
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => router.back()}
+                className="inline-flex items-center text-gray-600 hover:text-coral-500 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Voltar
+              </button>
+              
+              {/* Botão de Compartilhar */}
+              <ShareProductButton 
+                product={product}
+                companyName={product.companyOwnerName}
+                variant="button"
+              />
+            </div>
           </div>
         </div>
 
