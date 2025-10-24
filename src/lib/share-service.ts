@@ -2,6 +2,7 @@
 // Gera imagem com informações e compartilha
 
 import { Product, Company } from '@/types'
+import QRCode from 'qrcode'
 
 interface ShareProductData {
   type: 'product'
@@ -141,6 +142,53 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
         ctx.font = '14px system-ui, -apple-system, sans-serif'
         ctx.fillText(`📍 ${company.city}, ${company.state}`, padding, currentY)
       }
+    }
+    
+    // 🔲 QR Code no canto inferior direito
+    try {
+      const url = shareData.type === 'product' 
+        ? `${window.location.origin}/produto/${shareData.data.id}`
+        : `${window.location.origin}/company/${shareData.data.id}`
+      
+      // Gerar QR Code como data URL
+      const qrDataUrl = await QRCode.toDataURL(url, {
+        width: 100,
+        margin: 1,
+        color: {
+          dark: '#1F2937',
+          light: '#FFFFFF'
+        }
+      })
+      
+      // Carregar QR Code como imagem
+      const qrImage = await loadImage(qrDataUrl)
+      
+      // Desenhar QR Code com fundo branco
+      const qrSize = 90
+      const qrX = canvas.width - qrSize - padding
+      const qrY = canvas.height - qrSize - padding
+      
+      // Fundo branco para o QR Code
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10)
+      
+      // Borda ao redor do QR Code
+      ctx.strokeStyle = '#E5E7EB'
+      ctx.lineWidth = 2
+      ctx.strokeRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10)
+      
+      // Desenhar QR Code
+      ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize)
+      
+      // Texto "Escaneie" acima do QR Code
+      ctx.fillStyle = '#6B7280'
+      ctx.font = 'bold 12px system-ui, -apple-system, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('📱 Escaneie', qrX + qrSize / 2, qrY - 10)
+      ctx.textAlign = 'left'
+    } catch (qrError) {
+      console.warn('⚠️ Erro ao gerar QR Code:', qrError)
+      // Continua sem o QR Code se der erro
     }
     
     // Logo Xeco no rodapé
