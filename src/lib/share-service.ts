@@ -48,25 +48,32 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
     
     // 🔖 MARCAS D'ÁGUA espalhadas pela imagem (pra não cortarem)
     ctx.save()
-    ctx.globalAlpha = 0.15
+    
+    // Configurar sombra pra marca d'água funcionar em fundo claro E escuro
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetX = 2
+    ctx.shadowOffsetY = 2
+    
+    ctx.globalAlpha = 0.35
     ctx.fillStyle = '#FFFFFF'
-    ctx.font = 'bold 36px system-ui, -apple-system, sans-serif'
+    ctx.font = 'bold 48px system-ui, -apple-system, sans-serif'
     
     // Marca d'água no topo esquerdo
-    ctx.fillText('Xeco', 30, 60)
+    ctx.fillText('Xeco', 30, 80)
     
     // Marca d'água no meio direito
-    ctx.fillText('Xeco', 450, 320)
+    ctx.fillText('Xeco', 420, 320)
     
     // Marca d'água no centro (levemente rotacionada)
     ctx.save()
-    ctx.translate(300, 280)
-    ctx.rotate(-15 * Math.PI / 180)
+    ctx.translate(280, 250)
+    ctx.rotate(-20 * Math.PI / 180)
     ctx.fillText('Xeco', 0, 0)
     ctx.restore()
     
     // Marca d'água embaixo esquerdo
-    ctx.fillText('Xeco', 40, 540)
+    ctx.fillText('Xeco', 40, 520)
     
     ctx.restore()
     
@@ -176,19 +183,24 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
       
       // Gerar QR Code como data URL
       const qrDataUrl = await QRCode.toDataURL(url, {
-        width: 80,
-        margin: 0,
+        width: 100,
+        margin: 1,
         color: {
           dark: '#1F2937',
           light: '#FFFFFF'
         }
       })
       
-      // Carregar QR Code como imagem
-      const qrImage = await loadImage(qrDataUrl)
+      // Criar imagem do QR Code (data URL não precisa de crossOrigin)
+      const qrImage = new Image()
+      await new Promise<void>((resolve, reject) => {
+        qrImage.onload = () => resolve()
+        qrImage.onerror = () => reject(new Error('Erro ao carregar QR Code'))
+        qrImage.src = qrDataUrl
+      })
       
       // Posição do QR Code (canto inferior direito)
-      const qrSize = 70
+      const qrSize = 80
       const qrPadding = 15
       const qrX = canvas.width - qrSize - qrPadding
       const qrY = canvas.height - qrSize - qrPadding
@@ -205,12 +217,6 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
       // Desenhar QR Code
       ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize)
       
-      // Texto "Escaneie" acima do QR Code (bem acima pra não sobrepor)
-      ctx.fillStyle = '#6B7280'
-      ctx.font = 'bold 10px system-ui, -apple-system, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('📱 Escanear', qrX + qrSize / 2, qrY - 8)
-      ctx.textAlign = 'left'
     } catch (qrError) {
       console.warn('⚠️ Erro ao gerar QR Code:', qrError)
       // Continua sem o QR Code se der erro
