@@ -46,6 +46,30 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
     const imgY = 0
     ctx.drawImage(img, 0, imgY, imgSize, imgSize)
     
+    // 🔖 MARCAS D'ÁGUA espalhadas pela imagem (pra não cortarem)
+    ctx.save()
+    ctx.globalAlpha = 0.15
+    ctx.fillStyle = '#FFFFFF'
+    ctx.font = 'bold 36px system-ui, -apple-system, sans-serif'
+    
+    // Marca d'água no topo esquerdo
+    ctx.fillText('Xeco', 30, 60)
+    
+    // Marca d'água no meio direito
+    ctx.fillText('Xeco', 450, 320)
+    
+    // Marca d'água no centro (levemente rotacionada)
+    ctx.save()
+    ctx.translate(300, 280)
+    ctx.rotate(-15 * Math.PI / 180)
+    ctx.fillText('Xeco', 0, 0)
+    ctx.restore()
+    
+    // Marca d'água embaixo esquerdo
+    ctx.fillText('Xeco', 40, 540)
+    
+    ctx.restore()
+    
     // Área de informações (fundo branco com sombra)
     const infoY = imgSize
     const infoHeight = canvas.height - imgSize
@@ -152,8 +176,8 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
       
       // Gerar QR Code como data URL
       const qrDataUrl = await QRCode.toDataURL(url, {
-        width: 100,
-        margin: 1,
+        width: 80,
+        margin: 0,
         color: {
           dark: '#1F2937',
           light: '#FFFFFF'
@@ -163,10 +187,11 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
       // Carregar QR Code como imagem
       const qrImage = await loadImage(qrDataUrl)
       
-      // Desenhar QR Code com fundo branco
-      const qrSize = 90
-      const qrX = canvas.width - qrSize - padding
-      const qrY = canvas.height - qrSize - padding
+      // Posição do QR Code (canto inferior direito)
+      const qrSize = 70
+      const qrPadding = 15
+      const qrX = canvas.width - qrSize - qrPadding
+      const qrY = canvas.height - qrSize - qrPadding
       
       // Fundo branco para o QR Code
       ctx.fillStyle = '#FFFFFF'
@@ -180,24 +205,16 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
       // Desenhar QR Code
       ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize)
       
-      // Texto "Escaneie" acima do QR Code
+      // Texto "Escaneie" acima do QR Code (bem acima pra não sobrepor)
       ctx.fillStyle = '#6B7280'
-      ctx.font = 'bold 12px system-ui, -apple-system, sans-serif'
+      ctx.font = 'bold 10px system-ui, -apple-system, sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('📱 Escaneie', qrX + qrSize / 2, qrY - 10)
+      ctx.fillText('📱 Escanear', qrX + qrSize / 2, qrY - 8)
       ctx.textAlign = 'left'
     } catch (qrError) {
       console.warn('⚠️ Erro ao gerar QR Code:', qrError)
       // Continua sem o QR Code se der erro
     }
-    
-    // Logo Xeco no rodapé
-    ctx.fillStyle = '#E5E7EB'
-    ctx.fillRect(0, canvas.height - 1, canvas.width, 1)
-    
-    ctx.fillStyle = '#FB6F72'
-    ctx.font = 'bold 16px system-ui, -apple-system, sans-serif'
-    ctx.fillText('Xeco', canvas.width - padding - 50, canvas.height - 12)
     
   } catch (error) {
     console.error('Erro ao gerar imagem de compartilhamento:', error)
@@ -337,13 +354,14 @@ export async function shareProduct(
     // URL do produto
     const productUrl = `${window.location.origin}/produto/${product.id}`
     
-    // Montar texto do compartilhamento
+    // Montar texto do compartilhamento (estilo Shopee - fluido e natural)
     const priceValue = typeof product.salePrice === 'number' 
       ? product.salePrice 
       : parseFloat(String(product.salePrice) || '0')
-    const shareText = `${product.name}\n\n💰 R$ ${priceValue.toFixed(2).replace('.', ',')}\n\n${
-      product.description ? product.description.substring(0, 100) + '...' : ''
-    }\n\n${companyName ? `Vendido por: ${companyName}\n\n` : ''}Veja no Xeco: ${productUrl}`
+    
+    const shareText = `Confira ${product.name} por R$${priceValue.toFixed(2).replace('.', ',')}. ${
+      companyName ? `Vendido por ${companyName}. ` : ''
+    }Encontre na Xeco agora! ${productUrl}`
     
     // Verificar se Web Share API está disponível E suporta arquivos
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
@@ -439,12 +457,9 @@ export async function shareCompany(company: Company): Promise<boolean> {
     // URL da empresa
     const companyUrl = `${window.location.origin}/company/${company.id}`
     
-    // Montar texto do compartilhamento
-    const shareText = `${company.name}\n\n${
-      company.about ? company.about.substring(0, 100) + '...\n\n' : ''
-    }${
-      company.city && company.state ? `📍 ${company.city}, ${company.state}\n\n` : ''
-    }Conheça no Xeco: ${companyUrl}`
+    // Montar texto do compartilhamento (estilo Shopee - fluido e natural)
+    const locationText = company.city && company.state ? ` em ${company.city}, ${company.state}` : ''
+    const shareText = `Confira ${company.name}${locationText}. Encontre na Xeco agora! ${companyUrl}`
     
     // Verificar se Web Share API está disponível E suporta arquivos
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
