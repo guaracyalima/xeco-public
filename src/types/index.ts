@@ -54,6 +54,7 @@ export interface Company {
   city: string
   state: string
   categoryId: string
+  categoryName?: string // Nome da categoria (para exibição)
   status: boolean  // Campo correto: status ao invés de isActive
   createdAt: Date
   updatedAt: Date
@@ -93,6 +94,8 @@ export interface Product {
   uf: string
   productEmphasis: boolean
   active: string  // Campo correto: "SIM" ou "NÃO"
+  produtoOuServico?: 'PRODUTO' | 'SERVICO' // Tipo: Produto ou Serviço
+  tipo_produto?: 'Fisico' | 'Digital' // Tipo físico ou digital
   createdAt: Date
   updatedAt: Date
 }

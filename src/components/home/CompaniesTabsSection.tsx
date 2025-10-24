@@ -3,6 +3,7 @@
 import { Company } from '@/types'
 import { CompanyCard } from './CompanyCard'
 import { ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 interface CompaniesTabsSectionProps {
   companies: Company[]
@@ -23,10 +24,10 @@ export function CompaniesTabsSection({ companies, title = "Aqui pertinho" }: Com
           </div>
           
           {/* Ver todos button */}
-          <button className="view-all-btn">
+          <Link href="/companies" className="view-all-btn">
             <span>Ver todos</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
 
         {/* Companies Grid */}

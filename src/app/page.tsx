@@ -30,8 +30,8 @@ export default function Home() {
         // Load data in parallel
         const [categoriesData, companiesData, productsData] = await Promise.all([
           getCategories(),
-          getFeaturedCompanies(5),
-          getFeaturedProducts(5)
+          getFeaturedCompanies(6),
+          getFeaturedProducts(6)
         ])
 
         setCategories(categoriesData)
