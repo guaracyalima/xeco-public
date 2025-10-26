@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ShoppingBag, CreditCard, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CheckoutModal } from '@/components/checkout/CheckoutModal'
+import CheckoutIframeModal from '@/components/checkout/CheckoutIframeModal'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { CheckoutUserData } from '@/types/order'
@@ -22,6 +23,8 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
   const { firebaseUser } = useAuth()
   const router = useRouter()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [paymentUrl, setPaymentUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -113,14 +116,47 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
 
       const checkoutUrl = await startCheckout(userData, discount)
       
-      // Só fechar modal e mostrar sucesso se tudo deu certo
-      setSuccess('Redirecionando para pagamento...')
+      console.log('✅ [CHECKOUT] URL de pagamento recebida:', checkoutUrl)
+      
+      if (!checkoutUrl || checkoutUrl.trim() === '') {
+        throw new Error('URL de pagamento não foi gerada. Tente novamente.')
+      }
+      
       setIsModalOpen(false)
       
-      // Pequeno delay para mostrar a mensagem de sucesso
-      setTimeout(() => {
-        window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
-      }, 1000)
+      // ⚠️ ASAAS NÃO PERMITE IFRAME (CSP Policy)
+      // Solução: Detectar dispositivo e abrir apropriadamente
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      
+      if (isMobile) {
+        // Mobile: Redireciona na mesma janela
+        console.log('� [CHECKOUT] Mobile detectado - redirecionando')
+        window.location.href = checkoutUrl
+      } else {
+        // Desktop: Tenta abrir em nova aba
+        console.log('🖥️ [CHECKOUT] Desktop - tentando abrir nova aba')
+        const paymentWindow = window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
+        
+        // Detecta se popup foi bloqueado (3 métodos de verificação)
+        if (!paymentWindow || paymentWindow.closed || typeof paymentWindow.closed === 'undefined') {
+          // Popup bloqueado IMEDIATAMENTE - redireciona na guia atual
+          console.warn('❌ [CHECKOUT] Popup BLOQUEADO - redirecionando na guia atual')
+          window.location.href = checkoutUrl
+        } else {
+          console.log('✅ [CHECKOUT] Popup parece aberto, verificando...')
+          
+          // Verifica após 100ms se a janela ainda está aberta (alguns bloqueadores são lentos)
+          setTimeout(() => {
+            if (paymentWindow.closed) {
+              console.warn('⚠️ [CHECKOUT] Popup foi fechado pelo bloqueador - redirecionando')
+              window.location.href = checkoutUrl
+            } else {
+              console.log('✅ [CHECKOUT] Popup CONFIRMADO como aberto!')
+              setSuccess('Pagamento aberto em nova aba. Complete e retorne aqui.')
+            }
+          }, 100)
+        }
+      }
 
     } catch (error) {
       console.error('Erro no checkout:', error)
@@ -250,7 +286,7 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
         </div>
       </div>
 
-      {/* Modal de checkout */}
+      {/* Modal de checkout (dados do usuário) */}
       <CheckoutModal
         isOpen={isModalOpen}
         onClose={() => !isLoading && setIsModalOpen(false)}
@@ -262,6 +298,22 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
         hasExistingCpf={!!existingUserData?.cpf}
         error={error}
         onErrorClear={() => setError(null)}
+      />
+
+      {/* Modal de pagamento embarcado (iframe) */}
+      <CheckoutIframeModal
+        checkoutUrl={paymentUrl}
+        isOpen={isPaymentModalOpen}
+        onClose={() => {
+          setIsPaymentModalOpen(false)
+          setPaymentUrl('')
+        }}
+        onSuccess={() => {
+          console.log('✅ Pagamento concluído!')
+          setIsPaymentModalOpen(false)
+          // Redirecionar para página de sucesso ou pedidos
+          router.push('/perfil?tab=pedidos')
+        }}
       />
     </>
   )

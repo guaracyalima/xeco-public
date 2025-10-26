@@ -306,15 +306,28 @@ export async function createPaymentCheckout(
       const successResponse = responseData as any // Backend format é diferente
 
       console.log('\n✅ PAGAMENTO CRIADO COM SUCESSO!')
+      console.log('📋 Estrutura da resposta:', Object.keys(successResponse))
       console.log('ID do Pagamento:', successResponse.asaasPaymentId || successResponse.id)
       console.log('Link de Checkout:', successResponse.checkoutUrl || successResponse.link)
       console.log('Order ID:', successResponse.orderId)
+      
+      const paymentLink = successResponse.checkoutUrl || successResponse.link
+      const orderId = successResponse.orderId || successResponse.id
+      
+      if (!paymentLink) {
+        console.error('❌ CRÍTICO: Resposta de sucesso mas sem paymentLink!')
+        console.error('Resposta completa:', JSON.stringify(successResponse, null, 2))
+        throw new Error('Servidor não retornou link de pagamento')
+      }
+      
+      console.log('🔗 Retornando paymentLink:', paymentLink)
+      console.log('🆔 Retornando orderId:', orderId)
       console.log('')
 
       return {
         success: true,
-        paymentLink: successResponse.checkoutUrl || successResponse.link,
-        orderId: successResponse.orderId || successResponse.id
+        paymentLink: paymentLink,
+        orderId: orderId
       }
     }
 

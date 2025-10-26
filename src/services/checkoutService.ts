@@ -133,12 +133,17 @@ export class CheckoutService {
       )
 
       console.log('✅ Checkout criado com sucesso:', paymentResult.orderId)
+      console.log('🔗 URL de pagamento:', paymentResult.paymentLink)
 
-      return {
+      const response = {
         checkoutId: paymentResult.orderId,
         checkoutUrl: paymentResult.paymentLink,
         message: 'Checkout criado com sucesso'
       }
+      
+      console.log('📦 Retornando resposta:', response)
+      
+      return response
 
     } catch (error) {
       console.error('❌ Erro ao criar checkout:', error)

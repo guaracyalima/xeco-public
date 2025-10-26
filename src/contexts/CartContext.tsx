@@ -185,13 +185,17 @@ function cartReducer(state: Cart, action: CartAction): Cart {
       return newState
 
     case 'SET_ORDER_ID':
-      return {
+      newState = {
         ...state,
         orderId: action.payload.orderId
       } as any
+      
+      saveCartToStorage(newState)
+      return newState
 
     case 'CLEAR_ORDER_ID':
       const { orderId: _orderId, ...stateWithoutOrderId } = state as any
+      saveCartToStorage(stateWithoutOrderId)
       return stateWithoutOrderId
 
     default:
@@ -447,6 +451,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // ✅ Atualiza order EXISTENTE (foi criada quando adicionou primeiro produto)
       const orderId = (cart as any).orderId
+      
+      console.log('🔍 [DEBUG CHECKOUT]')
+      console.log('   - Cart completo:', cart)
+      console.log('   - orderId extraído:', orderId)
+      console.log('   - items no cart:', cart.items.length)
+      
       if (!orderId) {
         throw new Error('Nenhuma order foi criada. Adicione produtos ao carrinho primeiro.')
       }
