@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Layout } from '@/components/layout/Layout'
 import { CheckCircle, Loader2 } from 'lucide-react'
 
+// Force this page to be dynamic (no static generation)
+export const dynamic = 'force-dynamic'
+
 function CheckoutSuccessContent() {
   const { clearCart } = useCart()
   const router = useRouter()

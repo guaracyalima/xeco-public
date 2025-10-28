@@ -1,16 +1,100 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Layout } from '@/components/layout/Layout'
 import { useCart } from '@/contexts/CartContext'
 import { CartItemRow } from '@/components/cart/CartItemRow'
 import { CartSummary } from '@/components/cart/CartSummary'
-import { ArrowLeft, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { OrderService } from '@/services/orderService'
 
 export default function CartPage() {
   const { cart, clearCart } = useCart()
   const router = useRouter()
+  const [isCheckingPayment, setIsCheckingPayment] = useState(true)
+  const [isPaid, setIsPaid] = useState(false)
+
+  // Verifica status do pagamento quando a página carregar
+  useEffect(() => {
+    const checkPaymentStatus = async () => {
+      if (!cart.orderId) {
+        setIsCheckingPayment(false)
+        return
+      }
+
+      try {
+        console.log('🔍 [CARRINHO] Verificando status do pagamento para order:', cart.orderId)
+        const order = await OrderService.getOrder(cart.orderId)
+        
+        if (!order) {
+          console.log('⚠️ [CARRINHO] Order não encontrada')
+          setIsCheckingPayment(false)
+          return
+        }
+
+        console.log('📊 [CARRINHO] Status da order:', order.status)
+        console.log('💳 [CARRINHO] Status do pagamento:', order.paymentStatus)
+
+        // Se o pagamento foi aprovado/confirmado, limpa o carrinho
+        const isPaidOrder = order.status === 'PAID' || order.status === 'CONFIRMED'
+        const isPaidPayment = order.paymentStatus === 'PAID' || order.paymentStatus === 'CONFIRMED'
+        
+        if (isPaidOrder || isPaidPayment) {
+          console.log('✅ [CARRINHO] Pagamento APROVADO - limpando carrinho')
+          setIsPaid(true)
+          
+          // Aguarda 2 segundos para mostrar mensagem e redireciona
+          setTimeout(() => {
+            clearCart()
+            router.push('/perfil?tab=pedidos')
+          }, 2000)
+        } else {
+          console.log('⏳ [CARRINHO] Pagamento ainda pendente - Status:', order.status, '| Payment:', order.paymentStatus)
+          setIsCheckingPayment(false)
+        }
+      } catch (error) {
+        console.error('❌ [CARRINHO] Erro ao verificar status do pagamento:', error)
+        setIsCheckingPayment(false)
+      }
+    }
+
+    checkPaymentStatus()
+  }, [cart.orderId, clearCart, router])
+
+  // Se está verificando pagamento, mostra loading
+  if (isCheckingPayment) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-coral-500 mb-4"></div>
+            <p className="text-gray-600">Verificando status do pagamento...</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Se pagamento foi aprovado, mostra mensagem de sucesso
+  if (isPaid) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto px-4">
+            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+              <CheckCircle className="h-12 w-12 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Pagamento Confirmado! 🎉</h2>
+            <p className="text-gray-600 mb-4">
+              Seu pedido foi pago com sucesso. Redirecionando para seus pedidos...
+            </p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   if (cart.items.length === 0) {
     return (
