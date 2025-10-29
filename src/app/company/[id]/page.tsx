@@ -230,8 +230,8 @@ export default function CompanyDetailsPage() {
               }}
             />
             
-            {/* Dark overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+            {/* Overlay leve para melhorar legibilidade do texto */}
+            <div className="absolute inset-0" style={{ backgroundColor: '#00000021' }}></div>
             
             {/* Company name overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
