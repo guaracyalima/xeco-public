@@ -124,8 +124,6 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
       
       setIsModalOpen(false)
       
-      setIsModalOpen(false)
-      
       // Sempre abrir link de pagamento em NOVA ABA apenas
       console.log('[CHECKOUT] Abrindo link de pagamento em nova aba:', checkoutUrl)
       
@@ -139,7 +137,6 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
       } else {
         console.log('[CHECKOUT] Link aberto em nova aba!')
         setSuccess('Pagamento aberto em nova aba. Complete o pagamento e retorne aqui.')
-      }
       }
 
     } catch (error) {
