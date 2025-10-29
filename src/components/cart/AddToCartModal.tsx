@@ -107,19 +107,21 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
             {/* Primary Action - Go to Cart */}
             <button
               onClick={handleGoToCart}
-              className="w-full bg-coral-500 text-white py-4 rounded-xl font-semibold hover:bg-coral-600 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-coral-500/30"
+              className="w-full bg-coral-500 py-4 rounded-xl font-semibold hover:bg-coral-600 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-coral-500/30"
+              style={{ color: '#ffffff' }}
             >
-              <ShoppingBag className="h-5 w-5" />
-              <span>Finalizar Compra</span>
-              <ArrowRight className="h-5 w-5" />
+              <ShoppingBag className="h-5 w-5 text-white" />
+              <span className="text-white">Finalizar Compra</span>
+              <ArrowRight className="h-5 w-5 text-white" />
             </button>
 
             {/* Secondary Action - Continue Shopping */}
             <button
               onClick={handleContinueShopping}
-              className="w-full bg-white border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 transform hover:scale-105 active:scale-95"
+              className="w-full bg-white border-2 border-gray-300 py-4 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 transform hover:scale-105 active:scale-95"
+              style={{ color: '#374151' }}
             >
-              Continuar Comprando
+              <span className="text-gray-700">Continuar Comprando</span>
             </button>
           </div>
 

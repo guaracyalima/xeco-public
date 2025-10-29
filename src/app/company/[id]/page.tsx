@@ -75,6 +75,13 @@ export default function CompanyDetailsPage() {
           createdAt: companySnap.data().createdAt?.toDate() || new Date()
         } as CompanyDetails
 
+        console.log('🏢 Dados da empresa carregados:', {
+          id: companyData.id,
+          name: companyData.name,
+          cover: companyData.cover,
+          logo: companyData.logo
+        })
+
         setCompany(companyData)
 
         // Track company view
@@ -215,6 +222,12 @@ export default function CompanyDetailsPage() {
               src={company.cover || 'https://firebasestorage.googleapis.com/v0/b/xeco-334f5.firebasestorage.app/o/blue-connections-linkedin-cover-717dweuzdc11zpwu.jpg?alt=media&token=21b31369-d550-42e4-b467-385b8b4a1828'}
               alt={`Cover de ${company.name}`}
               className="w-full h-full object-cover"
+              onLoad={() => console.log('✅ Cover image loaded:', company.cover || 'default')}
+              onError={(e) => {
+                console.error('❌ Error loading cover:', company.cover)
+                // Fallback para a imagem default
+                ;(e.target as HTMLImageElement).src = 'https://firebasestorage.googleapis.com/v0/b/xeco-334f5.firebasestorage.app/o/blue-connections-linkedin-cover-717dweuzdc11zpwu.jpg?alt=media&token=21b31369-d550-42e4-b467-385b8b4a1828'
+              }}
             />
             
             {/* Dark overlay */}
