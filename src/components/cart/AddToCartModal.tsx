@@ -96,7 +96,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
                   {product.name}
                 </h4>
                 <p className="text-coral-600 font-bold text-lg">
-                  R$ {product.salePrice.toFixed(2)}
+                  R$ {Number(product.salePrice || 0).toFixed(2)}
                 </p>
               </div>
             </div>
