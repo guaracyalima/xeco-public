@@ -1,10 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { Product } from '@/types'
-import { MapPin, Package, Heart } from 'lucide-react'
+import { MapPin, Package, Heart, ShoppingCart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useProductAnalytics } from '@/hooks/useAnalytics'
 import { useLikedProductContext } from '@/contexts/LikedProductContext'
+import { useCart } from '@/contexts/CartContext'
+import { CompanyConflictModal } from '@/components/cart/CompanyConflictModal'
 
 interface ProductCardProps {
   product: Product
@@ -15,6 +18,9 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
   const router = useRouter()
   const { trackProductView, trackProductClick } = useProductAnalytics()
   const { favoriteProduct, unfavoriteProduct, isFavored } = useLikedProductContext()
+  const { cart, addToCart, clearCart } = useCart()
+  const [showConflictModal, setShowConflictModal] = useState(false)
+  const [pendingProduct, setPendingProduct] = useState<Product | null>(null)
 
   const handleClick = () => {
     trackProductClick(product.id, product.name, {
@@ -37,6 +43,28 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
       }
     } catch (error) {
       console.error('Erro ao favoritar produto:', error)
+    }
+  }
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation() // Evita navegar ao clicar no botão
+    
+    const success = await addToCart(product, 1)
+    
+    if (!success) {
+      // Show conflict modal
+      setPendingProduct(product)
+      setShowConflictModal(true)
+    }
+    // Se success, o modal já será exibido pelo CartContext
+  }
+
+  const handleClearAndAdd = async () => {
+    if (pendingProduct) {
+      await clearCart()
+      await addToCart(pendingProduct, 1)
+      setShowConflictModal(false)
+      setPendingProduct(null)
     }
   }
 
@@ -136,7 +164,29 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
             {product.companyOwnerName || product.companyOwner}
           </span>
         </div>
+
+        {/* Add to cart button */}
+        <button
+          onClick={handleAddToCart}
+          className="add-to-cart-btn"
+          disabled={product.stockQuantity === 0}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          {product.stockQuantity === 0 ? 'Esgotado' : 'Adicionar ao Carrinho'}
+        </button>
       </div>
+
+      {/* Company Conflict Modal */}
+      {pendingProduct && (
+        <CompanyConflictModal
+          isOpen={showConflictModal}
+          onClose={() => setShowConflictModal(false)}
+          currentCompanyName={cart.companyName || ''}
+          newProductCompanyName={pendingProduct.companyOwnerName || ''}
+          newProduct={pendingProduct}
+          onClearAndAdd={handleClearAndAdd}
+        />
+      )}
 
       <style jsx>{`
         .product-card {
@@ -288,6 +338,36 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
           display: flex;
           flex-direction: column;
           gap: 2px;
+          margin-bottom: 12px;
+        }
+
+        .add-to-cart-btn {
+          width: 100%;
+          background: #ff5a5f;
+          color: white;
+          border: none;
+          padding: 12px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: all 0.3s ease;
+        }
+
+        .add-to-cart-btn:hover:not(:disabled) {
+          background: #e84e53;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(255, 90, 95, 0.3);
+        }
+
+        .add-to-cart-btn:disabled {
+          background: #ccc;
+          cursor: not-allowed;
+          opacity: 0.6;
         }
 
         @media (max-width: 640px) {
