@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useReducer, ReactNode, useEffect } from 'react'
+import { createContext, useContext, useReducer, ReactNode, useEffect, useState } from 'react'
 import { Product, Cart, CartItem, CartDiscount } from '@/types'
 import { CheckoutUserData } from '@/types/order'
 import { OrderService } from '@/services/orderService'
@@ -8,6 +8,7 @@ import { CheckoutService } from '@/services/checkoutService'
 import { useAuth } from '@/context/AuthContext'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { AddToCartModal } from '@/components/cart/AddToCartModal'
 
 interface CartContextType {
   cart: Cart & { orderId?: string }
@@ -210,6 +211,10 @@ interface CartProviderProps {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialCart)
   const { firebaseUser } = useAuth() // Usar firebaseUser que tem uid e displayName
+  
+  // 🎯 Estado do modal de adicionar ao carrinho
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false)
+  const [lastAddedProduct, setLastAddedProduct] = useState<Product | null>(null)
 
   // 🔍 Verificar se há orders pagas/canceladas e limpar carrinho
   useEffect(() => {
@@ -324,6 +329,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       dispatch({ type: 'ADD_ITEM', payload: { product, quantity } })
       console.log('✅ CartContext: Produto adicionado com sucesso!')
+      
+      // 🎯 Mostrar modal de sucesso
+      setLastAddedProduct(product)
+      setShowAddToCartModal(true)
+      
       return true
     } catch (error) {
       console.error('❌ Erro ao adicionar produto:', error)
@@ -524,6 +534,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      
+      {/* 🎯 Modal de produto adicionado ao carrinho */}
+      <AddToCartModal
+        isOpen={showAddToCartModal}
+        onClose={() => setShowAddToCartModal(false)}
+        product={lastAddedProduct}
+      />
     </CartContext.Provider>
   )
 }

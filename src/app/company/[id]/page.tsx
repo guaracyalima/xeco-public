@@ -211,25 +211,11 @@ export default function CompanyDetailsPage() {
         <div className="relative">
           {/* Cover Image */}
           <div className="relative h-80 md:h-96 bg-gradient-to-r from-coral-500 to-coral-600">
-            {company.cover ? (
-              <img
-                src={company.cover}
-                alt={`Cover de ${company.name}`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              // Default background pattern when no cover image
-              <div className="w-full h-full bg-gradient-to-br from-coral-500 via-coral-600 to-orange-600 relative overflow-hidden">
-                {/* Decorative pattern */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute top-10 left-10 w-20 h-20 border-2 border-white rounded-full"></div>
-                  <div className="absolute top-20 right-20 w-16 h-16 border-2 border-white rounded-full"></div>
-                  <div className="absolute bottom-20 left-20 w-12 h-12 border-2 border-white rounded-full"></div>
-                  <div className="absolute bottom-10 right-10 w-24 h-24 border-2 border-white rounded-full"></div>
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white rounded-full"></div>
-                </div>
-              </div>
-            )}
+            <img
+              src={company.cover || 'https://firebasestorage.googleapis.com/v0/b/xeco-334f5.firebasestorage.app/o/blue-connections-linkedin-cover-717dweuzdc11zpwu.jpg?alt=media&token=21b31369-d550-42e4-b467-385b8b4a1828'}
+              alt={`Cover de ${company.name}`}
+              className="w-full h-full object-cover"
+            />
             
             {/* Dark overlay */}
             <div className="absolute inset-0 bg-black bg-opacity-40"></div>
