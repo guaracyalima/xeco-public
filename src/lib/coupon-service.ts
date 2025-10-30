@@ -133,6 +133,10 @@ export const validateCoupon = async (
     
     // 7. If it's an affiliate coupon, validate affiliate
     let affiliate: Affiliated | undefined
+    console.log('🔍 Verificando se é cupom de afiliado:')
+    console.log('   Tipo do cupom:', coupon.type)
+    console.log('   AffiliateId:', coupon.affiliateId)
+    
     if (coupon.type === 'AFFILIATE' && coupon.affiliateId) {
       console.log('🔍 Validando afiliado:', coupon.affiliateId)
       const affiliateResult = await validateAffiliate(coupon.affiliateId, companyId)
@@ -145,6 +149,8 @@ export const validateCoupon = async (
       }
       affiliate = affiliateResult.affiliate
       console.log('✅ Afiliado válido:', affiliate?.name)
+    } else {
+      console.log('ℹ️ Cupom não é de afiliado ou não tem affiliateId')
     }
     
     // 8. Calculate discount

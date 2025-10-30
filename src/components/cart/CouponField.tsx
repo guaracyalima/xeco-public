@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { toast } from 'react-toastify'
+import { toast, ToastPosition } from 'react-toastify'
 import { validateCoupon } from '@/lib/coupon-service'
 import { CouponValidationResult, CartDiscount } from '@/types'
 import { Tag, X, CheckCircle, AlertCircle, Percent, UserCheck } from 'lucide-react'
@@ -11,6 +11,14 @@ interface CouponFieldProps {
   cartTotal: number
   onCouponApplied: (discount: CartDiscount | null) => void
   currentDiscount?: CartDiscount | null
+}
+
+// Helper para definir posição do toast baseado no tamanho da tela
+const getToastPosition = (): ToastPosition => {
+  if (typeof window !== 'undefined') {
+    return window.innerWidth < 768 ? 'top-center' : 'top-right'
+  }
+  return 'top-right'
 }
 
 export function CouponField({ 
@@ -25,7 +33,7 @@ export function CouponField({
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
       toast.error('Digite um código de cupom para aplicar.', {
-        position: 'top-center',
+        position: getToastPosition(),
         autoClose: 3000,
       })
       return
@@ -44,7 +52,7 @@ export function CouponField({
       {
         pending: {
           render: '🔍 Validando cupom...',
-          position: 'top-center',
+          position: getToastPosition(),
         },
         success: {
           render: ({ data }: { data: CouponValidationResult }) => {
@@ -70,7 +78,7 @@ export function CouponField({
               throw new Error(data.message)
             }
           },
-          position: 'top-center',
+          position: getToastPosition(),
           autoClose: 4000,
         },
         error: {
@@ -79,7 +87,7 @@ export function CouponField({
             setIsLoading(false)
             return `❌ ${data?.message || 'Erro ao validar cupom. Tente novamente.'}`
           },
-          position: 'top-center',
+          position: getToastPosition(),
           autoClose: 5000,
         }
       }
