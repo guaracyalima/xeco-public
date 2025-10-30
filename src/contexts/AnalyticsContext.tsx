@@ -33,6 +33,9 @@ export function AnalyticsProvider({
 
     // Verifica se já tem consentimento salvo
     const savedConsent = localStorage.getItem('xeco_analytics_consent')
+    
+    // Considera como aceito apenas se for explicitamente 'true'
+    // 'pending' ou qualquer outro valor é tratado como não aceito
     const consent = savedConsent === 'true'
     
     setHasConsent(consent)
