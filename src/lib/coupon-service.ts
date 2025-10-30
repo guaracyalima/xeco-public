@@ -137,10 +137,10 @@ export const validateCoupon = async (
       console.log('🔍 Validando afiliado:', coupon.affiliateId)
       const affiliateResult = await validateAffiliate(coupon.affiliateId, companyId)
       if (!affiliateResult.valid) {
-        console.log('❌ Afiliado inválido ou inativo')
+        console.log('❌ Validação do afiliado falhou')
         return {
           valid: false,
-          message: 'O afiliado associado a este cupom não está mais ativo.'
+          message: affiliateResult.message || 'O afiliado associado a este cupom não está mais ativo.'
         }
       }
       affiliate = affiliateResult.affiliate
@@ -179,13 +179,18 @@ export const validateCoupon = async (
 const validateAffiliate = async (
   affiliateId: string, 
   companyId: string
-): Promise<{ valid: boolean; affiliate?: Affiliated }> => {
+): Promise<{ valid: boolean; affiliate?: Affiliated; message?: string }> => {
   try {
+    console.log('   🔍 Buscando afiliado na collection "affiliated"...')
     const affiliateRef = doc(db, 'affiliated', affiliateId)
     const affiliateDoc = await getDoc(affiliateRef)
     
     if (!affiliateDoc.exists()) {
-      return { valid: false }
+      console.log('   ❌ Afiliado não encontrado no banco de dados')
+      return { 
+        valid: false,
+        message: 'Afiliado não encontrado.'
+      }
     }
     
     const affiliate = {
@@ -195,20 +200,58 @@ const validateAffiliate = async (
       updatedAt: affiliateDoc.data().updatedAt?.toDate()
     } as Affiliated
     
+    console.log('   📦 Dados do afiliado:', {
+      id: affiliate.id,
+      name: affiliate.name,
+      active: affiliate.active,
+      company: affiliate.company_relationed,
+      walletId: affiliate.walletId
+    })
+    
     // Check if affiliate is active
+    console.log('   🔍 Verificando se afiliado está ativo...')
     if (affiliate.active !== 'SIM') {
-      return { valid: false }
+      console.log('   ❌ Afiliado não está ativo (status:', affiliate.active, ')')
+      return { 
+        valid: false,
+        message: 'Este afiliado não está mais ativo.'
+      }
     }
+    console.log('   ✅ Afiliado está ativo')
     
     // Check if affiliate belongs to the company
-    if (affiliate.company_relationed !== companyId) {
-      return { valid: false }
-    }
+    console.log('   🔍 Verificando se afiliado pertence à empresa:')
+    console.log('      Company do afiliado:', affiliate.company_relationed)
+    console.log('      Company do carrinho:', companyId)
     
+    if (affiliate.company_relationed !== companyId) {
+      console.log('   ❌ Afiliado não pertence a esta empresa')
+      return { 
+        valid: false,
+        message: 'Este cupom não é válido para os produtos em seu carrinho.'
+      }
+    }
+    console.log('   ✅ Afiliado pertence à empresa')
+    
+    // Check if affiliate has walletId configured
+    console.log('   🔍 Verificando se afiliado tem walletId configurado...')
+    if (!affiliate.walletId || affiliate.walletId.trim() === '') {
+      console.log('   ❌ Afiliado não possui walletId configurado')
+      return { 
+        valid: false,
+        message: 'Este cupom não pode ser utilizado no momento. O parceiro ainda não configurou sua conta para receber comissões.'
+      }
+    }
+    console.log('   ✅ Afiliado tem walletId:', affiliate.walletId)
+    
+    console.log('   ✅ Afiliado válido e configurado corretamente')
     return { valid: true, affiliate }
   } catch (error) {
-    console.error('Error validating affiliate:', error)
-    return { valid: false }
+    console.error('   ❌ Erro ao validar afiliado:', error)
+    return { 
+      valid: false,
+      message: 'Erro ao validar afiliado. Tente novamente.'
+    }
   }
 }
 
