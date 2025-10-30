@@ -83,6 +83,7 @@ export class UserService {
       const existingUser = await getDoc(userRef)
 
       const profileData = {
+        name: userData.name || userName || '',
         cpf: userData.cpf,
         address: userData.address,
         updatedAt: new Date()
@@ -97,7 +98,6 @@ export class UserService {
         await setDoc(userRef, {
           ...profileData,
           email: userEmail,
-          name: userName || '',
           phone: userPhone || '',
           createdAt: new Date()
         })
@@ -118,6 +118,7 @@ export class UserService {
     }
 
     return {
+      name: profile.name || '',
       cpf: profile.cpf,
       address: profile.address
     }

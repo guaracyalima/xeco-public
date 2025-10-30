@@ -201,15 +201,23 @@ export async function validateCheckoutRequest(payload: any): Promise<ValidationR
 
           if (affiliateDoc.exists()) {
             affiliate = affiliateDoc.data()
-            discountValue = coupon.discountPercentage || 0
-            finalTotal = calculatedTotal * (1 - discountValue / 100)
+            
+            // Calcula desconto baseado no tipo
+            if (coupon.discountType === 'percentage') {
+              discountValue = coupon.discountValue || 0
+              finalTotal = calculatedTotal * (1 - discountValue / 100)
+            } else {
+              discountValue = coupon.discountValue || 0
+              finalTotal = calculatedTotal - discountValue
+            }
           }
         } else {
           // Cupom de desconto normal
-          discountValue = coupon.discountPercentage || coupon.discountAmount || 0
-          if (coupon.discountPercentage) {
+          if (coupon.discountType === 'percentage') {
+            discountValue = coupon.discountValue || 0
             finalTotal = calculatedTotal * (1 - discountValue / 100)
           } else {
+            discountValue = coupon.discountValue || 0
             finalTotal = calculatedTotal - discountValue
           }
         }

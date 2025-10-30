@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Work_Sans } from "next/font/google";
 import "./globals.css";
+import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
@@ -10,6 +11,7 @@ import { LikedProductProvider } from "@/contexts/LikedProductContext";
 import { AnalyticsConsentBanner } from "@/components/analytics/AnalyticsConsentBanner";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
 import { PWARegister } from "@/components/pwa/PWARegister";
+import { ToastContainer } from 'react-toastify';
 
 const workSans = Work_Sans({
   variable: "--font-work-sans",
@@ -67,6 +69,19 @@ export default function RootLayout({
                     {children}
                     <AnalyticsConsentBanner />
                     <PWAInstallPrompt />
+                    <ToastContainer
+                      position="top-right"
+                      autoClose={3000}
+                      hideProgressBar={false}
+                      newestOnTop
+                      closeOnClick
+                      rtl={false}
+                      pauseOnFocusLoss
+                      draggable
+                      pauseOnHover
+                      theme="light"
+                      className="toast-container"
+                    />
                   </CartProvider>
                 </LikedProductProvider>
               </LikedCompanyProvider>

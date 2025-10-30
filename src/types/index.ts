@@ -175,14 +175,19 @@ export interface Coupon {
   type: 'COMPANY' | 'AFFILIATE'
   companyId: string
   affiliateId?: string // Only for AFFILIATE type
-  discountType: 'PERCENTAGE' | 'FIXED'
-  discountPercentage?: number // For percentage discount (e.g., 10 for 10%)
-  discountValue?: number // For fixed discount in BRL
-  active: boolean
-  expiresAt?: Date
-  usageLimit?: number
-  usedCount: number
-  minimumAmount?: number // Minimum cart value to apply
+  discountType: 'percentage' | 'fixed' // lowercase to match Firestore
+  discountValue: number // Can be percentage (10 = 10%) or fixed amount in BRL
+  description?: string
+  isActive: boolean // Changed from 'active' to match Firestore
+  expiresAt?: Date | null
+  maxUses?: number | null // Changed from 'usageLimit' to match Firestore
+  usedCount?: number // Count of times used
+  minOrderValue?: number | null // Changed from 'minimumAmount' to match Firestore
+  totalClicks?: number
+  totalConversions?: number
+  totalRevenue?: number
+  emailSent?: boolean
+  emailSentAt?: Date | string
   createdAt: Date
   updatedAt: Date
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast, ToastPosition } from 'react-toastify'
 import { validateCoupon } from '@/lib/coupon-service'
 import { CouponValidationResult, CartDiscount } from '@/types'
 import { Tag, X, CheckCircle, AlertCircle, Percent, UserCheck } from 'lucide-react'
@@ -10,6 +11,14 @@ interface CouponFieldProps {
   cartTotal: number
   onCouponApplied: (discount: CartDiscount | null) => void
   currentDiscount?: CartDiscount | null
+}
+
+// Helper para definir posição do toast baseado no tamanho da tela
+const getToastPosition = (): ToastPosition => {
+  if (typeof window !== 'undefined') {
+    return window.innerWidth < 768 ? 'top-center' : 'top-right'
+  }
+  return 'top-right'
 }
 
 export function CouponField({ 
@@ -23,14 +32,22 @@ export function CouponField({
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
-      alert('Digite um código de cupom para aplicar.')
+      toast.error('Digite um código de cupom para aplicar.', {
+        position: getToastPosition(),
+        autoClose: 3000,
+      })
       return
     }
 
     setIsLoading(true)
+    
+    // Mostrar toast de loading
+    const loadingToast = toast.loading('🔍 Validando cupom...', {
+      position: getToastPosition(),
+    })
 
     try {
-      const result: CouponValidationResult = await validateCoupon(
+      const result = await validateCoupon(
         couponCode.trim(),
         companyId,
         cartTotal
@@ -48,15 +65,36 @@ export function CouponField({
 
         onCouponApplied(discount)
         setCouponCode('')
-        alert('✅ ' + result.message)
+        
+        toast.update(loadingToast, {
+          render: `🎉 ${result.message}`,
+          type: 'success',
+          isLoading: false,
+          autoClose: 4000,
+          position: getToastPosition(),
+        })
       } else {
         // Invalid coupon
         setCouponCode('')
-        alert('❌ ' + result.message)
+        
+        toast.update(loadingToast, {
+          render: `❌ ${result.message}`,
+          type: 'error',
+          isLoading: false,
+          autoClose: 5000,
+          position: getToastPosition(),
+        })
       }
     } catch (error) {
       setCouponCode('')
-      alert('❌ Erro ao validar cupom. Tente novamente.')
+      
+      toast.update(loadingToast, {
+        render: '❌ Erro ao validar cupom. Tente novamente.',
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000,
+        position: getToastPosition(),
+      })
     } finally {
       setIsLoading(false)
     }
@@ -150,16 +188,24 @@ export function CouponField({
 
             {/* Affiliate Info */}
             {currentDiscount.affiliate && (
-              <div className="bg-blue-50 border border-blue-200 rounded p-2">
-                <div className="flex items-center space-x-2">
-                  <UserCheck className="h-3 w-3 text-blue-600" />
-                  <span className="text-xs text-blue-800">
-                    Afiliado: {currentDiscount.affiliate.name}
-                  </span>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mt-2">
+                <div className="flex items-start space-x-2">
+                  <div className="p-1.5 bg-blue-500 rounded-full mt-0.5">
+                    <UserCheck className="h-3 w-3 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-900 mb-1">
+                      💙 Cupom de Parceiro
+                    </p>
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      Este cupom foi compartilhado por <span className="font-semibold">{currentDiscount.affiliate.name}</span>, 
+                      um parceiro da loja. Ao usar este cupom, você apoia nosso parceiro! 🎉
+                    </p>
+                    <p className="text-xs text-blue-600 mt-2 font-mono bg-blue-100 px-2 py-1 rounded inline-block">
+                      Código do Parceiro: {currentDiscount.affiliate.invite_code}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">
-                  Código: {currentDiscount.affiliate.invite_code}
-                </p>
               </div>
             )}
 
@@ -167,8 +213,8 @@ export function CouponField({
             <div className="flex items-center space-x-1">
               <Percent className="h-3 w-3 text-gray-500" />
               <span className="text-xs text-gray-600">
-                {currentDiscount.coupon.discountType === 'PERCENTAGE' 
-                  ? `${currentDiscount.coupon.discountPercentage}% de desconto`
+                {currentDiscount.coupon.discountType === 'percentage' 
+                  ? `${currentDiscount.coupon.discountValue}% de desconto`
                   : `Desconto fixo de ${formatPrice(currentDiscount.coupon.discountValue || 0)}`
                 }
               </span>

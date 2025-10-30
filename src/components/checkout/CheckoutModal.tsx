@@ -16,6 +16,7 @@ interface CheckoutModalProps {
   isLoading?: boolean
   existingData?: CheckoutUserData | null
   hasExistingCpf?: boolean
+  hasExistingName?: boolean
   error?: string | null
   onErrorClear?: () => void
 }
@@ -29,10 +30,12 @@ export function CheckoutModal({
   isLoading = false,
   existingData = null,
   hasExistingCpf = false,
+  hasExistingName = false,
   error = null,
   onErrorClear
 }: CheckoutModalProps) {
   const [formData, setFormData] = useState<CheckoutUserData>({
+    name: '',
     cpf: '',
     address: {
       street: '',
@@ -65,6 +68,15 @@ export function CheckoutModal({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
+
+    // Validação Nome - apenas se não existir nome salvo
+    if (!hasExistingName) {
+      if (!formData.name) {
+        newErrors.name = 'Nome completo é obrigatório'
+      } else if (formData.name.trim().split(' ').length < 2) {
+        newErrors.name = 'Digite seu nome completo'
+      }
+    }
 
     // Validação CPF (formato básico) - apenas se não existir CPF salvo
     if (!hasExistingCpf) {
@@ -101,7 +113,8 @@ export function CheckoutModal({
         totalAmount,
         itemCount,
         hasAddress: !!formData.address.street,
-        hasCpf: !!formData.cpf
+        hasCpf: !!formData.cpf,
+        hasName: !!formData.name
       })
 
       await onConfirm(formData)
@@ -214,23 +227,43 @@ export function CheckoutModal({
               <h3 className="text-sm font-medium text-gray-900">Dados Pessoais</h3>
             </div>
             
-            <div>
-              <Input
-                label={hasExistingCpf ? "CPF (não editável)" : "CPF *"}
-                placeholder="000.000.000-00"
-                value={formData.cpf}
-                onChange={(e) => !hasExistingCpf && handleInputChange('cpf', formatCPF(e.target.value))}
-                error={errors.cpf}
-                maxLength={14}
-                disabled={isLoading || hasExistingCpf}
-                readOnly={hasExistingCpf}
-              />
-              {hasExistingCpf && (
-                <div className="flex items-center space-x-2 mt-1">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <p className="text-xs text-green-600">CPF já cadastrado em sua conta</p>
-                </div>
-              )}
+            <div className="space-y-3">
+              <div>
+                <Input
+                  label={hasExistingName ? "Nome Completo (não editável)" : "Nome Completo *"}
+                  placeholder="Seu nome completo"
+                  value={formData.name}
+                  onChange={(e) => !hasExistingName && handleInputChange('name', e.target.value)}
+                  error={errors.name}
+                  disabled={isLoading || hasExistingName}
+                  readOnly={hasExistingName}
+                />
+                {hasExistingName && (
+                  <div className="flex items-center space-x-2 mt-1">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <p className="text-xs text-green-600">Nome já cadastrado em sua conta</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Input
+                  label={hasExistingCpf ? "CPF (não editável)" : "CPF *"}
+                  placeholder="000.000.000-00"
+                  value={formData.cpf}
+                  onChange={(e) => !hasExistingCpf && handleInputChange('cpf', formatCPF(e.target.value))}
+                  error={errors.cpf}
+                  maxLength={14}
+                  disabled={isLoading || hasExistingCpf}
+                  readOnly={hasExistingCpf}
+                />
+                {hasExistingCpf && (
+                  <div className="flex items-center space-x-2 mt-1">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <p className="text-xs text-green-600">CPF já cadastrado em sua conta</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

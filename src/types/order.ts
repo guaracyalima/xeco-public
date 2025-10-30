@@ -111,6 +111,7 @@ export interface CheckoutResponse {
 
 // Interface para dados adicionais do usuário na finalização
 export interface CheckoutUserData {
+  name: string
   cpf: string
   address: {
     street: string

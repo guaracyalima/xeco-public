@@ -124,9 +124,39 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
       
       setIsModalOpen(false)
       
-      // Redirecionar para o link de pagamento na página atual
-      console.log('[CHECKOUT] Redirecionando para link de pagamento:', checkoutUrl)
-      window.location.href = checkoutUrl
+      // ⚠️ ASAAS NÃO PERMITE IFRAME (CSP Policy)
+      // Solução: Detectar dispositivo e abrir apropriadamente
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      
+      if (isMobile) {
+        // Mobile: Redireciona na mesma janela
+        console.log('� [CHECKOUT] Mobile detectado - redirecionando')
+        window.location.href = checkoutUrl
+      } else {
+        // Desktop: Tenta abrir em nova aba
+        console.log('🖥️ [CHECKOUT] Desktop - tentando abrir nova aba')
+        const paymentWindow = window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
+        
+        // Detecta se popup foi bloqueado (3 métodos de verificação)
+        if (!paymentWindow || paymentWindow.closed || typeof paymentWindow.closed === 'undefined') {
+          // Popup bloqueado IMEDIATAMENTE - redireciona na guia atual
+          console.warn('❌ [CHECKOUT] Popup BLOQUEADO - redirecionando na guia atual')
+          window.location.href = checkoutUrl
+        } else {
+          console.log('✅ [CHECKOUT] Popup parece aberto, verificando...')
+          
+          // Verifica após 100ms se a janela ainda está aberta (alguns bloqueadores são lentos)
+          setTimeout(() => {
+            if (paymentWindow.closed) {
+              console.warn('⚠️ [CHECKOUT] Popup foi fechado pelo bloqueador - redirecionando')
+              window.location.href = checkoutUrl
+            } else {
+              console.log('✅ [CHECKOUT] Popup CONFIRMADO como aberto!')
+              setSuccess('Pagamento aberto em nova aba. Complete e retorne aqui.')
+            }
+          }, 100)
+        }
+      }
 
     } catch (error) {
       console.error('Erro no checkout:', error)
@@ -266,7 +296,6 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
         isLoading={isLoading}
         existingData={existingUserData}
         hasExistingCpf={!!existingUserData?.cpf}
-        hasExistingName={!!existingUserData?.name}
         error={error}
         onErrorClear={() => setError(null)}
       />

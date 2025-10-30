@@ -20,19 +20,40 @@ export function AnalyticsConsentBanner() {
 
     // Verifica se já tem decisão sobre consentimento
     const savedConsent = localStorage.getItem('xeco_analytics_consent')
+    
+    // Só mostra o banner se:
+    // 1. Não tiver nenhuma decisão salva (null)
+    // 2. OU se salvou como 'pending' (fechou sem decidir)
     if (savedConsent === null) {
       // Mostra banner após um pequeno delay para melhor UX
       setTimeout(() => setShowBanner(true), 2000)
+    } else if (savedConsent === 'pending') {
+      // Se está pendente, mostra de novo após 1 dia
+      const lastShown = localStorage.getItem('xeco_analytics_banner_last_shown')
+      const oneDayInMs = 24 * 60 * 60 * 1000
+      
+      if (!lastShown || Date.now() - parseInt(lastShown) > oneDayInMs) {
+        setTimeout(() => setShowBanner(true), 2000)
+      }
     }
   }, [])
 
   const handleAccept = () => {
     setConsent(true)
     setShowBanner(false)
+    localStorage.removeItem('xeco_analytics_banner_last_shown')
   }
 
   const handleReject = () => {
     setConsent(false)
+    setShowBanner(false)
+    localStorage.removeItem('xeco_analytics_banner_last_shown')
+  }
+
+  const handleClose = () => {
+    // Usuário fechou sem decidir - marca como pendente
+    localStorage.setItem('xeco_analytics_consent', 'pending')
+    localStorage.setItem('xeco_analytics_banner_last_shown', Date.now().toString())
     setShowBanner(false)
   }
 
@@ -133,8 +154,9 @@ export function AnalyticsConsentBanner() {
           </div>
 
           <button
-            onClick={() => setShowBanner(false)}
+            onClick={handleClose}
             className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600"
+            aria-label="Fechar banner"
           >
             <X className="h-5 w-5" />
           </button>
