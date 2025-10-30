@@ -188,8 +188,13 @@ const validateAffiliate = async (
 ): Promise<{ valid: boolean; affiliate?: Affiliated; message?: string }> => {
   try {
     console.log('   🔍 Buscando afiliado na collection "affiliated"...')
+    console.log('   📌 AffiliateId recebido:', affiliateId)
+    console.log('   📌 CompanyId recebido:', companyId)
+    
     const affiliateRef = doc(db, 'affiliated', affiliateId)
     const affiliateDoc = await getDoc(affiliateRef)
+    
+    console.log('   📊 Documento existe?', affiliateDoc.exists())
     
     if (!affiliateDoc.exists()) {
       console.log('   ❌ Afiliado não encontrado no banco de dados')
@@ -199,19 +204,24 @@ const validateAffiliate = async (
       }
     }
     
+    const rawData = affiliateDoc.data()
+    console.log('   📦 Dados brutos do Firestore:', JSON.stringify(rawData, null, 2))
+    
     const affiliate = {
       id: affiliateDoc.id,
-      ...affiliateDoc.data(),
-      createdAt: affiliateDoc.data().createdAt?.toDate(),
-      updatedAt: affiliateDoc.data().updatedAt?.toDate()
+      ...rawData,
+      createdAt: rawData.createdAt?.toDate(),
+      updatedAt: rawData.updatedAt?.toDate()
     } as Affiliated
     
-    console.log('   📦 Dados do afiliado:', {
+    console.log('   📦 Dados do afiliado parseados:', {
       id: affiliate.id,
       name: affiliate.name,
       active: affiliate.active,
       company: affiliate.company_relationed,
-      walletId: affiliate.walletId
+      walletId: affiliate.walletId,
+      walletIdType: typeof affiliate.walletId,
+      walletIdLength: affiliate.walletId?.length
     })
     
     // Check if affiliate is active
@@ -241,8 +251,15 @@ const validateAffiliate = async (
     
     // Check if affiliate has walletId configured
     console.log('   🔍 Verificando se afiliado tem walletId configurado...')
+    console.log('      walletId valor:', affiliate.walletId)
+    console.log('      walletId tipo:', typeof affiliate.walletId)
+    console.log('      walletId é null?', affiliate.walletId === null)
+    console.log('      walletId é undefined?', affiliate.walletId === undefined)
+    console.log('      walletId é string vazia?', affiliate.walletId === '')
+    
     if (!affiliate.walletId || affiliate.walletId.trim() === '') {
       console.log('   ❌ Afiliado não possui walletId configurado')
+      console.log('   ❌ Motivo: walletId =', affiliate.walletId)
       return { 
         valid: false,
         message: 'Este cupom não pode ser utilizado no momento. O parceiro ainda não configurou sua conta para receber comissões.'
