@@ -150,16 +150,24 @@ export function CouponField({
 
             {/* Affiliate Info */}
             {currentDiscount.affiliate && (
-              <div className="bg-blue-50 border border-blue-200 rounded p-2">
-                <div className="flex items-center space-x-2">
-                  <UserCheck className="h-3 w-3 text-blue-600" />
-                  <span className="text-xs text-blue-800">
-                    Afiliado: {currentDiscount.affiliate.name}
-                  </span>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mt-2">
+                <div className="flex items-start space-x-2">
+                  <div className="p-1.5 bg-blue-500 rounded-full mt-0.5">
+                    <UserCheck className="h-3 w-3 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-900 mb-1">
+                      💙 Cupom de Parceiro
+                    </p>
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      Este cupom foi compartilhado por <span className="font-semibold">{currentDiscount.affiliate.name}</span>, 
+                      um parceiro da loja. Ao usar este cupom, você apoia nosso parceiro! 🎉
+                    </p>
+                    <p className="text-xs text-blue-600 mt-2 font-mono bg-blue-100 px-2 py-1 rounded inline-block">
+                      Código do Parceiro: {currentDiscount.affiliate.invite_code}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">
-                  Código: {currentDiscount.affiliate.invite_code}
-                </p>
               </div>
             )}
 
