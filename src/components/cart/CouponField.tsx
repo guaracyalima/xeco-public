@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'react-toastify'
 import { validateCoupon } from '@/lib/coupon-service'
 import { CouponValidationResult, CartDiscount } from '@/types'
 import { Tag, X, CheckCircle, AlertCircle, Percent, UserCheck } from 'lucide-react'
@@ -23,43 +24,66 @@ export function CouponField({
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
-      alert('Digite um código de cupom para aplicar.')
+      toast.error('Digite um código de cupom para aplicar.', {
+        position: 'top-center',
+        autoClose: 3000,
+      })
       return
     }
 
     setIsLoading(true)
 
-    try {
-      const result: CouponValidationResult = await validateCoupon(
-        couponCode.trim(),
-        companyId,
-        cartTotal
-      )
+    const validatePromise = validateCoupon(
+      couponCode.trim(),
+      companyId,
+      cartTotal
+    )
 
-      if (result.valid && result.coupon && result.discountAmount !== undefined) {
-        // Success - apply discount
-        const discount: CartDiscount = {
-          coupon: result.coupon,
-          affiliate: result.affiliate,
-          discountAmount: result.discountAmount,
-          originalTotal: cartTotal,
-          finalTotal: cartTotal - result.discountAmount
+    toast.promise(
+      validatePromise,
+      {
+        pending: {
+          render: '🔍 Validando cupom...',
+          position: 'top-center',
+        },
+        success: {
+          render: ({ data }: { data: CouponValidationResult }) => {
+            if (data.valid && data.coupon && data.discountAmount !== undefined) {
+              // Success - apply discount
+              const discount: CartDiscount = {
+                coupon: data.coupon,
+                affiliate: data.affiliate,
+                discountAmount: data.discountAmount,
+                originalTotal: cartTotal,
+                finalTotal: cartTotal - data.discountAmount
+              }
+
+              onCouponApplied(discount)
+              setCouponCode('')
+              setIsLoading(false)
+              
+              return `🎉 ${data.message}`
+            } else {
+              // Invalid coupon
+              setCouponCode('')
+              setIsLoading(false)
+              throw new Error(data.message)
+            }
+          },
+          position: 'top-center',
+          autoClose: 4000,
+        },
+        error: {
+          render: ({ data }: any) => {
+            setCouponCode('')
+            setIsLoading(false)
+            return `❌ ${data?.message || 'Erro ao validar cupom. Tente novamente.'}`
+          },
+          position: 'top-center',
+          autoClose: 5000,
         }
-
-        onCouponApplied(discount)
-        setCouponCode('')
-        alert('✅ ' + result.message)
-      } else {
-        // Invalid coupon
-        setCouponCode('')
-        alert('❌ ' + result.message)
       }
-    } catch (error) {
-      setCouponCode('')
-      alert('❌ Erro ao validar cupom. Tente novamente.')
-    } finally {
-      setIsLoading(false)
-    }
+    )
   }
 
   const handleRemoveCoupon = () => {
