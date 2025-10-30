@@ -40,58 +40,64 @@ export function CouponField({
     }
 
     setIsLoading(true)
+    
+    // Mostrar toast de loading
+    const loadingToast = toast.loading('🔍 Validando cupom...', {
+      position: getToastPosition(),
+    })
 
-    const validatePromise = validateCoupon(
-      couponCode.trim(),
-      companyId,
-      cartTotal
-    )
+    try {
+      const result = await validateCoupon(
+        couponCode.trim(),
+        companyId,
+        cartTotal
+      )
 
-    toast.promise(
-      validatePromise,
-      {
-        pending: {
-          render: '🔍 Validando cupom...',
-          position: getToastPosition(),
-        },
-        success: {
-          render: ({ data }: { data: CouponValidationResult }) => {
-            if (data.valid && data.coupon && data.discountAmount !== undefined) {
-              // Success - apply discount
-              const discount: CartDiscount = {
-                coupon: data.coupon,
-                affiliate: data.affiliate,
-                discountAmount: data.discountAmount,
-                originalTotal: cartTotal,
-                finalTotal: cartTotal - data.discountAmount
-              }
-
-              onCouponApplied(discount)
-              setCouponCode('')
-              setIsLoading(false)
-              
-              return `🎉 ${data.message}`
-            } else {
-              // Invalid coupon
-              setCouponCode('')
-              setIsLoading(false)
-              throw new Error(data.message)
-            }
-          },
-          position: getToastPosition(),
-          autoClose: 4000,
-        },
-        error: {
-          render: ({ data }: any) => {
-            setCouponCode('')
-            setIsLoading(false)
-            return `❌ ${data?.message || 'Erro ao validar cupom. Tente novamente.'}`
-          },
-          position: getToastPosition(),
-          autoClose: 5000,
+      if (result.valid && result.coupon && result.discountAmount !== undefined) {
+        // Success - apply discount
+        const discount: CartDiscount = {
+          coupon: result.coupon,
+          affiliate: result.affiliate,
+          discountAmount: result.discountAmount,
+          originalTotal: cartTotal,
+          finalTotal: cartTotal - result.discountAmount
         }
+
+        onCouponApplied(discount)
+        setCouponCode('')
+        
+        toast.update(loadingToast, {
+          render: `🎉 ${result.message}`,
+          type: 'success',
+          isLoading: false,
+          autoClose: 4000,
+          position: getToastPosition(),
+        })
+      } else {
+        // Invalid coupon
+        setCouponCode('')
+        
+        toast.update(loadingToast, {
+          render: `❌ ${result.message}`,
+          type: 'error',
+          isLoading: false,
+          autoClose: 5000,
+          position: getToastPosition(),
+        })
       }
-    )
+    } catch (error) {
+      setCouponCode('')
+      
+      toast.update(loadingToast, {
+        render: '❌ Erro ao validar cupom. Tente novamente.',
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000,
+        position: getToastPosition(),
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleRemoveCoupon = () => {
