@@ -167,8 +167,8 @@ export function CouponField({
             <div className="flex items-center space-x-1">
               <Percent className="h-3 w-3 text-gray-500" />
               <span className="text-xs text-gray-600">
-                {currentDiscount.coupon.discountType === 'PERCENTAGE' 
-                  ? `${currentDiscount.coupon.discountPercentage}% de desconto`
+                {currentDiscount.coupon.discountType === 'percentage' 
+                  ? `${currentDiscount.coupon.discountValue}% de desconto`
                   : `Desconto fixo de ${formatPrice(currentDiscount.coupon.discountValue || 0)}`
                 }
               </span>
