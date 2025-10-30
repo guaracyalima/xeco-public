@@ -508,6 +508,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         affiliateData
       )
 
+      // Incrementa o contador de uso do cupom se houver
+      if (discount?.coupon?.id) {
+        try {
+          console.log('📊 Incrementando uso do cupom:', discount.coupon.code)
+          const { applyCoupon } = await import('@/lib/coupon-service')
+          await applyCoupon(discount.coupon.id)
+          console.log('✅ Uso do cupom registrado com sucesso')
+        } catch (couponError) {
+          console.error('❌ Erro ao incrementar uso do cupom:', couponError)
+          // Não bloqueia o checkout por erro no tracking de cupom
+        }
+      }
+
       // NÃO limpar o carrinho automaticamente aqui!
       // O carrinho só deve ser limpo quando o pagamento for confirmado
       // Para isso, será necessário implementar um webhook de confirmação de pagamento
