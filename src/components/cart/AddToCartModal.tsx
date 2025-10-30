@@ -107,7 +107,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
             {/* Primary Action - Go to Cart */}
             <button
               onClick={handleGoToCart}
-              className="w-full bg-coral-500 py-4 rounded-xl font-semibold hover:bg-coral-600 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-coral-500/30"
+              className="w-full bg-black bg-coral-500 py-4 rounded-xl font-semibold hover:bg-coral-600 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-coral-500/30"
             >
               <ShoppingBag className="h-5 w-5" style={{ color: '#ffffff' }} />
               <span style={{ color: '#ffffff', fontWeight: '600' }}>Finalizar Compra</span>

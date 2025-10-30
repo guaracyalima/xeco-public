@@ -124,20 +124,9 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
       
       setIsModalOpen(false)
       
-      // Sempre abrir link de pagamento em NOVA ABA apenas
-      console.log('[CHECKOUT] Abrindo link de pagamento em nova aba:', checkoutUrl)
-      
-      const paymentWindow = window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
-      
-      // Verificar se o popup foi bloqueado
-      if (!paymentWindow || paymentWindow.closed || typeof paymentWindow.closed === 'undefined') {
-        console.warn('[CHECKOUT] Popup bloqueado - mostrando alerta')
-        alert('Por favor, permita popups para este site e clique novamente em "Finalizar Pedido"')
-        setError('Popup bloqueado. Permita popups e tente novamente.')
-      } else {
-        console.log('[CHECKOUT] Link aberto em nova aba!')
-        setSuccess('Pagamento aberto em nova aba. Complete o pagamento e retorne aqui.')
-      }
+      // Redirecionar para o link de pagamento na página atual
+      console.log('[CHECKOUT] Redirecionando para link de pagamento:', checkoutUrl)
+      window.location.href = checkoutUrl
 
     } catch (error) {
       console.error('Erro no checkout:', error)
@@ -277,6 +266,7 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
         isLoading={isLoading}
         existingData={existingUserData}
         hasExistingCpf={!!existingUserData?.cpf}
+        hasExistingName={!!existingUserData?.name}
         error={error}
         onErrorClear={() => setError(null)}
       />
