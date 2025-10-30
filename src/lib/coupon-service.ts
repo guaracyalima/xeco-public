@@ -263,7 +263,7 @@ const validateAffiliate = async (
       console.log('   ❌ Motivo: walletId =', affiliate.walletId)
       return { 
         valid: false,
-        message: 'Este cupom não pode ser utilizado no momento. O parceiro ainda não configurou sua conta para receber comissões.'
+        message: 'Este cupom não pode ser utilizado no momento.'
       }
     }
     console.log('   ✅ Afiliado tem walletId:', affiliate.walletId)
