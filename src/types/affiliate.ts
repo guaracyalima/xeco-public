@@ -20,6 +20,7 @@ export interface Affiliated {
   email: string
   whatsapp: string
   name: string
+  photoUrl?: string // Foto do perfil do usuário
   createdAt: Date
   updatedAt: Date
   // Dados da conta Asaas (quando configurada)

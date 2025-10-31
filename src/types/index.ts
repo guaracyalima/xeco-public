@@ -131,6 +131,7 @@ export interface Affiliated {
   email: string
   whatsapp: string
   name: string
+  photoUrl?: string // Foto do perfil do usuário
   commissionRate: number // Taxa de comissão do afiliado (ex: 5 para 5%)
   createdAt: Date
   updatedAt: Date

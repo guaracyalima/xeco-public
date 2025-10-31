@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast, ToastPosition } from 'react-toastify'
 import { validateCoupon } from '@/lib/coupon-service'
 import { CouponValidationResult, CartDiscount } from '@/types'
 import { Tag, X, CheckCircle, AlertCircle, Percent, UserCheck } from 'lucide-react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 interface CouponFieldProps {
   companyId: string
@@ -29,6 +31,45 @@ export function CouponField({
 }: CouponFieldProps) {
   const [couponCode, setCouponCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [affiliatePhoto, setAffiliatePhoto] = useState<string | null>(null)
+
+    // Buscar foto do afiliado quando houver um cupom aplicado
+  useEffect(() => {
+    const fetchAffiliatePhoto = async () => {
+      console.log('🔍 Buscando foto do afiliado...')
+      console.log('currentDiscount:', currentDiscount)
+      console.log('affiliate:', currentDiscount?.affiliate)
+      console.log('affiliate.user:', currentDiscount?.affiliate?.user)
+      
+      if (currentDiscount?.affiliate?.user) {
+        try {
+          console.log('📸 Tentando buscar foto do user ID:', currentDiscount.affiliate.user)
+          const userRef = doc(db, 'users', currentDiscount.affiliate.user)
+          const userDoc = await getDoc(userRef)
+          console.log('userDoc exists?', userDoc.exists())
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            console.log('userData:', userData)
+            console.log('photo_url:', userData.photo_url)
+            const photoUrl = userData.photo_url?.trim()
+            setAffiliatePhoto(photoUrl || null)
+            console.log('✅ Foto definida:', photoUrl || 'SEM FOTO')
+          } else {
+            console.log('❌ Documento do usuário não encontrado')
+          }
+        } catch (err) {
+          console.error('❌ Erro ao buscar foto do afiliado:', err)
+          setAffiliatePhoto(null)
+        }
+      } else {
+        console.log('⚠️ Não há affiliate.user para buscar foto')
+        setAffiliatePhoto(null)
+      }
+    }
+
+    fetchAffiliatePhoto()
+  }, [currentDiscount?.affiliate?.user])
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -190,8 +231,28 @@ export function CouponField({
             {currentDiscount.affiliate && (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mt-2">
                 <div className="flex items-start space-x-2">
-                  <div className="p-1.5 bg-blue-500 rounded-full mt-0.5">
-                    <UserCheck className="h-3 w-3 text-white" />
+                  {/* Foto do Afiliado */}
+                  <div className="flex-shrink-0">
+                    {(() => {
+                      console.log('🖼️ Renderizando foto. affiliatePhoto:', affiliatePhoto)
+                      return affiliatePhoto ? (
+                        <img 
+                          src={affiliatePhoto} 
+                          alt={currentDiscount.affiliate.name}
+                          className="w-8 h-8 rounded-full object-cover border-2 border-blue-300"
+                          onError={(e) => {
+                            console.error('❌ Erro ao carregar imagem:', affiliatePhoto)
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center border-2 border-blue-300">
+                          <span className="text-white text-xs font-semibold">
+                            {currentDiscount.affiliate.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-blue-900 mb-1">
@@ -201,9 +262,7 @@ export function CouponField({
                       Este cupom foi compartilhado por <span className="font-semibold">{currentDiscount.affiliate.name}</span>, 
                       um parceiro da loja. Ao usar este cupom, você apoia nosso parceiro! 🎉
                     </p>
-                    <p className="text-xs text-blue-600 mt-2 font-mono bg-blue-100 px-2 py-1 rounded inline-block">
-                      Código do Parceiro: {currentDiscount.affiliate.invite_code}
-                    </p>
+                   
                   </div>
                 </div>
               </div>

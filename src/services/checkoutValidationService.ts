@@ -196,11 +196,23 @@ export async function validateCheckoutRequest(payload: any): Promise<ValidationR
         // Se é cupom de afiliado
         if (coupon.type === 'AFFILIATE' || coupon.affiliateId) {
           // Busca dados do afiliado
-          const affiliateRef = doc(db, 'affiliates', coupon.affiliateId)
+          const affiliateRef = doc(db, 'affiliated', coupon.affiliateId)
           const affiliateDoc = await getDoc(affiliateRef)
 
           if (affiliateDoc.exists()) {
-            affiliate = affiliateDoc.data()
+            const affiliateData = affiliateDoc.data()
+            affiliate = {
+              id: affiliateDoc.id,
+              ...affiliateData,
+              commissionRate: affiliateData.commissionRate || 5 // Taxa de comissão do afiliado
+            }
+            
+            console.log('📊 Afiliado encontrado:', {
+              id: affiliate.id,
+              name: affiliate.name,
+              commissionRate: affiliate.commissionRate,
+              walletId: affiliate.walletId
+            })
             
             // Calcula desconto baseado no tipo
             if (coupon.discountType === 'percentage') {

@@ -93,12 +93,24 @@ export async function createPaymentCheckout(
     const companyName = data.cartItems[0].product.companyOwnerName || 'Loja'
 
     console.log('💰 Calculando splits de pagamento...')
+    console.log('🔍 DEBUG affiliateData recebido:', data.affiliateData)
+    console.log('🔍 DEBUG companyWalletId:', data.companyWalletId)
+    console.log('🔍 DEBUG totalAmount:', totalAmount)
+    
     // Calcula os splits de pagamento
     const splitCalculation = calculatePaymentSplits(
       totalAmount,
       data.companyWalletId,
       data.affiliateData
     )
+    
+    console.log('💰 Resultado do cálculo de splits:', {
+      platformFee: splitCalculation.platformFee,
+      affiliateCommission: splitCalculation.affiliateCommission,
+      storeAmount: splitCalculation.storeAmount,
+      splitsCount: splitCalculation.splits.length,
+      splits: splitCalculation.splits
+    })
 
     console.log('📦 Processando itens do carrinho...')
     // ⚠️ NÃO converter imagem no frontend! O backend faz isso.
