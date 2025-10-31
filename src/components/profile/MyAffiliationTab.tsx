@@ -61,6 +61,18 @@ export function MyAffiliationTab() {
             ])
             const stats = calculateAffiliateStats(sales)
             
+            // DEBUG: Log dos dados do afiliado
+            console.log('🔍 [MyAffiliationTab] Dados do afiliado:', {
+              id: affiliate.id,
+              name: affiliate.name,
+              walletId: affiliate.walletId,
+              walletSource: affiliate.walletSource,
+              asaasAccountNumber: affiliate.asaasAccountNumber,
+              asaasEnabled: affiliate.asaasEnabled,
+              invite_code: affiliate.invite_code,
+              coupon: coupon
+            })
+            
             return {
               affiliate,
               company,
@@ -207,31 +219,67 @@ export function MyAffiliationTab() {
                 </button>
               </div>
               
-              {/* Código do Cupom */}
-              {coupon && (
-                <div className="flex items-center space-x-3">
-                  <div className="flex-1 bg-white rounded-lg px-4 py-3 shadow-md">
-                    <p className="text-xs text-gray-500 mb-1">Seu cupom:</p>
-                    <p className="font-mono text-base sm:text-lg font-bold text-blue-600">
-                      {coupon.code}
-                    </p>
+              {/* Cupom de Desconto - SE EXISTIR */}
+              {coupon ? (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-1 bg-white rounded-lg px-4 py-3 shadow-md">
+                      <p className="text-xs text-gray-500 mb-1">
+                        🎟️ Seu cupom de desconto:
+                      </p>
+                      <p className="font-mono text-base sm:text-lg font-bold text-blue-600">
+                        {coupon.code}
+                      </p>
+                      {coupon.discountValue && (
+                        <p className="text-xs text-green-600 mt-1 font-medium">
+                          ✨ Desconto: {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `R$ ${coupon.discountValue.toFixed(2)}`}
+                          {coupon.expiresAt && ` | Válido até ${new Date(coupon.expiresAt).toLocaleDateString('pt-BR')}`}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleCopyInviteCode(coupon.code, affiliate.id)}
+                      className="flex items-center space-x-2 px-3 sm:px-4 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-50 transition-colors shadow-md"
+                    >
+                      {copiedCode === affiliate.id ? (
+                        <>
+                          <Check className="h-5 w-5" />
+                          <span className="font-medium hidden sm:inline">Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-5 w-5" />
+                          <span className="font-medium hidden sm:inline">Copiar</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleCopyInviteCode(coupon.code, affiliate.id)}
-                    className="flex items-center space-x-2 px-3 sm:px-4 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-50 transition-colors shadow-md"
-                  >
-                    {copiedCode === affiliate.id ? (
-                      <>
-                        <Check className="h-5 w-5" />
-                        <span className="font-medium hidden sm:inline">Copiado!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-5 w-5" />
-                        <span className="font-medium hidden sm:inline">Copiar</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg px-3 py-3">
+                    <p className="text-xs font-semibold text-blue-900 mb-2">
+                      💡 Transforme seguidores em clientes!
+                    </p>
+                    <p className="text-xs text-blue-700 mb-2">
+                      Compartilhe este cupom nas suas redes sociais, grupos do WhatsApp ou com amigos. Cada venda gera <strong>{affiliate.commissionRate}% de comissão</strong> pra você!
+                    </p>
+                    <div className="bg-white/60 rounded px-2 py-1.5 space-y-0.5 text-xs text-blue-800">
+                      <p>📊 <strong>Desconto:</strong> {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `R$ ${coupon.discountValue.toFixed(2)}`}</p>
+                      {coupon.minOrderValue && (
+                        <p>💰 <strong>Pedido mínimo:</strong> R$ {coupon.minOrderValue.toFixed(2)}</p>
+                      )}
+                      {coupon.maxUses && (
+                        <p>🎯 <strong>Usos:</strong> {coupon.usedCount || 0} de {coupon.maxUses} ({Math.round(((coupon.usedCount || 0) / coupon.maxUses) * 100)}%)</p>
+                      )}
+                      {coupon.expiresAt && (
+                        <p>⏰ <strong>Válido até:</strong> {new Date(coupon.expiresAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
+                  <p className="text-xs text-yellow-800">
+                    ⏳ Cupom de desconto ainda não criado para esta empresa. Entre em contato com o administrador.
+                  </p>
                 </div>
               )}
             </div>
@@ -239,6 +287,41 @@ export function MyAffiliationTab() {
             {/* Conteúdo Expansível */}
             {isExpanded && (
               <div className="p-4 sm:p-6 space-y-6">
+                {/* Aviso de Wallet Vazia - Precisa completar perfil */}
+                {!affiliate.walletId && (
+                  <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-red-800 mb-1">
+                          ⚠️ Conta Asaas Não Configurada
+                        </h4>
+                        <p className="text-sm text-red-700">
+                          Você ainda não possui uma conta Asaas configurada para receber comissões.
+                        </p>
+                        <p className="text-sm text-red-700 mt-2">
+                          <strong>Complete seu perfil</strong> com os seguintes dados:
+                        </p>
+                        <ul className="text-sm text-red-700 mt-2 ml-4 list-disc">
+                          <li>Nome completo</li>
+                          <li>CPF ou CNPJ</li>
+                          <li>Telefone</li>
+                        </ul>
+                        <button
+                          onClick={() => window.location.href = '/perfil'}
+                          className="mt-3 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Completar Perfil Agora
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Aviso de Wallet Compartilhada */}
                 {affiliate.walletSource === 'company' && affiliate.ownCompanyId && company && (
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
@@ -262,6 +345,90 @@ export function MyAffiliationTab() {
                         <p className="text-sm font-semibold text-yellow-800 mt-2">
                           💰 Verifique o extrato da sua empresa para acompanhar as comissões recebidas.
                         </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Informações da Conta Asaas - quando tiver walletId */}
+                {affiliate.walletId && affiliate.walletSource !== 'company' && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                        <DollarSign className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-green-900">
+                          💰 Conta Asaas Ativa
+                        </h4>
+                        <p className="text-xs text-green-700">
+                          Suas comissões serão depositadas aqui
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Dados da conta bancária - SEMPRE MOSTRAR SE EXISTIR */}
+                    <div className="bg-white rounded-lg p-3 mb-3">
+                      {affiliate.asaasAccountNumber && 
+                       affiliate.asaasAccountNumber.agency !== undefined && 
+                       affiliate.asaasAccountNumber.account !== undefined ? (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-500">Agência</p>
+                            <p className="font-mono text-base font-bold text-gray-900">
+                              {affiliate.asaasAccountNumber.agency}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Conta</p>
+                            <p className="font-mono text-base font-bold text-gray-900">
+                              {affiliate.asaasAccountNumber.account}-{affiliate.asaasAccountNumber.accountDigit}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xs text-gray-500">Conta configurada</p>
+                          <p className="text-sm text-gray-700 mb-2">
+                            Dados bancários serão atualizados em breve
+                          </p>
+                          <p className="text-xs text-red-500">
+                            DEBUG: {JSON.stringify(affiliate.asaasAccountNumber)}
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Instruções do App */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-xs font-medium text-blue-900 mb-2">
+                        📱 Use o App Asaas para gerenciar
+                      </p>
+                      <div className="flex gap-2">
+                        <a
+                          href="https://play.google.com/store/apps/details?id=com.asaas.app"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.5,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z" />
+                          </svg>
+                          <span className="hidden sm:inline">Google Play</span>
+                          <span className="sm:hidden">Play</span>
+                        </a>
+                        <a
+                          href="https://apps.apple.com/br/app/asaas/id1445791594"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                        >
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z" />
+                          </svg>
+                          <span className="hidden sm:inline">App Store</span>
+                          <span className="sm:hidden">iOS</span>
+                        </a>
                       </div>
                     </div>
                   </div>

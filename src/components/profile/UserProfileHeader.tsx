@@ -81,7 +81,7 @@ export function UserProfileHeader({ profile, onLogout }: UserProfileHeaderProps)
               className="inline-flex items-center gap-2 px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              Empresa
+              Franquia
             </Link>
           </div>
         </div>

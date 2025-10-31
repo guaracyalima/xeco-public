@@ -5,10 +5,12 @@
 // Usa a API route local do Next.js que faz proxy para o n8n
 // Isso evita problemas de CORS fazendo a requisição do servidor
 const N8N_API_ROUTE = '/api/checkout/create-payment'
+const N8N_ASAAS_ACCOUNT_ROUTE = '/api/affiliate/create-asaas-account'
 
 // Endpoints do n8n
 export const N8N_ENDPOINTS = {
   createPayment: N8N_API_ROUTE,
+  createAsaasAccount: N8N_ASAAS_ACCOUNT_ROUTE,
 } as const
 
 // Tipos para requisição de pagamento
@@ -144,3 +146,41 @@ export function isSuccessResponse(response: unknown): response is N8NPaymentSucc
     ('asaasPaymentId' in response || 'id' in response)
   )
 }
+
+// ============================================================================
+// ASAAS ACCOUNT CREATION
+// ============================================================================
+
+export interface N8NAsaasAccountRequest {
+  affiliateId: string // ID do afiliado já criado no Firestore
+  name: string
+  email: string
+  cpfCnpj: string
+  birthDate?: string // Obrigatório para CPF
+  companyType?: 'MEI' | 'LIMITED' | 'INDIVIDUAL' | 'ASSOCIATION' // Obrigatório para CNPJ
+  phone?: string
+  mobilePhone: string
+  site?: string
+  incomeValue?: number
+  address: string
+  addressNumber: string
+  complement?: string
+  province: string
+  postalCode: string
+}
+
+export interface N8NAsaasAccountSuccessResponse {
+  success: true
+  walletId: string
+  accountId: string
+  message: string
+}
+
+export interface N8NAsaasAccountErrorResponse {
+  success: false
+  error: string
+  details?: any
+}
+
+export type N8NAsaasAccountResponse = N8NAsaasAccountSuccessResponse | N8NAsaasAccountErrorResponse
+

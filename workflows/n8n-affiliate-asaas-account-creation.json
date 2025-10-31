@@ -1,0 +1,602 @@
+{
+  "name": "Affiliate Asaas Account Creation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xeco-create-affiliate-asaas-account",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        1360
+      ],
+      "webhookId": "affiliate-asaas-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validar dados obrigatórios para criação de conta Asaas de afiliado\nconst data = $input.first().json;\nconst errors = [];\n\n// Campos sempre obrigatórios\nif (!data.name?.trim()) errors.push('Nome é obrigatório');\nif (!data.email?.trim()) errors.push('Email é obrigatório');\nif (!data.cpfCnpj?.trim()) errors.push('CPF/CNPJ é obrigatório');\nif (!data.mobilePhone?.trim()) errors.push('Celular é obrigatório');\nif (!data.address?.trim()) errors.push('Endereço é obrigatório');\nif (!data.addressNumber?.trim()) errors.push('Número do endereço é obrigatório');\nif (!data.province?.trim()) errors.push('Bairro é obrigatório');\nif (!data.postalCode?.trim()) errors.push('CEP é obrigatório');\n\n// Limpar CPF/CNPJ e validar tipo\nconst cleanCpfCnpj = data.cpfCnpj.replace(/\\D/g, '');\nconst isCPF = cleanCpfCnpj.length === 11;\nconst isCNPJ = cleanCpfCnpj.length === 14;\n\nif (!isCPF && !isCNPJ) {\n  errors.push('CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos');\n} else {\n  // Para CPF, data de nascimento é obrigatória\n  if (isCPF && !data.birthDate?.trim()) {\n    errors.push('Data de nascimento é obrigatória para CPF');\n  }\n  \n  // Para CNPJ, tipo da empresa é obrigatório\n  if (isCNPJ && !data.companyType?.trim()) {\n    errors.push('Tipo da empresa é obrigatório para CNPJ');\n  }\n}\n\n// Se há erros, retornar erro\nif (errors.length > 0) {\n  return {\n    success: false,\n    message: 'Dados inválidos para criação da conta Asaas',\n    errors: errors,\n    validationFailed: true,\n    affiliateId: data.affiliateId,\n    userId: data.userId\n  };\n}\n\n// Formatar dados para Asaas\nconst asaasData = {\n  name: data.name.trim(),\n  email: data.email.trim(),\n  loginEmail: data.loginEmail?.trim() || data.email.trim(),\n  cpfCnpj: cleanCpfCnpj,\n  phone: data.phone?.replace(/\\D/g, '') || '',\n  mobilePhone: data.mobilePhone.replace(/\\D/g, ''),\n  address: data.address.trim(),\n  addressNumber: data.addressNumber.trim(),\n  complement: data.complement?.trim() || '',\n  province: data.province.trim(),\n  postalCode: data.postalCode.replace(/\\D/g, ''),\n  incomeValue: Number(data.incomeValue) || 1000,\n  site: data.site?.trim() || ''\n};\n\n// Só incluir campos específicos baseado no tipo (CORREÇÃO DO BUG)\nif (isCPF) {\n  asaasData.birthDate = data.birthDate;\n} else if (isCNPJ) {\n  asaasData.companyType = data.companyType;\n}\n\n// Incluir dados originais para atualização posterior do afiliado\nreturn {\n  asaasData: asaasData,\n  originalData: data,\n  affiliateId: data.affiliateId,\n  userId: data.userId,\n  affiliateEmail: data.email.trim(),\n  documentType: isCPF ? 'CPF' : 'CNPJ',\n  validation: 'success'\n};"
+      },
+      "id": "validate-format-data",
+      "name": "Validate & Format Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.validation }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "validation-check"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-validation",
+      "name": "Check Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api-sandbox.asaas.com/v3/accounts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.asaasData.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.asaasData.email }}"
+            },
+            {
+              "name": "loginEmail",
+              "value": "={{ $json.asaasData.loginEmail }}"
+            },
+            {
+              "name": "cpfCnpj",
+              "value": "={{ $json.asaasData.cpfCnpj }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.asaasData.phone }}"
+            },
+            {
+              "name": "mobilePhone",
+              "value": "={{ $json.asaasData.mobilePhone }}"
+            },
+            {
+              "name": "address",
+              "value": "={{ $json.asaasData.address }}"
+            },
+            {
+              "name": "addressNumber",
+              "value": "={{ $json.asaasData.addressNumber }}"
+            },
+            {
+              "name": "complement",
+              "value": "={{ $json.asaasData.complement }}"
+            },
+            {
+              "name": "province",
+              "value": "={{ $json.asaasData.province }}"
+            },
+            {
+              "name": "postalCode",
+              "value": "={{ $json.asaasData.postalCode }}"
+            },
+            {
+              "name": "incomeValue",
+              "value": "={{ $json.asaasData.incomeValue }}"
+            },
+            {
+              "name": "site",
+              "value": "={{ $json.asaasData.site }}"
+            },
+            {
+              "name": "birthDate",
+              "value": "={{ $json.asaasData.birthDate || '' }}"
+            },
+            {
+              "name": "companyType",
+              "value": "={{ $json.asaasData.companyType || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-asaas-account",
+      "name": "Create Asaas Account",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -128,
+        1264
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "asaas-credentials",
+          "name": "Asaas API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Processar resposta do Asaas e preparar dados para atualização do afiliado\nconst asaasResponse = $input.first().json;\nconst previousData = $('Validate & Format Data').first().json;\nconst timestamp = new Date();\n\n// Verificar se foi sucesso (status 200-299 e objeto account)\nif (asaasResponse.object === 'account' && asaasResponse.id) {\n  // Sucesso - preparar dados para atualização do afiliado\n  return {\n    success: true,\n    message: 'Conta Asaas criada com sucesso para o afiliado',\n    asaasData: {\n      walletId: asaasResponse.walletId,\n      accountId: asaasResponse.id,\n      apiKey: asaasResponse.apiKey,\n      accountNumber: asaasResponse.accountNumber,\n      email: asaasResponse.email,\n      phone: asaasResponse.phone,\n      cpfCnpj: asaasResponse.cpfCnpj\n    },\n    affiliateUpdate: {\n      affiliateId: previousData.affiliateId,\n      userId: previousData.userId,\n      affiliateEmail: previousData.affiliateEmail,\n      updateData: {\n        walletId: asaasResponse.walletId,\n        walletSource: 'personal',\n        asaasAccountId: asaasResponse.id,\n        asaasAccountNumber: asaasResponse.accountNumber,\n        updatedAt: timestamp.toISOString()\n      }\n    }\n  };\n} else {\n  // Erro do Asaas - tratar estrutura de erro\n  let errors = [];\n  let mainErrorMessage = 'Erro desconhecido do Asaas';\n  \n  if (asaasResponse.error) {\n    const errorObj = {\n      message: asaasResponse.error.description || asaasResponse.error.message || 'Erro do Asaas',\n      code: asaasResponse.error.name || 'ASAAS_API_ERROR',\n      timestamp: timestamp.toISOString()\n    };\n    errors.push(errorObj);\n    mainErrorMessage = errorObj.message;\n  } else if (asaasResponse.errors && Array.isArray(asaasResponse.errors)) {\n    errors = asaasResponse.errors.map(e => ({\n      message: e.description || e.message || 'Erro do Asaas',\n      code: e.code || 'ASAAS_API_ERROR',\n      timestamp: timestamp.toISOString()\n    }));\n    mainErrorMessage = errors.map(e => e.message).join(', ');\n  } else if (asaasResponse.message) {\n    errors.push({\n      message: asaasResponse.message,\n      code: 'ASAAS_API_ERROR',\n      timestamp: timestamp.toISOString()\n    });\n    mainErrorMessage = asaasResponse.message;\n  } else {\n    errors.push({\n      message: 'Erro desconhecido do Asaas',\n      code: 'UNKNOWN_ERROR',\n      timestamp: timestamp.toISOString()\n    });\n  }\n  \n  return {\n    success: false,\n    message: mainErrorMessage,\n    error: errors[0]?.code || 'ASAAS_API_ERROR',\n    asaasError: true,\n    affiliateUpdate: {\n      affiliateId: previousData.affiliateId,\n      userId: previousData.userId,\n      affiliateEmail: previousData.affiliateEmail,\n      updateData: {\n        asaasError: {\n          hasError: true,\n          errors: errors,\n          lastErrorAt: timestamp.toISOString()\n        },\n        updatedAt: timestamp.toISOString()\n      }\n    }\n  };\n}"
+      },
+      "id": "process-asaas-response",
+      "name": "Process Asaas Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-asaas-success",
+      "name": "Check Asaas Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        320,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"_id\": \"{{ $json.affiliateUpdate.affiliateId }}\",\n  \"asaasEnabled\": true,\n  \"asaasAccountStatus\": \"APPROVED\",\n  \"asaasAccountId\": \"{{ $json.affiliateUpdate.updateData.asaasAccountId }}\",\n  \"asaasApiKey\": \"{{ $json.asaasData.apiKey }}\",\n  \"walletId\": \"{{ $json.affiliateUpdate.updateData.walletId }}\",\n  \"asaasAccountNumber\": {\n    \"agency\": \"{{ $json.asaasData.accountNumber.agency }}\",\n    \"account\": \"{{ $json.asaasData.accountNumber.account }}\",\n    \"accountDigit\": \"{{ $json.asaasData.accountNumber.accountDigit }}\"\n  },\n  \"asaasError\": {\n    \"hasError\": false,\n    \"errors\": [],\n    \"lastErrorAt\": null\n  },\n  \"updatedAt\": \"{{ $json.affiliateUpdate.updateData.updatedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "format-success-update",
+      "name": "Format Success Update",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"_id\": \"{{ $json.affiliateUpdate.affiliateId }}\",\n  \"asaasError\": {{ JSON.stringify($json.affiliateUpdate.updateData.asaasError) }},\n  \"updatedAt\": \"{{ $json.affiliateUpdate.updateData.updatedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "format-error-update",
+      "name": "Format Error Update",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"_id\": \"{{ $json.affiliateId }}\",\n  \"asaasError\": {\n    \"hasError\": true,\n    \"errors\": {{ JSON.stringify($json.errors ? $json.errors.map(e => ({ message: e, code: 'VALIDATION_ERROR', timestamp: new Date().toISOString() })) : [{ message: $json.message, code: 'VALIDATION_ERROR', timestamp: new Date().toISOString() }]) }},\n    \"lastErrorAt\": \"{{ new Date().toISOString() }}\"\n  },\n  \"updatedAt\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "format-validation-error",
+      "name": "Format Validation Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "upsert",
+        "projectId": "xeco-334f5",
+        "collection": "affiliated",
+        "updateKey": "=_id",
+        "columns": "asaasEnabled,asaasAccountStatus,asaasAccountId,asaasApiKey,walletId,asaasAccountNumber,updatedAt,asaasError"
+      },
+      "id": "update-affiliate-success",
+      "name": "Update Affiliate Success",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        1168
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-credentials",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "upsert",
+        "projectId": "xeco-334f5",
+        "collection": "affiliated",
+        "updateKey": "=_id",
+        "columns": "asaasError,updatedAt"
+      },
+      "id": "update-affiliate-error",
+      "name": "Update Affiliate Error",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        1360
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-credentials",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "upsert",
+        "projectId": "xeco-334f5",
+        "collection": "affiliated",
+        "updateKey": "=_id",
+        "columns": "asaasError,updatedAt"
+      },
+      "id": "update-affiliate-validation-error",
+      "name": "Update Affiliate Validation Error",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        1456
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "firebase-credentials",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🎨 GERADOR DE TEMPLATE PERFEITO PARA EMAIL DE CONTA ASAAS CRIADA\nconst asaasData = $input.first().json.asaasData;\nconst affiliateEmail = $input.first().json.affiliateUpdate.affiliateEmail;\nconst accountNumber = asaasData.accountNumber;\n\n// Subject elegante\nconst subject = '🎉 Sua conta de pagamento foi criada com sucesso!';\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n  <title>Conta Asaas Criada - XECO</title>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; color: #333333; line-height: 1.6;\">\n  \n  <!-- Preheader -->\n  <div style=\"display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;\">\n    Sua conta de pagamento foi criada! Agora você já pode receber suas comissões.\n  </div>\n  \n  <!-- Wrapper Table -->\n  <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"background-color: #f8f9fa; min-height: 100vh;\">\n    <tr>\n      <td align=\"center\" style=\"padding: 40px 20px;\">\n        \n        <!-- Main Container -->\n        <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden;\">\n          \n          <!-- Header -->\n          <tr>\n            <td style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 50px 40px; text-align: center;\">\n              <div style=\"font-size: 72px; margin-bottom: 20px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));\">🎉</div>\n              <h1 style=\"margin: 0 0 16px; font-size: 36px; font-weight: 700; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 10px rgba(0,0,0,0.3);\">Conta Criada!</h1>\n              <p style=\"margin: 0; font-size: 20px; color: rgba(255,255,255,0.9); font-weight: 300; letter-spacing: 0.5px;\">Sua conta de pagamento está pronta</p>\n            </td>\n          </tr>\n          \n          <!-- Main Content -->\n          <tr>\n            <td style=\"padding: 50px 40px;\">\n              \n              <!-- Greeting -->\n              <div style=\"text-align: center; margin-bottom: 40px;\">\n                <h2 style=\"margin: 0 0 20px; font-size: 28px; font-weight: 600; color: #2c3e50; line-height: 1.3;\">Olá! 👋</h2>\n                <p style=\"margin: 0; font-size: 18px; color: #495057; line-height: 1.7;\">\n                  Sua conta de pagamento foi criada com sucesso! \n                  <br>Agora você já pode receber suas comissões diretamente na sua conta.\n                </p>\n              </div>\n              \n              <!-- Account Info Box -->\n              <div style=\"background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px; padding: 35px 30px; margin: 40px 0; border: 2px solid #667eea;\">\n                <h3 style=\"margin: 0 0 25px; text-align: center; font-size: 22px; font-weight: 600; color: #667eea;\">📊 Dados da Sua Conta</h3>\n                \n                <div style=\"background: #ffffff; border-radius: 12px; padding: 25px;\">\n                  \n                  <div style=\"display: flex; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e9ecef;\">\n                    <div style=\"font-size: 32px; margin-right: 15px; line-height: 1;\">🏦</div>\n                    <div style=\"flex: 1;\">\n                      <h4 style=\"margin: 0 0 5px; font-size: 14px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;\">Agência</h4>\n                      <p style=\"margin: 0; font-size: 20px; color: #2c3e50; font-weight: 700; font-family: 'Courier New', monospace;\">${accountNumber.agency}</p>\n                    </div>\n                  </div>\n                  \n                  <div style=\"display: flex; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e9ecef;\">\n                    <div style=\"font-size: 32px; margin-right: 15px; line-height: 1;\">💳</div>\n                    <div style=\"flex: 1;\">\n                      <h4 style=\"margin: 0 0 5px; font-size: 14px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;\">Conta</h4>\n                      <p style=\"margin: 0; font-size: 20px; color: #2c3e50; font-weight: 700; font-family: 'Courier New', monospace;\">${accountNumber.account}-${accountNumber.accountDigit}</p>\n                    </div>\n                  </div>\n                  \n                  <div style=\"display: flex; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e9ecef;\">\n                    <div style=\"font-size: 32px; margin-right: 15px; line-height: 1;\">🆔</div>\n                    <div style=\"flex: 1;\">\n                      <h4 style=\"margin: 0 0 5px; font-size: 14px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;\">CPF/CNPJ</h4>\n                      <p style=\"margin: 0; font-size: 18px; color: #2c3e50; font-weight: 600; font-family: 'Courier New', monospace;\">${asaasData.cpfCnpj}</p>\n                    </div>\n                  </div>\n                  \n                  <div style=\"display: flex; align-items: center;\">\n                    <div style=\"font-size: 32px; margin-right: 15px; line-height: 1;\">📧</div>\n                    <div style=\"flex: 1;\">\n                      <h4 style=\"margin: 0 0 5px; font-size: 14px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;\">Email</h4>\n                      <p style=\"margin: 0; font-size: 16px; color: #2c3e50; font-weight: 500;\">${asaasData.email}</p>\n                    </div>\n                  </div>\n                  \n                </div>\n              </div>\n              \n              <!-- Next Steps -->\n              <div style=\"background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border: 2px solid #ffc107; border-radius: 16px; padding: 30px; margin: 40px 0;\">\n                <div style=\"text-align: center; margin-bottom: 20px;\">\n                  <div style=\"font-size: 48px; margin-bottom: 10px; line-height: 1;\">📋</div>\n                  <h3 style=\"margin: 0 0 15px; font-size: 22px; font-weight: 600; color: #856404;\">Próximos Passos</h3>\n                </div>\n                <ul style=\"margin: 0; padding-left: 25px; color: #856404; font-size: 16px; line-height: 2;\">\n                  <li style=\"margin-bottom: 8px;\"><strong>Acesse seu dashboard de afiliado</strong></li>\n                  <li style=\"margin-bottom: 8px;\"><strong>Compartilhe seus links de afiliado</strong></li>\n                  <li style=\"margin-bottom: 8px;\"><strong>Acompanhe suas comissões em tempo real</strong></li>\n                  <li><strong>Receba seus pagamentos diretamente na conta</strong></li>\n                </ul>\n              </div>\n              \n              <!-- CTA Button -->\n              <div style=\"text-align: center; margin: 50px 0;\">\n                <a href=\"https://xeco.com.br/profile?tab=affiliation\" \n                   style=\"display: inline-block; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: #ffffff; text-decoration: none; padding: 20px 50px; border-radius: 50px; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 10px 30px rgba(40,167,69,0.4);\">\n                  🚀 Acessar Dashboard\n                </a>\n                <p style=\"margin: 20px 0 0; font-size: 14px; color: #6c757d;\">\n                  Comece a divulgar e ganhar comissões agora mesmo!\n                </p>\n              </div>\n              \n              <!-- Support Note -->\n              <div style=\"margin: 40px 0 0;\">\n                <p style=\"margin: 0; font-size: 15px; color: #6c757d; text-align: center; line-height: 1.6;\">\n                  Se tiver alguma dúvida, entre em contato com nosso suporte.\n                </p>\n              </div>\n              \n            </td>\n          </tr>\n          \n          <!-- Footer -->\n          <tr>\n            <td style=\"background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 30px; text-align: center; border-top: 1px solid #dee2e6;\">\n              <p style=\"margin: 0 0 10px; font-size: 14px; color: #6c757d; font-weight: 600;\">\n                XECO - Plataforma de Afiliados\n              </p>\n              <p style=\"margin: 0; font-size: 12px; color: #adb5bd;\">\n                © 2025 XECO. Todos os direitos reservados.\n              </p>\n              <p style=\"margin: 10px 0 0; font-size: 11px; color: #adb5bd; line-height: 1.4;\">\n                Este é um email automático, por favor não responda.\n              </p>\n            </td>\n          </tr>\n          \n        </table>\n        \n      </td>\n    </tr>\n  </table>\n</body>\n</html>\n`;\n\n// Versão texto plano\nconst plainText = `CONTA DE PAGAMENTO CRIADA COM SUCESSO!\\n\\n` +\n  `Olá!\\n\\n` +\n  `Sua conta de pagamento foi criada com sucesso! Agora você já pode receber suas comissões diretamente na sua conta.\\n\\n` +\n  `DADOS DA SUA CONTA:\\n` +\n  `• Agência: ${accountNumber.agency}\\n` +\n  `• Conta: ${accountNumber.account}-${accountNumber.accountDigit}\\n` +\n  `• CPF/CNPJ: ${asaasData.cpfCnpj}\\n` +\n  `• Email: ${asaasData.email}\\n\\n` +\n  `PRÓXIMOS PASSOS:\\n` +\n  `1. Acesse seu dashboard de afiliado\\n` +\n  `2. Compartilhe seus links de afiliado\\n` +\n  `3. Acompanhe suas comissões em tempo real\\n` +\n  `4. Receba seus pagamentos diretamente na conta\\n\\n` +\n  `Para acessar seu dashboard:\\n` +\n  `https://xeco.com.br/profile?tab=affiliation\\n\\n` +\n  `Se tiver alguma dúvida, entre em contato com nosso suporte.\\n\\n` +\n  `Atenciosamente,\\n` +\n  `Equipe XECO`;\n\nconsole.log('🎨 Template PERFEITO de conta criada gerado!');\n\n// Payload PERFEITO para Resend\nreturn {\n  ...asaasData,\n  affiliateEmail,\n  subject,\n  html: htmlContent,\n  resendPayload: {\n    from: 'XECO Afiliados <noreply@xeco.com.br>',\n    to: [affiliateEmail],\n    subject: subject,\n    html: htmlContent,\n    text: plainText,\n    headers: {\n      'X-Mailer': 'XECO Affiliate Asaas Account Service v1.0',\n      'X-Priority': '3',\n      'X-MSMail-Priority': 'Normal',\n      'Importance': 'Normal',\n      'List-Unsubscribe': '<mailto:noreply@xeco.com.br>',\n      'Reply-To': 'Suporte XECO <noreply@xeco.com.br>'\n    },\n    tags: [\n      { name: 'category', value: 'affiliate-account-created' },\n      { name: 'type', value: 'asaas-account' },\n      { name: 'platform', value: 'xeco' },\n      { name: 'version', value: 'v1' }\n    ]\n  }\n};"
+      },
+      "id": "generate-email-template",
+      "name": "🎨 Gerar Template Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\n  \"Content-Type\": \"application/json\",\n  \"Authorization\": \"Bearer re_DYCChkcZ_P5X7nEn9pKPwyAGBPpZqBHMw\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.resendPayload }}",
+        "options": {}
+      },
+      "id": "send-resend-email",
+      "name": "📧 Enviar Resend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1216,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📊 LOG DO EMAIL ENVIADO\nconst resendResponse = $input.first().json;\nconst previousData = $('🎨 Gerar Template Email').first().json;\n\nconst resendId = resendResponse.id || 'unknown';\nconst timestamp = new Date().toISOString();\n\nconsole.log('✅ EMAIL DE CONTA ASAAS ENVIADO COM SUCESSO!', {\n  resendId,\n  timestamp,\n  to: previousData.affiliateEmail,\n  accountId: previousData.accountId\n});\n\nreturn {\n  success: true,\n  resendId,\n  timestamp,\n  message: `Email enviado! ID: ${resendId}`,\n  walletId: previousData.walletId,\n  accountId: previousData.accountId\n};"
+      },
+      "id": "log-email-success",
+      "name": "✅ Log Email Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Conta Asaas criada com sucesso\",\n  \"walletId\": \"{{ $('Process Asaas Response').first().json.asaasData.walletId }}\",\n  \"accountId\": \"{{ $('Process Asaas Response').first().json.asaasData.accountId }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1664,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"{{ $('Process Asaas Response').first().json.message }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-error",
+      "name": "Respond Asaas Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        992,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"{{ $('Validate & Format Data').first().json.message }}\",\n  \"errors\": {{ JSON.stringify($('Validate & Format Data').first().json.errors) }}\n}",
+        "options": {}
+      },
+      "id": "respond-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        1456
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate & Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Format Data": {
+      "main": [
+        [
+          {
+            "node": "Check Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation": {
+      "main": [
+        [
+          {
+            "node": "Create Asaas Account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Asaas Account": {
+      "main": [
+        [
+          {
+            "node": "Process Asaas Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Asaas Response": {
+      "main": [
+        [
+          {
+            "node": "Check Asaas Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Asaas Success": {
+      "main": [
+        [
+          {
+            "node": "Format Success Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Error Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Update": {
+      "main": [
+        [
+          {
+            "node": "Update Affiliate Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error Update": {
+      "main": [
+        [
+          {
+            "node": "Update Affiliate Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Update Affiliate Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Affiliate Success": {
+      "main": [
+        [
+          {
+            "node": "🎨 Gerar Template Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Affiliate Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Asaas Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Affiliate Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎨 Gerar Template Email": {
+      "main": [
+        [
+          {
+            "node": "📧 Enviar Resend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Enviar Resend": {
+      "main": [
+        [
+          {
+            "node": "✅ Log Email Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Log Email Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "affiliate-asaas-creation-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "AffiliateAsaasAccountCreation",
+  "tags": ["affiliate", "asaas", "payment"]
+}
