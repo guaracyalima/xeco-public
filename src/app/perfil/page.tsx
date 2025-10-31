@@ -18,10 +18,10 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 import { EventName } from '@/types/analytics'
 
 const PROFILE_TABS = [
-  { id: 'pedidos', label: 'Meus Pedidos', icon: '📦' },
-  { id: 'following', label: 'Empresas que Sigo', icon: '🏢' },
-  { id: 'interested', label: 'Produtos de Interesse', icon: '❤️' },
-  { id: 'affiliation', label: 'Minha Afiliação', icon: '🤝' },
+  { id: 'pedidos', label: 'Minhas compras', icon: '📦' },
+  { id: 'following', label: 'Franquias que sigo', icon: '🏢' },
+  { id: 'interested', label: 'Produtos de interesse', icon: '❤️' },
+  { id: 'affiliation', label: 'Afiliação', icon: '🤝' },
 ]
 
 function ProfileContent() {

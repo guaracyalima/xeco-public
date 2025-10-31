@@ -215,14 +215,31 @@ const validateAffiliate = async (
       updatedAt: rawData.updatedAt?.toDate()
     } as Affiliated
     
-    console.log('   📦 Dados do afiliado parseados:', {
+    // Buscar foto do usuário se houver userId
+    if (affiliate.user) {
+      try {
+        const userRef = doc(db, 'users', affiliate.user)
+        const userDoc = await getDoc(userRef)
+        if (userDoc.exists()) {
+          const userData = userDoc.data()
+          affiliate.photoUrl = userData.photo_url || undefined
+          console.log('   �️ Foto do usuário encontrada:', affiliate.photoUrl ? 'Sim' : 'Não')
+        }
+      } catch (err) {
+        console.log('   ⚠️ Erro ao buscar foto do usuário:', err)
+        // Continua sem foto se houver erro
+      }
+    }
+    
+    console.log('   �📦 Dados do afiliado parseados:', {
       id: affiliate.id,
       name: affiliate.name,
       active: affiliate.active,
       company: affiliate.company_relationed,
       walletId: affiliate.walletId,
       walletIdType: typeof affiliate.walletId,
-      walletIdLength: affiliate.walletId?.length
+      walletIdLength: affiliate.walletId?.length,
+      photoUrl: affiliate.photoUrl
     })
     
     // Check if affiliate is active

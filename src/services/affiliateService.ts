@@ -34,6 +34,8 @@ export async function getAffiliatesByUserId(userId: string): Promise<Affiliated[
         id: affiliateDoc.id,
         user: data.user,
         walletId: data.walletId || '',
+        walletSource: data.walletSource,
+        ownCompanyId: data.ownCompanyId,
         invite_code: data.invite_code,
         active: data.active,
         company_relationed: data.company_relationed,
@@ -42,7 +44,13 @@ export async function getAffiliatesByUserId(userId: string): Promise<Affiliated[
         name: data.name,
         commissionRate: data.commissionRate || 0,
         createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date()
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        // Dados da conta Asaas
+        asaasEnabled: data.asaasEnabled,
+        asaasAccountStatus: data.asaasAccountStatus,
+        asaasAccountId: data.asaasAccountId,
+        asaasApiKey: data.asaasApiKey,
+        asaasAccountNumber: data.asaasAccountNumber
       }
     })
     

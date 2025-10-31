@@ -52,19 +52,32 @@ export function calculatePaymentSplits(
   // Valor restante para a loja
   const storeAmount = totalAmount - platformFee - affiliateCommission
   
-  // Monta os splits apenas para quem recebe valor
+  // Monta os splits
   const splits: PaymentSplit[] = []
   
+  // Calcula a percentagem da loja (100% - taxa plataforma - comissão afiliado)
+  const storePercentage = 100 - PLATFORM_FEE_PERCENTAGE - (affiliateData?.commissionPercentage || 0)
+  
+  // Adiciona split da loja (sempre presente)
+  splits.push({
+    walletId: storeWalletId,
+    percentageValue: storePercentage
+  })
+  
   // Adiciona split do afiliado se existir
-  if (affiliateData && affiliateCommission > 0) {
+  if (affiliateData && affiliateData.commissionPercentage > 0) {
     splits.push({
       walletId: affiliateData.walletId,
       percentageValue: affiliateData.commissionPercentage
     })
   }
   
-  // A loja sempre recebe o restante (não precisa estar nos splits explicitamente 
-  // se ela for o beneficiário principal no Asaas)
+  console.log('💰 Splits calculados:', {
+    platformFee: `${PLATFORM_FEE_PERCENTAGE}% = R$ ${platformFee.toFixed(2)}`,
+    store: `${storePercentage}% = R$ ${storeAmount.toFixed(2)}`,
+    affiliate: affiliateData ? `${affiliateData.commissionPercentage}% = R$ ${affiliateCommission.toFixed(2)}` : 'N/A',
+    splits: splits.map(s => `${s.walletId.substring(0, 8)}... = ${s.percentageValue}%`)
+  })
   
   return {
     platformFee,

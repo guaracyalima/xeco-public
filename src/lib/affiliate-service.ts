@@ -13,6 +13,7 @@ import {
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
 import { db, auth } from '@/lib/firebase'
 import { AffiliateInvitation, Affiliated, AffiliateConfirmRequest, AffiliateConfirmResponse, User } from '@/types'
+import { determineAffiliateWallet, createAsaasAccount, saveAffiliateAsaasAccount } from '@/services/walletService'
 
 // Generate unique affiliate code
 const generateAffiliateCode = (): string => {
@@ -131,7 +132,7 @@ export const confirmAffiliateInvitation = async (
   request: AffiliateConfirmRequest
 ): Promise<AffiliateConfirmResponse> => {
   try {
-    const { inviteToken, email } = request
+    const { inviteToken, email, walletId: providedWalletId, cpfCnpj: providedCpfCnpj } = request
     
     // 1. Validate invitation
     const invitation = await getInvitationByTokenAndEmail(inviteToken, email)
@@ -238,19 +239,122 @@ export const confirmAffiliateInvitation = async (
       }
     }
     
-    // 9. Create affiliate record
-    const affiliateData: Omit<Affiliated, 'id'> = {
+    // 9. Determinar ou criar wallet para o afiliado
+    let walletId = providedWalletId || '' // Usa o walletId fornecido se existir
+    let walletSource: 'company' | 'personal' | undefined
+    let ownCompanyId: string | undefined
+    
+    // Se já tem walletId fornecido, pula a criação
+    if (!providedWalletId) {
+      try {
+        // Busca dados do usuário para pegar CPF/CNPJ
+        const userDoc = await getDoc(doc(db, 'users', userId))
+        const userData = userDoc.data()
+        
+        // Usa CPF/CNPJ fornecido no request OU do banco de dados
+        const cpfCnpj = providedCpfCnpj || userData?.document_number
+      
+        if (cpfCnpj) {
+          // Tenta determinar wallet existente
+          try {
+            const walletInfo = await determineAffiliateWallet(userId, cpfCnpj)
+            walletId = walletInfo.walletId
+            walletSource = walletInfo.walletSource
+            ownCompanyId = walletInfo.ownCompanyId
+          } catch (error: any) {
+            // Se não existe, precisa criar
+            if (error.message === 'REQUIRES_ASAAS_ACCOUNT_CREATION') {
+              // Se tem CPF/CNPJ fornecido no request, continua (afiliado será criado sem walletId)
+              if (providedCpfCnpj) {
+                console.log('✅ CPF/CNPJ fornecido no request. Criando afiliado sem walletId.')
+                walletId = '' // Será preenchido depois pelo n8n
+                walletSource = 'personal'
+              }
+              // Verifica se tem dados completos do usuário para criar conta
+              else if (userData?.fullName && userData?.email && userData?.document_number) {
+                const asaasAccount = await createAsaasAccount({
+                  name: userData.fullName,
+                  email: userData.email,
+                  cpfCnpj: userData.document_number,
+                  phone: userData.phone || userData.document_number,
+                  mobilePhone: userData.phone
+                })
+                
+                // Salva dados da conta
+                await saveAffiliateAsaasAccount(userId, {
+                  walletId: asaasAccount.walletId,
+                  accountId: asaasAccount.accountId,
+                  cpfCnpj: userData.document_number
+                })
+                
+                walletId = asaasAccount.walletId
+                walletSource = 'personal'
+              } else {
+                // Retorna erro com dados para criar conta
+                console.warn('⚠️ Usuário precisa criar conta Asaas. Solicitando dados.')
+                return {
+                  success: false,
+                  message: 'REQUIRES_ASAAS_ACCOUNT_CREATION',
+                  data: {
+                    cpfCnpj: userData?.document_number || '',
+                    email: email,
+                    // Campos dummy para satisfazer o tipo (não serão usados)
+                    affiliateId: '',
+                    storeName: '',
+                    inviteCode: '',
+                    isNewUser: false,
+                    requiresPasswordChange: false
+                  }
+                }
+              }
+            } else {
+              console.error('Erro ao determinar wallet:', error)
+            }
+          }
+        } else {
+          // ❌ USUÁRIO SEM CPF/CNPJ - DEVE PEDIR NO FORMULÁRIO
+          console.warn('⚠️ Usuário sem CPF/CNPJ cadastrado. Pedindo dados.')
+          return {
+            success: false,
+            message: 'REQUIRES_ASAAS_ACCOUNT_CREATION',
+            data: {
+              cpfCnpj: '', // Vazio - será preenchido pelo usuário
+              email: email,
+              // Campos dummy para satisfazer o tipo (não serão usados)
+              affiliateId: '',
+              storeName: '',
+              inviteCode: '',
+              isNewUser: false,
+              requiresPasswordChange: false
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao processar wallet do afiliado:', error)
+      }
+    }
+    
+    // 10. Create affiliate record
+    const affiliateData: any = {
       user: userId,
-      walletId: '', // To be filled later when integrated with payment system
+      walletId: walletId || '',
       invite_code: affiliateCode,
       active: 'SIM',
       company_relationed: invitation.storeId,
       email: email,
-      whatsapp: '', // To be filled by user later
-      name: email.split('@')[0], // Temporary name
-      commissionRate: invitation.commissionRate, // Save commission rate from invitation
+      whatsapp: '',
+      name: email.split('@')[0],
+      commissionRate: invitation.commissionRate,
       createdAt: new Date(),
       updatedAt: new Date()
+    }
+    
+    // Adiciona campos opcionais apenas se não forem undefined
+    if (walletSource) {
+      affiliateData.walletSource = walletSource
+    }
+    if (ownCompanyId) {
+      affiliateData.ownCompanyId = ownCompanyId
     }
     
     const affiliatesRef = collection(db, 'affiliated')
@@ -260,7 +364,7 @@ export const confirmAffiliateInvitation = async (
       updatedAt: Timestamp.now()
     })
     
-    // 10. Mark invitation as accepted
+    // 11. Mark invitation as accepted
     const invitationRef = doc(db, 'affiliate_invitations', invitation.id)
     await updateDoc(invitationRef, {
       status: 'ACCEPTED',

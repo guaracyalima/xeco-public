@@ -131,9 +131,20 @@ export interface Affiliated {
   email: string
   whatsapp: string
   name: string
+  photoUrl?: string // Foto do perfil do usuário
   commissionRate: number // Taxa de comissão do afiliado (ex: 5 para 5%)
   createdAt: Date
   updatedAt: Date
+  // Dados da conta Asaas (quando configurada)
+  asaasEnabled?: boolean
+  asaasAccountStatus?: string
+  asaasAccountId?: string
+  asaasApiKey?: string
+  asaasAccountNumber?: {
+    agency: number // Vem como NUMBER do Firestore
+    account: number // Vem como NUMBER do Firestore
+    accountDigit: number // Vem como NUMBER do Firestore
+  }
 }
 
 export interface AffiliateSale {
@@ -156,6 +167,8 @@ export interface AffiliateSale {
 export interface AffiliateConfirmRequest {
   inviteToken: string
   email: string
+  walletId?: string // Opcional: quando já criou a conta Asaas
+  cpfCnpj?: string // Opcional: CPF/CNPJ do usuário (quando preenche no form)
 }
 
 export interface AffiliateConfirmResponse {
@@ -167,6 +180,9 @@ export interface AffiliateConfirmResponse {
     inviteCode: string
     isNewUser: boolean
     requiresPasswordChange: boolean
+    // Quando precisa criar conta Asaas:
+    cpfCnpj?: string
+    email?: string
   }
 }
 

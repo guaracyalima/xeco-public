@@ -130,13 +130,37 @@ export async function POST(request: NextRequest) {
       productsCount: products.length
     })
 
-    // Passo 2: Calcula os splits
-    console.log('💰 Calculando splits...')
-    const splits = calculateSplits({
-      companyWalletId: company.asaasWalletId || company.walletId,
-      affiliateWalletId: affiliate?.asaasWalletId || affiliate?.walletId,
-      discountPercentage: discountValue || 0,
-      totalAmount: finalTotal
+    // Passo 2: Usa os splits que vieram do frontend (já calculados corretamente)
+    console.log('💰 Usando splits do frontend...')
+    console.log('💰 Splits recebidos:', body.splits)
+    console.log('💰 Quantidade de splits:', body.splits?.length || 0)
+    
+    // Valida que os splits existem
+    if (!body.splits || body.splits.length === 0) {
+      console.error('❌ Nenhum split foi enviado pelo frontend!')
+      return NextResponse.json(
+        { error: 'SPLITS_MISSING', description: 'Splits de pagamento não foram enviados' },
+        { status: 400 }
+      )
+    }
+    
+    // Usa os splits que vieram do frontend
+    const splits = {
+      splits: body.splits,
+      platformFeePercentage: 8,
+      platformFeeAmount: (finalTotal * 8) / 100,
+      companyPercentage: body.splits[0].percentageValue,
+      companyAmount: (finalTotal * body.splits[0].percentageValue) / 100,
+      affiliatePercentage: body.splits.length > 1 ? body.splits[1].percentageValue : 0,
+      affiliateAmount: body.splits.length > 1 ? (finalTotal * body.splits[1].percentageValue) / 100 : 0
+    }
+    
+    console.log('✅ Splits validados:', {
+      totalSplits: splits.splits.length,
+      company: `${splits.companyPercentage}% = R$ ${splits.companyAmount.toFixed(2)}`,
+      affiliate: splits.affiliatePercentage > 0 
+        ? `${splits.affiliatePercentage}% = R$ ${splits.affiliateAmount.toFixed(2)}`
+        : 'Sem afiliado'
     })
 
     // Passo 3: Usa imagem default local (WORKAROUND Asaas)
