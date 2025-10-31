@@ -123,6 +123,8 @@ export interface Affiliated {
   id: string
   user: string // user ID
   walletId: string
+  walletSource?: 'company' | 'personal' // Origem da wallet: empresa própria ou pessoal
+  ownCompanyId?: string // ID da empresa do afiliado (se for dono de franquia)
   invite_code: string // unique affiliate code
   active: 'SIM' | 'NAO'
   company_relationed: string // store ID

@@ -265,11 +265,28 @@ export async function POST(request: NextRequest) {
 
     // Passo 4: Monta a requisição para o n8n
     console.log('📤 Montando payload para n8n...')
+    
+    // Monta externalReference com dados do afiliado se houver
+    let externalReference = body.orderId || `order-${Date.now()}`
+    if (affiliate && coupon) {
+      const affiliateMetadata = {
+        type: 'AFFILIATE_COMMISSION',
+        affiliateId: affiliate.id,
+        companyId: body.companyId,
+        couponCode: coupon.code,
+        orderId: body.orderId,
+        commissionRate: affiliate.commissionRate,
+        commissionValue: splits.affiliateAmount || 0
+      }
+      externalReference = JSON.stringify(affiliateMetadata)
+      console.log('🏷️ ExternalReference com dados de afiliado:', externalReference)
+    }
+    
     const n8nPayload = {
       billingTypes: ['CREDIT_CARD'],
       chargeTypes: ['DETACHED', 'INSTALLMENT'],
       minutesToExpire: 15,
-      externalReference: body.orderId || `order-${Date.now()}`,
+      externalReference,
       totalAmount: finalTotal,
       callback: {
         successUrl: 'https://xeco.com.br/checkout/success',

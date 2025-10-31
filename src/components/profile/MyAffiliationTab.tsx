@@ -239,6 +239,34 @@ export function MyAffiliationTab() {
             {/* Conteúdo Expansível */}
             {isExpanded && (
               <div className="p-4 sm:p-6 space-y-6">
+                {/* Aviso de Wallet Compartilhada */}
+                {affiliate.walletSource === 'company' && affiliate.ownCompanyId && company && (
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-yellow-800 mb-1 flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Conta Compartilhada com Franquia
+                        </h4>
+                        <p className="text-sm text-yellow-700">
+                          ⚠️ Suas comissões desta afiliação estão sendo depositadas na conta digital da sua franquia <strong>"{company.name}"</strong>.
+                        </p>
+                        <p className="text-sm text-yellow-700 mt-2">
+                          Como você já possui uma conta Asaas vinculada ao seu CPF/CNPJ através da sua empresa, por limitações da Asaas, só é permitida uma conta por documento.
+                        </p>
+                        <p className="text-sm font-semibold text-yellow-800 mt-2">
+                          💰 Verifique o extrato da sua empresa para acompanhar as comissões recebidas.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Cards de Estatísticas */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
