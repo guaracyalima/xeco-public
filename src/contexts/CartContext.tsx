@@ -500,12 +500,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.log('🎯 Dados do afiliado para split:', affiliateData)
       }
 
+      // Extrai couponCode se houver
+      const couponCode = discount?.coupon?.code || null
+      console.log('\n' + '🎟️'.repeat(40))
+      console.log('🎟️ [CART CONTEXT] DISCOUNT COMPLETO:')
+      console.log('🎟️ discount:', discount)
+      console.log('🎟️ discount?.coupon:', discount?.coupon)
+      console.log('🎟️ discount?.coupon?.code:', discount?.coupon?.code)
+      console.log('🎟️ couponCode extraído:', couponCode)
+      console.log('🎟️'.repeat(40) + '\n')
+
+      // Prepara dados do desconto se houver
+      let discountData = undefined
+      if (discount) {
+        discountData = {
+          discountAmount: discount.discountAmount || 0,
+          finalTotal: discount.finalTotal || 0
+        }
+        console.log('💰 Dados do desconto:', discountData)
+      }
+
       // Chama serviço de checkout
       const checkoutResponse = await CheckoutService.createCheckout(
         order,
         companyData,
         checkoutUserData,
-        affiliateData
+        affiliateData,
+        couponCode,
+        discountData
       )
 
       // Incrementa o contador de uso do cupom se houver

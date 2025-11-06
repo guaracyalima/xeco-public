@@ -33,6 +33,13 @@ export async function POST(request: NextRequest) {
     console.log(JSON.stringify(body, null, 2))
     console.log('='.repeat(80) + '\n')
     
+    console.log('\n' + '🚨'.repeat(40))
+    console.log('🚨 [API ROUTE] COUPON CODE NO BODY:')
+    console.log('🚨 body.couponCode:', body.couponCode)
+    console.log('🚨 typeof:', typeof body.couponCode)
+    console.log('🚨 body tem couponCode?', 'couponCode' in body)
+    console.log('🚨'.repeat(40) + '\n')
+    
     console.log('📋 Payload recebido na API route:', {
       companyId: body.companyId,
       userId: body.userId,
@@ -285,6 +292,73 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 }
       )
+    }
+
+    // 🔥 CRIAR SALE SE TIVER AFILIADO
+    if (affiliate?.id && coupon?.id) {
+      console.log('\n🎯 Criando sale para afiliado...')
+      
+      const commissionRate = affiliate.commissionRate || 5
+      const platformFeeRate = 8 // Taxa da plataforma
+      
+      const affiliateCommission = finalTotal * (commissionRate / 100)
+      const platformFee = finalTotal * (platformFeeRate / 100)
+      const netValue = finalTotal - platformFee
+      
+      const saleData = {
+        // Identificadores
+        orderId,
+        userId: body.userId,
+        companyId: body.companyId,
+        
+        // Dados do afiliado
+        affiliateId: affiliate.id,
+        affiliateName: affiliate.name || 'N/A',
+        hasAffiliate: true,
+        couponId: coupon.id,
+        couponCode: body.couponCode,
+        
+        // Valores financeiros
+        grossValue: finalTotal,
+        netValue,
+        platformFee,
+        affiliateCommission,
+        
+        // Produtos
+        products: products.map(p => ({
+          productId: p.id,
+          productName: p.name,
+          quantity: p.requestedQuantity,
+          unitPrice: p.unitPrice
+        })),
+        itemsCount: products.length,
+        
+        // Status e datas
+        paymentStatus: 'PENDING', // ← Aguardando pagamento
+        paymentMethod: null, // ← Será preenchido no webhook
+        saleDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        paidAt: null, // ← Será preenchido quando pago
+        
+        // Origem
+        source: 'checkout_created'
+      }
+      
+      try {
+        const salesRef = collection(db, 'sales')
+        await setDoc(doc(salesRef), saleData)
+        console.log('✅ Sale criada no Firebase com status PENDING')
+        console.log('💰 Comissão calculada: R$', affiliateCommission.toFixed(2))
+        console.log('💰 Estrutura da sale:', {
+          grossValue: saleData.grossValue,
+          netValue: saleData.netValue,
+          platformFee: saleData.platformFee,
+          affiliateCommission: saleData.affiliateCommission
+        })
+      } catch (error: any) {
+        console.error('❌ Erro ao criar sale:', error.message)
+        // NÃO bloqueia o checkout se falhar
+      }
     }
 
     // Passo 4: Monta a requisição para o n8n

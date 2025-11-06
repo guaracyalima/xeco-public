@@ -28,7 +28,7 @@ export const createAffiliateSale = async (
       commissionValue: commissionValue,
       commissionRate: affiliate.commissionRate,
       couponUsed: couponCode,
-      clickId: clickId,
+      ...(clickId && { clickId }), // Only add clickId if it exists
       saleDate: new Date(),
       status: 'PENDING', // Will be confirmed when payment is processed
       paymentStatus: 'PENDING',

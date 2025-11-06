@@ -67,6 +67,7 @@ export interface N8NPaymentRequest {
     unitPrice: number
     totalPrice: number // quantity × unitPrice
   }>
+  couponCode?: string // ← 🎟️ Código do cupom aplicado
   signature?: string // ← NOVO: Assinatura HMAC para fraud prevention
 }
 
