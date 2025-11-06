@@ -30,6 +30,9 @@ export interface CreatePaymentData {
     walletId: string
     commissionPercentage: number
   }
+  couponCode?: string | null // ← 🎟️ Código do cupom aplicado
+  discountAmount?: number // ← 💰 Valor do desconto aplicado
+  finalTotal?: number // ← 💰 Total final com desconto
   userEmail: string
   userName: string
   userPhone: string
@@ -72,8 +75,8 @@ export async function createPaymentCheckout(
     // Gera um ID único para a ordem
     const orderExternalReference = uuidv4()
 
-    // Calcula o total do carrinho (SEMPRE recalcular baseado em quantity × price)
-    const totalAmount = data.cartItems.reduce((sum, item) => {
+    // Calcula o total do carrinho SEM desconto
+    const totalAmountWithoutDiscount = data.cartItems.reduce((sum, item) => {
       const itemPrice = Number(item.product.salePrice) || 0
       const itemQuantity = item.quantity || 0
       const itemTotal = itemPrice * itemQuantity
@@ -81,7 +84,13 @@ export async function createPaymentCheckout(
       return sum + itemTotal
     }, 0)
 
-    console.log(`💰 Total Amount Calculado: ${totalAmount}`)
+    // Usa o finalTotal se disponível (com desconto), senão usa o total sem desconto
+    const totalAmount = data.finalTotal || totalAmountWithoutDiscount
+    const discountAmount = data.discountAmount || 0
+
+    console.log(`💰 Total sem desconto: ${totalAmountWithoutDiscount}`)
+    console.log(`🎟️ Desconto aplicado: ${discountAmount}`)
+    console.log(`💰 Total FINAL (com desconto): ${totalAmount}`)
 
     // Valida o total
     if (!totalAmount || totalAmount <= 0 || isNaN(totalAmount)) {
@@ -147,6 +156,14 @@ export async function createPaymentCheckout(
     const phone = data.userPhone.replace(/\D/g, '')
 
     console.log('📋 Montando payload de pagamento...')
+    
+    console.log('\n' + '🎟️'.repeat(40))
+    console.log('🎟️ [CHECKOUT SERVICE] COUPON CODE CHECK:')
+    console.log('🎟️ data.couponCode:', data.couponCode)
+    console.log('🎟️ typeof:', typeof data.couponCode)
+    console.log('🎟️ vai adicionar?', !!data.couponCode)
+    console.log('🎟️'.repeat(40) + '\n')
+    
     // Monta o payload da requisição
     const paymentRequest: N8NPaymentRequest = {
       billingTypes: ['CREDIT_CARD', 'PIX'],
@@ -180,8 +197,15 @@ export async function createPaymentCheckout(
       companyId,
       companyOrder: companyName,
       userId: data.userId,
-      productList
+      productList,
+      ...(data.couponCode && { couponCode: data.couponCode }) // ← 🎟️ Adiciona couponCode se existir
     }
+    
+    console.log('\n' + '📦'.repeat(40))
+    console.log('📦 [CHECKOUT SERVICE] PAYLOAD FINAL:')
+    console.log('📦 paymentRequest.couponCode:', paymentRequest.couponCode)
+    console.log('📦 paymentRequest tem couponCode?', 'couponCode' in paymentRequest)
+    console.log('📦'.repeat(40) + '\n')
 
     // Logs detalhados da request
     console.log('\n' + '='.repeat(80))

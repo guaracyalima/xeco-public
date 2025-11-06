@@ -168,10 +168,24 @@ export async function validateCheckoutRequest(payload: any): Promise<ValidationR
           description: 'Cupom não encontrado para esta empresa'
         })
       } else {
+        const couponId = couponDocs.docs[0].id // ← 🎯 PEGA O ID DO CUPOM!
         coupon = couponDocs.docs[0].data()
+        coupon.id = couponId // ← Adiciona o ID no objeto
+        
+        console.log('🔍 [BACKEND] Dados BRUTOS do cupom:', coupon)
+        console.log('🔍 [BACKEND] ID do cupom:', couponId)
+        console.log('🔍 [BACKEND] Campos do cupom:', Object.keys(coupon))
 
-        // Valida se cupom está ativo
-        if (coupon.status !== 'ACTIVE' && coupon.active !== 'SIM') {
+        // Valida se cupom está ativo (aceita isActive=true, status='ACTIVE' OU active='SIM')
+        const isActive = coupon.isActive === true || coupon.status === 'ACTIVE' || coupon.active === 'SIM'
+        console.log('🔍 [BACKEND] Validando status do cupom:', {
+          isActive: coupon.isActive,
+          status: coupon.status,
+          active: coupon.active,
+          resultado: isActive
+        })
+        
+        if (!isActive) {
           errors.push({
             code: 'COUPON_INACTIVE',
             description: 'Cupom expirado ou inativo'
@@ -269,6 +283,7 @@ export async function validateCheckoutRequest(payload: any): Promise<ValidationR
       productsCount: products.length,
       finalTotal,
       discountValue,
+      couponId: coupon?.id || 'N/A',
       affiliateId: affiliate?.id || 'N/A'
     })
 

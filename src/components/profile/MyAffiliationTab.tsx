@@ -8,7 +8,8 @@ import {
   getAffiliateSales, 
   calculateAffiliateStats,
   getCompanyById,
-  getAffiliateCoupon
+  getAffiliateCoupon,
+  getUserById
 } from '@/services/affiliateService'
 import { Affiliated, AffiliateSale, Company, Coupon } from '@/types'
 import { 
@@ -22,7 +23,12 @@ import {
   Package,
   ChevronDown,
   ChevronUp,
-  Building2
+  Building2,
+  Clock,
+  X,
+  Eye,
+  CreditCard,
+  User
 } from 'lucide-react'
 import { toast } from 'react-toastify'
 
@@ -31,7 +37,16 @@ interface AffiliateWithSales {
   company: Company | null
   coupon: Coupon | null
   sales: AffiliateSale[]
+  pendingSales: AffiliateSale[]
   stats: ReturnType<typeof calculateAffiliateStats>
+}
+
+interface SaleWithCustomer extends AffiliateSale {
+  customerName?: string
+  products?: any[]
+  itemsCount?: number
+  paymentMethod?: string
+  paidAt?: Date | null
 }
 
 export function MyAffiliationTab() {
@@ -40,6 +55,11 @@ export function MyAffiliationTab() {
   const [loading, setLoading] = useState(true)
   const [expandedAffiliate, setExpandedAffiliate] = useState<string | null>(null)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  const [showPendingModal, setShowPendingModal] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedAffiliate, setSelectedAffiliate] = useState<AffiliateWithSales | null>(null)
+  const [selectedSale, setSelectedSale] = useState<SaleWithCustomer | null>(null)
+  const [salesWithCustomers, setSalesWithCustomers] = useState<Map<string, SaleWithCustomer>>(new Map())
 
   useEffect(() => {
     async function loadAffiliatesData() {
@@ -51,14 +71,37 @@ export function MyAffiliationTab() {
         // Busca TODAS as afiliações do usuário
         const affiliates = await getAffiliatesByUserId(userProfile.uid)
         
-        // Para cada afiliação, busca as vendas, empresa e cupom
+        // Para cada afiliação, busca as vendas confirmadas E pendentes, empresa e cupom
         const affiliatesWithData = await Promise.all(
           affiliates.map(async (affiliate) => {
-            const [sales, company, coupon] = await Promise.all([
-              getAffiliateSales(affiliate.id),
+            // Buscar TODAS as vendas de uma vez
+            const [allSales, company, coupon] = await Promise.all([
+              getAffiliateSales(affiliate.id, 'ALL'), // Buscar TODAS as vendas
               getCompanyById(affiliate.company_relationed),
               getAffiliateCoupon(affiliate.id, affiliate.company_relationed)
             ])
+            
+            // Separar em confirmed e pending no cliente
+            const sales = allSales.filter(s => s.status === 'CONFIRMED')
+            const pendingSales = allSales.filter(s => s.status === 'PENDING')
+            
+            // Buscar nomes dos clientes para TODAS as vendas
+            const customerMap = new Map<string, SaleWithCustomer>()
+            
+            await Promise.all(
+              allSales.map(async (sale) => {
+                const customer = await getUserById(sale.customerEmail)
+                if (sale.id) {
+                  customerMap.set(sale.id, {
+                    ...sale,
+                    customerName: customer?.name || 'Cliente'
+                  })
+                }
+              })
+            )
+            
+            setSalesWithCustomers(prev => new Map([...prev, ...customerMap]))
+            
             const stats = calculateAffiliateStats(sales)
             
             // DEBUG: Log dos dados do afiliado
@@ -70,7 +113,9 @@ export function MyAffiliationTab() {
               asaasAccountNumber: affiliate.asaasAccountNumber,
               asaasEnabled: affiliate.asaasEnabled,
               invite_code: affiliate.invite_code,
-              coupon: coupon
+              coupon: coupon,
+              confirmedSales: sales.length,
+              pendingSales: pendingSales.length
             })
             
             return {
@@ -78,6 +123,7 @@ export function MyAffiliationTab() {
               company,
               coupon,
               sales,
+              pendingSales,
               stats
             }
           })
@@ -111,6 +157,27 @@ export function MyAffiliationTab() {
 
   const toggleAffiliate = (affiliateId: string) => {
     setExpandedAffiliate(expandedAffiliate === affiliateId ? null : affiliateId)
+  }
+
+  const openPendingModal = (affiliateData: AffiliateWithSales) => {
+    setSelectedAffiliate(affiliateData)
+    setShowPendingModal(true)
+  }
+
+  const closePendingModal = () => {
+    setShowPendingModal(false)
+    setSelectedAffiliate(null)
+  }
+
+  const openSaleDetails = (sale: AffiliateSale) => {
+    const saleWithCustomer = salesWithCustomers.get(sale.id || '') || sale
+    setSelectedSale(saleWithCustomer as SaleWithCustomer)
+    setShowDetailsModal(true)
+  }
+
+  const closeSaleDetails = () => {
+    setShowDetailsModal(false)
+    setSelectedSale(null)
   }
 
   const formatPrice = (value: number) => {
@@ -173,7 +240,7 @@ export function MyAffiliationTab() {
       </div>
 
       {/* Lista de Afiliações */}
-      {affiliatesData.map(({ affiliate, company, coupon, sales, stats }) => {
+      {affiliatesData.map(({ affiliate, company, coupon, sales, pendingSales, stats }) => {
         const isExpanded = expandedAffiliate === affiliate.id
         
         return (
@@ -476,10 +543,24 @@ export function MyAffiliationTab() {
                 {/* Histórico de Vendas */}
                 <div className="border border-gray-200 rounded-lg">
                   <div className="p-4 border-b border-gray-200 bg-gray-50">
-                    <h4 className="font-semibold text-gray-900">Histórico de Vendas</h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Vendas realizadas através do seu código
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Histórico de Vendas</h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Vendas realizadas através do seu código
+                        </p>
+                      </div>
+                      {pendingSales.length > 0 && (
+                        <button
+                          onClick={() => openPendingModal({ affiliate, company, coupon, sales, pendingSales, stats })}
+                          className="flex items-center gap-2 px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm font-medium"
+                        >
+                          <Clock className="h-4 w-4" />
+                          <span className="hidden sm:inline">{pendingSales.length} Pendente{pendingSales.length !== 1 ? 's' : ''}</span>
+                          <span className="sm:hidden">{pendingSales.length}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {sales.length === 0 ? (
@@ -492,66 +573,56 @@ export function MyAffiliationTab() {
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100">
-                      {sales.map((sale) => (
-                        <div key={sale.id} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                <span className="text-sm font-medium text-gray-900 truncate">
-                                  {sale.customerEmail}
+                      {sales.map((sale) => {
+                        const saleWithCustomer = salesWithCustomers.get(sale.id || '') || sale
+                        return (
+                          <button
+                            key={sale.id}
+                            onClick={() => openSaleDetails(sale)}
+                            className="w-full p-3 sm:p-4 hover:bg-gray-50 transition-colors text-left group cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <User className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                  <span className="text-sm font-medium text-gray-900 truncate">
+                                    {(saleWithCustomer as SaleWithCustomer).customerName || 'Carregando...'}
+                                  </span>
+                                  <Eye className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                {sale.couponUsed && (
+                                  <p className="text-xs text-gray-500">
+                                    Cupom: <span className="font-mono font-medium">{sale.couponUsed}</span>
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-right ml-4 flex-shrink-0">
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {formatPrice(sale.orderValue)}
+                                </p>
+                                <p className="text-xs text-green-600 font-medium">
+                                  +{formatPrice(sale.commissionValue)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3">
+                              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                <Calendar className="h-3 w-3" />
+                                <span>{formatDate(sale.saleDate)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                                  Confirmado
+                                </span>
+                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                                  Pago
                                 </span>
                               </div>
-                              {sale.couponUsed && (
-                                <p className="text-xs text-gray-500">
-                                  Cupom: <span className="font-mono font-medium">{sale.couponUsed}</span>
-                                </p>
-                              )}
                             </div>
-                            <div className="text-right ml-4 flex-shrink-0">
-                              <p className="text-sm font-semibold text-gray-900">
-                                {formatPrice(sale.orderValue)}
-                              </p>
-                              <p className="text-xs text-green-600 font-medium">
-                                +{formatPrice(sale.commissionValue)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3">
-                            <div className="flex items-center space-x-2 text-xs text-gray-500">
-                              <Calendar className="h-3 w-3" />
-                              <span>{formatDate(sale.saleDate)}</span>
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span
-                                className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                  sale.status === 'CONFIRMED'
-                                    ? 'bg-green-100 text-green-700'
-                                    : sale.status === 'PENDING'
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : 'bg-red-100 text-red-700'
-                                }`}
-                              >
-                                {sale.status === 'CONFIRMED' ? 'Confirmado' : 
-                                 sale.status === 'PENDING' ? 'Pendente' : 'Cancelado'}
-                              </span>
-                              <span
-                                className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                  sale.paymentStatus === 'PAID'
-                                    ? 'bg-green-100 text-green-700'
-                                    : sale.paymentStatus === 'PENDING'
-                                    ? 'bg-gray-100 text-gray-700'
-                                    : 'bg-red-100 text-red-700'
-                                }`}
-                              >
-                                {sale.paymentStatus === 'PAID' ? 'Pago' : 
-                                 sale.paymentStatus === 'PENDING' ? 'A pagar' : 'Falhou'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -560,6 +631,272 @@ export function MyAffiliationTab() {
           </div>
         )
       })}
+
+      {/* Modal de Vendas Pendentes */}
+      {showPendingModal && selectedAffiliate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl">
+            {/* Header do Modal */}
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-6 w-6 text-white" />
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Vendas Pendentes</h3>
+                    <p className="text-white/90 text-sm">
+                      {selectedAffiliate.company?.name || selectedAffiliate.affiliate.name}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closePendingModal}
+                  className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  <X className="h-5 w-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-4">
+                <p className="text-sm text-yellow-800">
+                  ⏳ <strong>{selectedAffiliate.pendingSales.length} venda{selectedAffiliate.pendingSales.length !== 1 ? 's' : ''} aguardando</strong> confirmação de pagamento. 
+                  Assim que o pagamento for confirmado, {selectedAffiliate.pendingSales.length !== 1 ? 'elas' : 'ela'} aparecerá{selectedAffiliate.pendingSales.length !== 1 ? 'm' : ''} no histórico principal.
+                </p>
+              </div>
+
+              {selectedAffiliate.pendingSales.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-600">Nenhuma venda pendente</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedAffiliate.pendingSales.map((sale) => {
+                    const saleWithCustomer = salesWithCustomers.get(sale.id || '') || sale
+                    return (
+                      <button
+                        key={sale.id}
+                        onClick={() => openSaleDetails(sale)}
+                        className="w-full border border-yellow-200 bg-yellow-50/50 rounded-lg p-4 hover:bg-yellow-50 transition-colors text-left group"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <User className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                              <span className="text-sm font-medium text-gray-900 truncate">
+                                {(saleWithCustomer as SaleWithCustomer).customerName || 'Carregando...'}
+                              </span>
+                              <Eye className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            {sale.couponUsed && (
+                              <p className="text-xs text-gray-500">
+                                Cupom: <span className="font-mono font-medium">{sale.couponUsed}</span>
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right ml-4 flex-shrink-0">
+                            <p className="text-sm font-semibold text-gray-900">
+                              {formatPrice(sale.orderValue)}
+                            </p>
+                            <p className="text-xs font-medium text-orange-500 opacity-70 line-through decoration-2">
+                              +{formatPrice(sale.commissionValue)}
+                            </p>
+                            <p className="text-xs text-orange-600 font-semibold">
+                              ⏳ Escapando...
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3 pt-3 border-t border-yellow-200">
+                          <div className="flex items-center space-x-2 text-xs text-gray-500">
+                            <Calendar className="h-3 w-3" />
+                            <span>{formatDate(sale.saleDate)}</span>
+                          </div>
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 w-fit">
+                            Aguardando Pagamento
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer do Modal */}
+            <div className="border-t border-gray-200 p-4 bg-gray-50">
+              <button
+                onClick={closePendingModal}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes da Venda */}
+      {showDetailsModal && selectedSale && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl">
+            {/* Header do Modal */}
+            <div className={`p-4 sm:p-6 ${selectedSale.status === 'PENDING' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-gradient-to-r from-green-500 to-emerald-500'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Package className="h-6 w-6 text-white" />
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Detalhes da Venda</h3>
+                    <p className="text-white/90 text-sm">
+                      {selectedSale.orderId}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeSaleDetails}
+                  className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  <X className="h-5 w-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
+              {/* Informações do Cliente */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="h-5 w-5 text-blue-600" />
+                  <h4 className="font-semibold text-blue-900">Cliente</h4>
+                </div>
+                <p className="text-sm text-blue-800">
+                  <strong>{selectedSale.customerName || 'Cliente'}</strong>
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  ID: {selectedSale.customerEmail}
+                </p>
+              </div>
+
+              {/* Valores */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-xs text-gray-600 mb-1">Valor da Venda</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {formatPrice(selectedSale.orderValue)}
+                  </p>
+                </div>
+                <div className={`rounded-lg p-4 border ${selectedSale.status === 'PENDING' ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
+                  <p className={`text-xs mb-1 ${selectedSale.status === 'PENDING' ? 'text-orange-600' : 'text-green-600'}`}>
+                    Sua Comissão ({selectedSale.commissionRate.toFixed(1)}%)
+                  </p>
+                  {selectedSale.status === 'PENDING' ? (
+                    <>
+                      <p className="text-lg font-bold text-orange-500 line-through opacity-70">
+                        {formatPrice(selectedSale.commissionValue)}
+                      </p>
+                      <p className="text-xs text-orange-600 font-semibold mt-1">
+                        ⏳ Escapando entre os dedos...
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-lg font-bold text-green-600">
+                      +{formatPrice(selectedSale.commissionValue)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Cupom */}
+              {selectedSale.couponUsed && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">🎟️</span>
+                    <h4 className="font-semibold text-purple-900">Cupom Utilizado</h4>
+                  </div>
+                  <p className="font-mono text-base font-bold text-purple-600">
+                    {selectedSale.couponUsed}
+                  </p>
+                </div>
+              )}
+
+              {/* Produtos */}
+              {selectedSale.products && selectedSale.products.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-gray-600" />
+                    Produtos ({selectedSale.itemsCount})
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedSale.products.map((product: any, index: number) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            Produto {product.productId}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            Quantidade: {product.quantity}x
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatPrice(product.total || (product.unitPrice * product.quantity))}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {formatPrice(product.unitPrice)}/un
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Datas e Status */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-4 w-4 text-gray-600" />
+                    <p className="text-xs text-gray-600">Data da Venda</p>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {formatDate(selectedSale.saleDate)}
+                  </p>
+                </div>
+                {selectedSale.paidAt && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CreditCard className="h-4 w-4 text-gray-600" />
+                      <p className="text-xs text-gray-600">Pagamento</p>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {formatDate(selectedSale.paidAt)}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Badge */}
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <span className={`px-4 py-2 text-sm font-semibold rounded-full ${selectedSale.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                  {selectedSale.status === 'PENDING' ? '⏳ Aguardando Pagamento' : '✅ Pagamento Confirmado'}
+                </span>
+              </div>
+            </div>
+
+            {/* Footer do Modal */}
+            <div className="border-t border-gray-200 p-4 bg-gray-50">
+              <button
+                onClick={closeSaleDetails}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

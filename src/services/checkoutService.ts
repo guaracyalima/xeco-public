@@ -24,6 +24,11 @@ export class CheckoutService {
     affiliateData?: {
       walletId: string
       commissionPercentage: number
+    },
+    couponCode?: string | null,
+    discountData?: {
+      discountAmount: number
+      finalTotal: number
     }
   ): Promise<CheckoutResponse> {
     try {
@@ -74,6 +79,7 @@ export class CheckoutService {
       const paymentData: CreatePaymentData = {
         cartItems,
         userData: {
+          name: userData.name || order.customerName,
           cpf: userData.cpf || '',
           address: userData.address || {
             street: '',
@@ -89,6 +95,9 @@ export class CheckoutService {
         userId: userData.id || order.customerId, // ← Usa userData.id (do checkout) ou order.customerId (fallback)
         companyWalletId: companyData.walletId,
         affiliateData,
+        couponCode, // ← 🎟️ Passa o código do cupom para o backend
+        discountAmount: discountData?.discountAmount, // ← 💰 Valor do desconto
+        finalTotal: discountData?.finalTotal, // ← 💰 Total final com desconto
         userEmail: userData.email || order.customerEmail, // ← Usa userData.email ou order.customerEmail
         userName: userData.name || order.customerName, // ← Usa userData.name ou order.customerName
         userPhone: userData.phone || order.customerPhone || '' // ← Usa userData.phone ou order.customerPhone

@@ -10,7 +10,6 @@ import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { CheckoutUserData } from '@/types/order'
 import { useNavigationAnalytics } from '@/hooks/useAnalytics'
-import { createAffiliateSale } from '@/lib/affiliate-sales-service'
 import { UserService } from '@/services/userService'
 import { CartDiscount } from '@/types'
 
@@ -98,21 +97,8 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
         )
       }
 
-      // Criar AffiliateSale se for cupom de afiliado
-      if (discount?.affiliate) {
-        try {
-          await createAffiliateSale(
-            discount.affiliate,
-            '', // orderId - será atualizado após criação do pedido no Asaas
-            firebaseUser?.email || '',
-            subtotalAmount,
-            discount.coupon.code
-          );
-        } catch (saleError) {
-          console.error('Erro ao criar registro de venda do afiliado:', saleError)
-          // Não bloquear o checkout por erro no tracking
-        }
-      }
+      // ✅ Removido: createAffiliateSale() agora é feito pelo webhook N8N
+      // O registro será criado na collection 'sales' quando o pagamento for confirmado
 
       const checkoutUrl = await startCheckout(userData, discount)
       

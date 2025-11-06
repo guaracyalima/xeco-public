@@ -12,6 +12,30 @@ import { db } from '@/lib/firebase'
 import { Affiliated, AffiliateSale, Company, Coupon } from '@/types'
 
 /**
+ * Converte uma data do Firestore para Date
+ * Aceita: Timestamp, string ISO, ou Date
+ */
+function parseFirestoreDate(value: any): Date {
+  if (!value) return new Date()
+  
+  // Se já é Date, retorna
+  if (value instanceof Date) return value
+  
+  // Se é Timestamp do Firestore (tem método toDate)
+  if (value && typeof value.toDate === 'function') {
+    return value.toDate()
+  }
+  
+  // Se é string (ISO), converte
+  if (typeof value === 'string') {
+    return new Date(value)
+  }
+  
+  // Fallback
+  return new Date()
+}
+
+/**
  * Busca TODOS os dados de afiliação pelo userId (pode ter múltiplas empresas)
  */
 export async function getAffiliatesByUserId(userId: string): Promise<Affiliated[]> {
@@ -43,8 +67,8 @@ export async function getAffiliatesByUserId(userId: string): Promise<Affiliated[
         whatsapp: data.whatsapp || '',
         name: data.name,
         commissionRate: data.commissionRate || 0,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        createdAt: parseFirestoreDate(data.createdAt),
+        updatedAt: parseFirestoreDate(data.updatedAt),
         // Dados da conta Asaas
         asaasEnabled: data.asaasEnabled,
         asaasAccountStatus: data.asaasAccountStatus,
@@ -78,43 +102,144 @@ export async function getAffiliateByUserId(userId: string): Promise<Affiliated |
 
 /**
  * Busca todas as vendas (sales) do afiliado
+ * Busca de DUAS fontes: collection 'sales' E collection 'orders'
+ * Evita duplicatas usando orderId como chave única
  */
-export async function getAffiliateSales(affiliateId: string): Promise<AffiliateSale[]> {
+export async function getAffiliateSales(affiliateId: string, statusFilter: 'CONFIRMED' | 'PENDING' | 'ALL' = 'ALL'): Promise<AffiliateSale[]> {
   try {
-    console.log('🔍 [AffiliateService] Buscando vendas do afiliado:', affiliateId)
+    console.log('🔍 [AffiliateService] Buscando vendas do afiliado:', affiliateId, 'com filtro:', statusFilter)
     
-    const salesRef = collection(db, 'affiliate_sales')
-    const q = query(
+    // 1️⃣ BUSCAR DA COLLECTION SALES
+    const salesRef = collection(db, 'sales')
+    let salesQuery = query(
       salesRef, 
       where('affiliateId', '==', affiliateId),
       orderBy('saleDate', 'desc'),
       limit(100)
     )
     
-    const querySnapshot = await getDocs(q)
+    if (statusFilter === 'CONFIRMED') {
+      salesQuery = query(
+        salesRef, 
+        where('affiliateId', '==', affiliateId),
+        where('paymentStatus', '==', 'CONFIRMED'),
+        orderBy('saleDate', 'desc'),
+        limit(100)
+      )
+    } else if (statusFilter === 'PENDING') {
+      salesQuery = query(
+        salesRef, 
+        where('affiliateId', '==', affiliateId),
+        where('paymentStatus', '==', 'PENDING'),
+        orderBy('saleDate', 'desc'),
+        limit(100)
+      )
+    }
     
-    const sales: AffiliateSale[] = querySnapshot.docs.map(doc => {
+    const salesSnapshot = await getDocs(salesQuery)
+    console.log(`📊 [AffiliateService] ${salesSnapshot.docs.length} vendas encontradas na collection 'sales'`)
+    
+    // 2️⃣ BUSCAR DA COLLECTION ORDERS (pedidos com afiliado)
+    const ordersRef = collection(db, 'orders')
+    let ordersQuery = query(
+      ordersRef,
+      where('affiliateId', '==', affiliateId),
+      where('paymentStatus', '==', 'CONFIRMED'), // Apenas pedidos confirmados
+      orderBy('createdAt', 'desc'),
+      limit(100)
+    )
+    
+    const ordersSnapshot = await getDocs(ordersQuery)
+    console.log(`📦 [AffiliateService] ${ordersSnapshot.docs.length} pedidos encontrados na collection 'orders'`)
+    
+    // 3️⃣ MAPEAR VENDAS DA COLLECTION SALES
+    const salesMap = new Map<string, AffiliateSale>()
+    
+    salesSnapshot.docs.forEach(doc => {
       const data = doc.data()
-      return {
+      const sale: AffiliateSale = {
         id: doc.id,
         affiliateId: data.affiliateId,
-        storeId: data.storeId,
+        storeId: data.companyId,
         orderId: data.orderId,
-        customerEmail: data.customerEmail,
-        orderValue: data.orderValue || 0,
-        commissionValue: data.commissionValue || 0,
-        commissionRate: data.commissionRate || 0,
-        couponUsed: data.couponUsed,
+        customerEmail: data.userId,
+        orderValue: data.grossValue || 0,
+        commissionValue: data.affiliateCommission || 0,
+        commissionRate: data.affiliateCommission ? (data.affiliateCommission / data.grossValue * 100) : 0,
+        couponUsed: data.couponCode || data.affiliateCouponCode || '',
         clickId: data.clickId,
-        saleDate: data.saleDate?.toDate() || new Date(),
-        status: data.status || 'PENDING',
-        paymentStatus: data.paymentStatus || 'PENDING',
-        createdAt: data.createdAt?.toDate() || new Date()
+        saleDate: parseFirestoreDate(data.saleDate),
+        status: data.paymentStatus === 'CONFIRMED' || data.paymentStatus === 'RECEIVED' ? 'CONFIRMED' : 'PENDING',
+        paymentStatus: data.paymentStatus === 'RECEIVED' ? 'PAID' : 'PENDING',
+        createdAt: parseFirestoreDate(data.createdAt),
+        products: data.products || [],
+        itemsCount: data.itemsCount || 0,
+        paymentMethod: data.paymentMethod,
+        paidAt: data.paidAt ? parseFirestoreDate(data.paidAt) : null
+      }
+      
+      // Usar orderId como chave única para evitar duplicatas
+      if (data.orderId) {
+        salesMap.set(data.orderId, sale)
       }
     })
     
-    console.log(`✅ [AffiliateService] ${sales.length} vendas encontradas`)
-    return sales
+    // 4️⃣ ADICIONAR VENDAS DA COLLECTION ORDERS (se não existir em sales)
+    ordersSnapshot.docs.forEach(doc => {
+      const data = doc.data()
+      const orderId = doc.id
+      
+      // ⚠️ Só adicionar se NÃO existir em sales (evitar duplicata)
+      if (!salesMap.has(orderId)) {
+        console.log(`➕ [AffiliateService] Adicionando order ${orderId} que não está em sales`)
+        
+        // Calcular comissão (5% padrão ou usar commissionRate do afiliado)
+        const commissionRate = 5 // Padrão 5%
+        const grossValue = data.totalAmount || 0
+        const affiliateCommission = grossValue * (commissionRate / 100)
+        
+        const sale: AffiliateSale = {
+          id: doc.id,
+          affiliateId: data.affiliateId,
+          storeId: data.companyId,
+          orderId: orderId,
+          customerEmail: data.userId,
+          orderValue: grossValue,
+          commissionValue: affiliateCommission,
+          commissionRate: commissionRate,
+          couponUsed: data.couponCode || '',
+          clickId: null,
+          saleDate: parseFirestoreDate(data.createdAt),
+          status: 'CONFIRMED',
+          paymentStatus: data.paymentStatus === 'CONFIRMED' ? 'PAID' : 'PENDING',
+          createdAt: parseFirestoreDate(data.createdAt),
+          products: data.items || [],
+          itemsCount: data.items?.length || 0,
+          paymentMethod: data.billingType,
+          paidAt: data.paymentConfirmedAt ? parseFirestoreDate(data.paymentConfirmedAt) : null
+        }
+        
+        salesMap.set(orderId, sale)
+      }
+    })
+    
+    // 5️⃣ CONVERTER MAP PARA ARRAY E ORDENAR
+    const allSales = Array.from(salesMap.values()).sort((a, b) => {
+      return b.saleDate.getTime() - a.saleDate.getTime()
+    })
+    
+    // 6️⃣ FILTRAR POR STATUS SE NECESSÁRIO
+    let filteredSales = allSales
+    if (statusFilter === 'CONFIRMED') {
+      filteredSales = allSales.filter(s => s.status === 'CONFIRMED')
+    } else if (statusFilter === 'PENDING') {
+      filteredSales = allSales.filter(s => s.status === 'PENDING')
+    }
+    
+    console.log(`✅ [AffiliateService] ${filteredSales.length} vendas únicas encontradas (filtro: ${statusFilter})`)
+    console.log(`📊 [AffiliateService] Fontes: ${salesSnapshot.docs.length} de sales + ${ordersSnapshot.docs.length - (allSales.length - salesSnapshot.docs.length)} de orders`)
+    
+    return filteredSales
   } catch (error) {
     console.error('❌ [AffiliateService] Erro ao buscar vendas:', error)
     return []
@@ -181,8 +306,8 @@ export async function getCompanyById(companyId: string): Promise<Company | null>
       state: data.state || '',
       categoryId: data.categoryId || '',
       status: data.status || false,
-      createdAt: data.createdAt?.toDate() || new Date(),
-      updatedAt: data.updatedAt?.toDate() || new Date()
+      createdAt: parseFirestoreDate(data.createdAt),
+      updatedAt: parseFirestoreDate(data.updatedAt)
     }
     
     console.log('✅ [AffiliateService] Empresa encontrada:', company.name)
@@ -239,6 +364,33 @@ export async function getAffiliateCoupon(affiliateId: string, companyId: string)
     return coupon
   } catch (error) {
     console.error('❌ [AffiliateService] Erro ao buscar cupom:', error)
+    return null
+  }
+}
+
+/**
+ * Busca dados do usuário/cliente por ID
+ */
+export async function getUserById(userId: string): Promise<{ name: string; email: string } | null> {
+  try {
+    console.log('🔍 [AffiliateService] Buscando usuário:', userId)
+    
+    const userRef = doc(db, 'users', userId)
+    const userDoc = await getDoc(userRef)
+    
+    if (!userDoc.exists()) {
+      console.log('ℹ️ [AffiliateService] Usuário não encontrado')
+      return null
+    }
+    
+    const data = userDoc.data()
+    
+    return {
+      name: data.name || data.displayName || 'Cliente',
+      email: data.email || ''
+    }
+  } catch (error) {
+    console.error('❌ [AffiliateService] Erro ao buscar usuário:', error)
     return null
   }
 }
