@@ -109,6 +109,18 @@ export async function getAffiliateSales(affiliateId: string, statusFilter: 'CONF
   try {
     console.log('🔍 [AffiliateService] Buscando vendas do afiliado:', affiliateId, 'com filtro:', statusFilter)
     
+    // 🔥 BUSCAR DADOS DO AFILIADO PARA PEGAR commissionRate CORRETO
+    let affiliateCommissionRate = 5 // Padrão fallback
+    try {
+      const affiliateDoc = await getDoc(doc(db, 'affiliated', affiliateId))
+      if (affiliateDoc.exists()) {
+        affiliateCommissionRate = affiliateDoc.data()?.commissionRate || 5
+        console.log(`📊 [AffiliateService] Commission rate do afiliado: ${affiliateCommissionRate}%`)
+      }
+    } catch (error) {
+      console.warn('⚠️ [AffiliateService] Erro ao buscar commissionRate do afiliado, usando 5% padrão', error)
+    }
+    
     // 1️⃣ BUSCAR DA COLLECTION SALES
     const salesRef = collection(db, 'sales')
     let salesQuery = query(
@@ -193,10 +205,9 @@ export async function getAffiliateSales(affiliateId: string, statusFilter: 'CONF
       if (!salesMap.has(orderId)) {
         console.log(`➕ [AffiliateService] Adicionando order ${orderId} que não está em sales`)
         
-        // Calcular comissão (5% padrão ou usar commissionRate do afiliado)
-        const commissionRate = 5 // Padrão 5%
+        // Calcular comissão usando commissionRate real do afiliado
         const grossValue = data.totalAmount || 0
-        const affiliateCommission = grossValue * (commissionRate / 100)
+        const affiliateCommission = grossValue * (affiliateCommissionRate / 100)
         
         const sale: AffiliateSale = {
           id: doc.id,
@@ -206,17 +217,13 @@ export async function getAffiliateSales(affiliateId: string, statusFilter: 'CONF
           customerEmail: data.userId,
           orderValue: grossValue,
           commissionValue: affiliateCommission,
-          commissionRate: commissionRate,
+          commissionRate: affiliateCommissionRate, // ← Usando taxa real do afiliado
           couponUsed: data.couponCode || '',
-          clickId: null,
+          clickId: undefined,
           saleDate: parseFirestoreDate(data.createdAt),
           status: 'CONFIRMED',
           paymentStatus: data.paymentStatus === 'CONFIRMED' ? 'PAID' : 'PENDING',
-          createdAt: parseFirestoreDate(data.createdAt),
-          products: data.items || [],
-          itemsCount: data.items?.length || 0,
-          paymentMethod: data.billingType,
-          paidAt: data.paymentConfirmedAt ? parseFirestoreDate(data.paymentConfirmedAt) : null
+          createdAt: parseFirestoreDate(data.createdAt)
         }
         
         salesMap.set(orderId, sale)
