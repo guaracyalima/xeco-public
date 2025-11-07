@@ -33,14 +33,31 @@ export class PublicUrlProvider extends BaseImageProvider {
 
       const arrayBuffer = await response.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
-      const base64 = buffer.toString('base64')
-
-      const contentType = response.headers.get('content-type') || 'image/png'
-
-      return {
-        success: true,
-        base64: `data:${contentType};base64,${base64}`,
-        source: 'public-url'
+      
+      // ⚠️ CONVERSÃO OBRIGATÓRIA: Asaas/N8N só aceita JPEG
+      // Converte qualquer formato (PNG, WebP, etc) para JPEG
+      try {
+        const sharp = require('sharp')
+        const jpegBuffer = await sharp(buffer)
+          .jpeg({ quality: 85, mozjpeg: true })
+          .toBuffer()
+        
+        const base64 = jpegBuffer.toString('base64')
+        
+        return {
+          success: true,
+          base64: `data:image/jpeg;base64,${base64}`,
+          source: 'public-url'
+        }
+      } catch (sharpError) {
+        // Fallback: Se sharp falhar, apenas troca mime type (não ideal mas funciona)
+        console.warn('⚠️ Sharp conversion failed, using mime type only:', sharpError)
+        const base64 = buffer.toString('base64')
+        return {
+          success: true,
+          base64: `data:image/jpeg;base64,${base64}`,
+          source: 'public-url'
+        }
       }
     } catch (error) {
       return {

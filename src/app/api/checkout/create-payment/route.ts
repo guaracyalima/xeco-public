@@ -7,6 +7,8 @@
  * 3. Chama o n8n para criar o checkout no Asaas
  * 4. Salva os dados da order no Firebase com status PENDING
  * 5. Retorna a URL de checkout para o frontend
+ * 
+ * ✅ ÚLTIMA ATUALIZAÇÃO: Conversão PNG→JPEG com Sharp
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -188,7 +190,7 @@ export async function POST(request: NextRequest) {
           description: (product.description || product.name).substring(0, 150), // ← LIMITADO A 150 CARACTERES
           quantity: product.requestedQuantity,
           value: Number(product.unitPrice),
-          imageBase64 // ✅ SEMPRE tem valor (fallback garantido)
+          image: imageBase64 // ✅ CAMPO CORRETO: "image" (não "imageBase64")
         }
       })
     )
@@ -411,13 +413,13 @@ export async function POST(request: NextRequest) {
     // ⚠️ DEBUG: Log do productList sendo enviado
     console.log('🔍 ProductList sendo enviado ao N8N:', JSON.stringify(n8nPayload.productList, null, 2))
     
-    // ⚠️ DEBUG: Log dos items com imageBase64 sendo enviados
-    console.log('🔍 Items com imageBase64 sendo enviados ao N8N:')
+    // ⚠️ DEBUG: Log dos items com image sendo enviados
+    console.log('🔍 Items com image (base64 JPEG) sendo enviados ao N8N:')
     n8nPayload.items.forEach((item, index) => {
       console.log(`  [${index + 1}] ${item.name}:`, {
-        hasImageBase64: !!item.imageBase64,
-        imageLength: item.imageBase64?.length || 0,
-        firstChars: item.imageBase64?.substring(0, 30) + '...'
+        hasImage: !!item.image,
+        imageLength: item.image?.length || 0,
+        firstChars: item.image?.substring(0, 30) + '...'
       })
     })
 
@@ -448,8 +450,8 @@ export async function POST(request: NextRequest) {
       ...n8nPayload,
       items: n8nPayload.items?.map(item => ({
         ...item,
-        imageBase64: item.imageBase64 
-          ? `[JPEG base64: ${item.imageBase64.length} chars]`
+        image: item.image 
+          ? `[JPEG base64: ${item.image.length} chars]`
           : 'MISSING'
       }))
     }, null, 2))

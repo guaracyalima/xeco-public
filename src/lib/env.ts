@@ -1,147 +1,72 @@
-/**
- * 🔒 Validação de Variáveis de Ambiente
- * 
- * Este arquivo valida todas as variáveis de ambiente necessárias
- * no startup da aplicação, evitando erros em runtime.
- * 
- * Se alguma variável obrigatória estiver faltando, a aplicação
- * não inicia e mostra erro claro indicando qual env está faltando.
- */
-
 import { z } from 'zod'
 
-/**
- * Schema de validação para variáveis de ambiente
- * 
- * - .url() = deve ser URL válida
- * - .min(32) = mínimo 32 caracteres (para secrets)
- * - .optional() = variável opcional
- */
-const envSchema = z.object({
-  // NODE_ENV
+const clientEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-
-  // 🔥 N8N Webhooks (CRÍTICO)
-  NEXT_PUBLIC_N8N_WEBHOOK_URL: z.string().url({
-    message: '❌ NEXT_PUBLIC_N8N_WEBHOOK_URL deve ser uma URL válida (ex: https://n8n.xeco.com.br/webhook/...)'
-  }),
-  
-  N8N_ASAAS_ACCOUNT_WEBHOOK_URL: z.string().url({
-    message: '❌ N8N_ASAAS_ACCOUNT_WEBHOOK_URL deve ser uma URL válida'
-  }).optional(),
-
-  // 🔐 Secrets (CRÍTICO)
-  CHECKOUT_SIGNATURE_SECRET: z.string().min(32, {
-    message: '❌ CHECKOUT_SIGNATURE_SECRET deve ter no mínimo 32 caracteres para ser seguro'
-  }),
-
-  // 🔥 Firebase Config (CRÍTICO)
-  NEXT_PUBLIC_FIREBASE_API_KEY: z.string().min(1, {
-    message: '❌ NEXT_PUBLIC_FIREBASE_API_KEY não pode estar vazio'
-  }),
-  
-  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string().min(1, {
-    message: '❌ NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN não pode estar vazio'
-  }),
-  
-  NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string().min(1, {
-    message: '❌ NEXT_PUBLIC_FIREBASE_PROJECT_ID não pode estar vazio'
-  }),
-  
-  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string().min(1, {
-    message: '❌ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET não pode estar vazio'
-  }),
-  
-  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z.string().min(1, {
-    message: '❌ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID não pode estar vazio'
-  }),
-  
-  NEXT_PUBLIC_FIREBASE_APP_ID: z.string().min(1, {
-    message: '❌ NEXT_PUBLIC_FIREBASE_APP_ID não pode estar vazio'
-  }),
-
-  // 💳 Asaas (Pagamentos)
-  NEXT_PUBLIC_ASAAS_API_KEY: z.string().optional(),
-  NEXT_PUBLIC_ASAAS_API_URL: z.string().url().optional(),
-
-  // 🌐 URLs públicas
-  NEXT_PUBLIC_BASE_URL: z.string().default('xeco.com.br'),
-  
-  // 🔍 Algolia (Busca) - Opcional
-  NEXT_PUBLIC_ALGOLIA_APP_ID: z.string().optional(),
-  NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY: z.string().optional(),
-  NEXT_PUBLIC_ALGOLIA_INDEX_NAME: z.string().optional(),
-
-  // 📊 Sentry (Error Tracking) - Opcional
-  SENTRY_DSN: z.string().url().optional(),
-  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  NEXT_PUBLIC_N8N_WEBHOOK_URL: z.string().url(),
+  NEXT_PUBLIC_FIREBASE_API_KEY: z.string().min(1),
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string().min(1),
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string().min(1),
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string().min(1),
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z.string().min(1),
+  NEXT_PUBLIC_FIREBASE_APP_ID: z.string().min(1),
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().optional(),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  NEXT_PUBLIC_BASE_URL: z.string().optional(),
+  NEXT_PUBLIC_DEFAULT_PRODUCT_IMAGE_URL: z.string().url().optional(),
 })
 
-/**
- * Tipo TypeScript inferido do schema
- */
-export type Env = z.infer<typeof envSchema>
+const serverEnvSchema = clientEnvSchema.extend({
+  CHECKOUT_SIGNATURE_SECRET: z.string().min(32),
+  N8N_ASAAS_ACCOUNT_WEBHOOK_URL: z.string().url().optional(),
+  SENTRY_AUTH_TOKEN: z.string().optional(),
+})
 
-/**
- * Função para validar e parsear as variáveis de ambiente
- */
-function validateEnv(): Env {
+type ClientEnv = z.infer<typeof clientEnvSchema>
+type ServerEnv = z.infer<typeof serverEnvSchema>
+export type Env = ServerEnv
+
+const isBrowser = typeof window !== 'undefined'
+
+function validateEnv(): ClientEnv | ServerEnv {
+  // ✅ NO BROWSER: Usa direto do process.env (já injetado pelo Next.js em build time)
+  if (isBrowser) {
+    return {
+      NODE_ENV: (process.env.NEXT_PUBLIC_NODE_ENV || process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test',
+      NEXT_PUBLIC_N8N_WEBHOOK_URL: process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL!,
+      NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+      NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+      NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+      NEXT_PUBLIC_DEFAULT_PRODUCT_IMAGE_URL: process.env.NEXT_PUBLIC_DEFAULT_PRODUCT_IMAGE_URL,
+    } as ClientEnv
+  }
+
+  // ✅ NO SERVER: Valida com Zod
   try {
-    // Parse e valida todas as variáveis
-    const parsed = envSchema.parse(process.env)
-    
-    // Log de sucesso (apenas em development)
-    if (parsed.NODE_ENV === 'development') {
-      console.log('✅ Variáveis de ambiente validadas com sucesso')
-    }
-    
+    const parsed = serverEnvSchema.parse(process.env)
+    console.log('✅ Variáveis SERVER validadas')
     return parsed
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('\n❌ ERRO: Variáveis de ambiente inválidas ou faltando:\n')
+      console.error('❌ Variáveis SERVER inválidas:')
+      error.issues.forEach((err) => console.error('🔴', err.path.join('.') + ':', err.message))
       
-      error.issues.forEach((err) => {
-        console.error(`   🔴 ${err.path.join('.')}: ${err.message}`)
-      })
-      
-      console.error('\n💡 Verifique seu arquivo .env.local e adicione as variáveis faltando\n')
-      
-      // Em produção, não pode continuar com envs inválidas
       if (process.env.NODE_ENV === 'production') {
         throw new Error('Variáveis de ambiente inválidas em produção')
       }
     }
     
-    // Em development, continua mas mostra warning
-    console.warn('\n⚠️  Continuando em modo development, mas corrija os erros acima!\n')
-    return process.env as unknown as Env
+    console.warn('⚠️ Usando process.env diretamente (validação falhou)')
+    return process.env as unknown as ServerEnv
   }
 }
 
-/**
- * Variáveis de ambiente validadas e tipadas
- * 
- * USO:
- * ```typescript
- * import { env } from '@/lib/env'
- * 
- * const webhookUrl = env.NEXT_PUBLIC_N8N_WEBHOOK_URL
- * const secret = env.CHECKOUT_SIGNATURE_SECRET
- * ```
- */
 export const env = validateEnv()
-
-/**
- * Helper: Verifica se estamos em produção
- */
 export const isProduction = env.NODE_ENV === 'production'
-
-/**
- * Helper: Verifica se estamos em desenvolvimento
- */
 export const isDevelopment = env.NODE_ENV === 'development'
-
-/**
- * Helper: Verifica se estamos em testes
- */
 export const isTest = env.NODE_ENV === 'test'

@@ -6,7 +6,6 @@ import { CartItem } from '@/types'
 import { CheckoutUserData } from '@/types/order'
 import { calculatePaymentSplits } from '@/lib/payment-config'
 import { CHECKOUT_CALLBACKS } from '@/lib/config'
-import { generateCheckoutSignature } from '@/lib/checkout-signature'
 import {
   N8N_ENDPOINTS,
   N8NPaymentRequest,
@@ -273,7 +272,7 @@ export async function createPaymentCheckout(
       totalAmount
     })
 
-    // 🔒 Gera assinatura HMAC para fraud prevention
+    // 🔒 Gera assinatura HMAC para fraud prevention no SERVIDOR
     console.log('🔒 Gerando assinatura HMAC para fraud prevention...')
     
     // ⚠️ IMPORTANTE: Usar os dados ORIGINAIS do carrinho para gerar a assinatura
@@ -289,8 +288,20 @@ export async function createPaymentCheckout(
     }
     
     console.log('🔐 Dados usados para gerar assinatura:', JSON.stringify(dataToSign, null, 2))
-    const signature = generateCheckoutSignature(dataToSign)
-    console.log('🔐 Assinatura gerada:', signature)
+    
+    // ✅ CHAMA API ROUTE para gerar assinatura no servidor (onde crypto está disponível)
+    const signResponse = await fetch('/api/checkout/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dataToSign)
+    })
+    
+    if (!signResponse.ok) {
+      throw new Error('Erro ao gerar assinatura de segurança')
+    }
+    
+    const { signature } = await signResponse.json()
+    console.log('🔐 Assinatura gerada pelo servidor:', signature)
     paymentRequest.signature = signature
 
     console.log('\n' + '='.repeat(80))
