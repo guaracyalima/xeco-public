@@ -4,13 +4,9 @@
  */
 
 import crypto from 'crypto'
+import { env } from './env'
 
-const HMAC_SECRET = process.env.CHECKOUT_SIGNATURE_SECRET || 'xeco-secret-key-change-in-production'
-
-console.log('🔐🔐🔐 CHECKOUT-SIGNATURE.TS CARREGADO!')
-console.log('🔐 HMAC_SECRET:', HMAC_SECRET)
-console.log('🔐 process.env.CHECKOUT_SIGNATURE_SECRET:', process.env.CHECKOUT_SIGNATURE_SECRET)
-console.log('🔐 Secret length:', HMAC_SECRET.length)
+const HMAC_SECRET = env.CHECKOUT_SIGNATURE_SECRET
 
 /**
  * Gera uma assinatura HMAC-SHA256 para os dados do checkout
