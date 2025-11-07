@@ -172,42 +172,26 @@ export async function POST(request: NextRequest) {
         : 'Sem afiliado'
     })
 
-    // Passo 3: Usa imagem default local (WORKAROUND Asaas)
-    console.log('Usando imagem default local para todos os produtos...')
+    // Passo 3: Busca imagens dos produtos usando ImageService (Strategy Pattern + Circuit Breaker)
+    console.log('🖼️ Buscando imagens dos produtos com fallback em cascata...')
     
-    const fs = require('fs')
-    const path = require('path')
-    const sharp = require('sharp')
+    const { getProductImageBase64 } = await import('@/lib/image-providers')
     
-    const defaultImagePath = path.join(process.cwd(), 'public', 'default-product-image.png')
-    console.log('Lendo:', defaultImagePath)
-    
-    let defaultImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-    
-    try {
-      const imageBuffer = fs.readFileSync(defaultImagePath)
-      const jpegBuffer = await sharp(imageBuffer)
-        .jpeg({ quality: 85, progressive: true, mozjpeg: true })
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .toBuffer()
-      
-      const base64Pure = jpegBuffer.toString('base64')
-      defaultImageBase64 = `data:image/jpeg;base64,${base64Pure}` // <- COM PREFIXO!
-      
-      console.log('Base64 gerado:', defaultImageBase64.length, 'chars, KB:', (jpegBuffer.length / 1024).toFixed(2))
-      console.log('Formato:', defaultImageBase64.substring(0, 50) + '...')
-    } catch (error: any) {
-      console.error('Erro imagem default:', error.message)
-    }
-    
-    const itemsWithBase64 = products.map((product) => ({
-      externalReference: product.id,
-      name: product.name.substring(0, 30), // ← LIMITADO A 30 CARACTERES
-      description: (product.description || product.name).substring(0, 150), // ← LIMITADO A 150 CARACTERES
-      quantity: product.requestedQuantity,
-      value: Number(product.unitPrice)
-      // imageBase64 removido para testar
-    }))
+    const itemsWithBase64 = await Promise.all(
+      products.map(async (product) => {
+        // ImageService tenta: 1) Firebase Storage, 2) Public URL, 3) Embedded fallback
+        const imageBase64 = await getProductImageBase64(product.image)
+        
+        return {
+          externalReference: product.id,
+          name: product.name.substring(0, 30), // ← LIMITADO A 30 CARACTERES
+          description: (product.description || product.name).substring(0, 150), // ← LIMITADO A 150 CARACTERES
+          quantity: product.requestedQuantity,
+          value: Number(product.unitPrice),
+          imageBase64 // ✅ SEMPRE tem valor (fallback garantido)
+        }
+      })
+    )
 
     // Log para verificar TODOS os items
     console.log('🔍 TODOS OS ITEMS:', JSON.stringify(itemsWithBase64.map(item => ({
