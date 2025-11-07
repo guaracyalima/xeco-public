@@ -14,7 +14,7 @@ import { validateCheckoutRequest } from '@/services/checkoutValidationService'
 import { validateCheckoutSignature } from '@/lib/checkout-signature'
 import { calculateSplits } from '@/services/splitCalculationService'
 import { db } from '@/lib/firebase'
-import { collection, doc, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, doc, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { imageUrlToBase64 } from '@/lib/base64-converter'
 import { env } from '@/lib/env'
 import { debugLog } from '@/lib/feature-flags'
@@ -268,37 +268,23 @@ export async function POST(request: NextRequest) {
     // Remove campos undefined (Firebase não aceita)
     const cleanOrderData = JSON.parse(JSON.stringify(orderData))
     
-    console.log('🔍 Tentando salvar order no Firebase...')
-    console.log('🔍 Order ID:', orderId)
-    console.log('🔍 Order Data keys:', Object.keys(cleanOrderData))
-    console.log('🔍 Order Data:', JSON.stringify(cleanOrderData, null, 2))
-    console.log('🔍 Firebase db instance:', db ? 'EXISTS' : 'NULL')
-    console.log('🔍 Order ref:', orderRef ? 'EXISTS' : 'NULL')
+    debugLog('firebase', 'Preparando transação atômica para salvar order + sale...')
     
-    try {
-      console.log('🔄 Chamando setDoc...')
-      // Usa merge: true para não sobrescrever campos existentes (como 'items')
-      await setDoc(orderRef, cleanOrderData, { merge: true })
-      console.log('✅ Order salva no Firebase:', orderId)
-    } catch (error: any) {
-      console.error('❌ Erro ao salvar order no Firebase:', error.message)
-      console.error('❌ Stack trace:', error.stack)
-      return NextResponse.json(
-        {
-          errors: [
-            {
-              code: 'FIREBASE_ERROR',
-              description: 'Erro ao salvar pedido no banco de dados'
-            }
-          ]
-        },
-        { status: 500 }
-      )
-    }
+    // � USA BATCH PARA GARANTIR ATOMICIDADE
+    // Se falhar em qualquer ponto, NADA é salvo no Firestore
+    const batch = writeBatch(db)
+    
+    // Adiciona order ao batch
+    batch.set(orderRef, cleanOrderData, { merge: true })
+    debugLog('firebase', 'Order adicionada ao batch', { orderId })
 
-    // 🔥 CRIAR SALE SE TIVER AFILIADO
+    // 🔥 CRIAR SALE SE TIVER AFILIADO (no mesmo batch)
+    let saleId: string | null = null
     if (affiliate?.id && coupon?.id) {
-      console.log('\n🎯 Criando sale para afiliado...')
+      debugLog('affiliate', 'Criando sale para afiliado no batch...', {
+        affiliateId: affiliate.id,
+        couponCode: body.couponCode,
+      })
       
       const commissionRate = affiliate.commissionRate || 5
       const platformFeeRate = 8 // Taxa da plataforma
@@ -346,21 +332,45 @@ export async function POST(request: NextRequest) {
         source: 'checkout_created'
       }
       
-      try {
-        const salesRef = collection(db, 'sales')
-        await setDoc(doc(salesRef), saleData)
-        console.log('✅ Sale criada no Firebase com status PENDING')
-        console.log('💰 Comissão calculada: R$', affiliateCommission.toFixed(2))
-        console.log('💰 Estrutura da sale:', {
-          grossValue: saleData.grossValue,
-          netValue: saleData.netValue,
-          platformFee: saleData.platformFee,
-          affiliateCommission: saleData.affiliateCommission
-        })
-      } catch (error: any) {
-        console.error('❌ Erro ao criar sale:', error.message)
-        // NÃO bloqueia o checkout se falhar
+      // Adiciona sale ao batch
+      const salesRef = collection(db, 'sales')
+      const saleRef = doc(salesRef)
+      saleId = saleRef.id
+      batch.set(saleRef, saleData)
+      
+      debugLog('affiliate', 'Sale adicionada ao batch', {
+        saleId,
+        affiliateCommission,
+        platformFee,
+      })
+    }
+
+    // 💾 COMMIT ATÔMICO - Ou salva tudo, ou não salva nada
+    try {
+      debugLog('firebase', 'Executando batch.commit()...')
+      await batch.commit()
+      
+      console.log('✅ Order e Sale salvas atomicamente no Firebase')
+      console.log('  📦 Order ID:', orderId)
+      if (saleId) {
+        console.log('  💰 Sale ID:', saleId)
+        console.log('  🤝 Afiliado:', affiliate?.id)
       }
+      
+    } catch (error: any) {
+      console.error('❌ Erro ao salvar order+sale no Firebase:', error.message)
+      console.error('❌ Stack trace:', error.stack)
+      return NextResponse.json(
+        {
+          errors: [
+            {
+              code: 'FIREBASE_ERROR',
+              description: 'Erro ao salvar pedido no banco de dados (transação falhou)'
+            }
+          ]
+        },
+        { status: 500 }
+      )
     }
 
     // Passo 4: Monta a requisição para o n8n
