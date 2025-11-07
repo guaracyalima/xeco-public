@@ -16,9 +16,11 @@ import { calculateSplits } from '@/services/splitCalculationService'
 import { db } from '@/lib/firebase'
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore'
 import { imageUrlToBase64 } from '@/lib/base64-converter'
+import { env } from '@/lib/env'
+import { debugLog } from '@/lib/feature-flags'
+import { retryN8N } from '@/lib/retry'
 
-const N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 
-                        'https://primary-production-9acc.up.railway.app/webhook/xeco-create-checkout'
+const N8N_WEBHOOK_URL = env.NEXT_PUBLIC_N8N_WEBHOOK_URL
 
 export async function POST(request: NextRequest) {
   try {
@@ -458,34 +460,44 @@ export async function POST(request: NextRequest) {
       }))
     }, null, 2))
 
-    const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(n8nPayload)
+    // 🔄 Chama N8N com retry automático (3 tentativas, exponential backoff)
+    debugLog('webhook', 'Iniciando chamada N8N com retry...', {
+      orderId,
+      companyId: body.companyId,
+      totalAmount: finalTotal,
     })
 
-    console.log('📥 Resposta do n8n:', n8nResponse.status)
+    const n8nResult = await retryN8N(N8N_WEBHOOK_URL, n8nPayload, {
+      context: 'checkout-payment',
+      orderId,
+      companyId: body.companyId,
+      totalAmount: finalTotal,
+    })
 
-    // Valida resposta
-    if (!n8nResponse.ok) {
-      const errorData = await n8nResponse.json()
-      console.error('❌ Erro na resposta do n8n:', errorData)
+    // Valida se teve sucesso após retries
+    if (!n8nResult.success) {
+      console.error('❌ N8N falhou após todas as tentativas de retry:', {
+        attempts: n8nResult.attempts,
+        duration: n8nResult.totalDuration,
+        error: n8nResult.error?.message,
+      })
+      
       return NextResponse.json(
         {
           errors: [
             {
               code: 'N8N_ERROR',
-              description: errorData.error || 'Erro ao processar pagamento'
+              description: `Erro ao processar pagamento após ${n8nResult.attempts} tentativa(s): ${n8nResult.error?.message || 'Erro desconhecido'}`
             }
           ]
         },
-        { status: 400 }
+        { status: 503 } // Service Unavailable
       )
     }
 
-    let n8nData = await n8nResponse.json()
+    console.log('✅ N8N respondeu com sucesso após', n8nResult.attempts, 'tentativa(s), em', n8nResult.totalDuration, 'ms')
+
+    let n8nData = n8nResult.data
     
     // Se retornar array, pega o primeiro item
     if (Array.isArray(n8nData)) {
