@@ -7,7 +7,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { AnalyticsProvider } from "@/contexts/AnalyticsContext";
 import { LikedCompanyProvider } from "@/contexts/LikedCompanyContext";
-import { LikedProductProvider } from "@/contexts/LikedProductProvider";
+import { LikedProductProvider } from "@/contexts/LikedProductContext";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AnalyticsConsentBanner } from "@/components/analytics/AnalyticsConsentBanner";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
