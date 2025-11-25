@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useSearchAnalytics } from '@/hooks/useAnalytics'
+import { useLocationContext } from '@/contexts/LocationContext'
 import { collection, query as firestoreQuery, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -45,8 +46,6 @@ const BRAZILIAN_STATES = [
 
 export function HeroSection({ onSearch }: HeroSectionProps) {
   const [query, setQuery] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [selectedState, setSelectedState] = useState('')
   const [cities, setCities] = useState<string[]>([])
@@ -54,17 +53,19 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
   const [loadingCities, setLoadingCities] = useState(false)
   const router = useRouter()
   const { trackSearch } = useSearchAnalytics()
+  const { location, isLoading, updateLocation } = useLocationContext()
 
-  // Detectar localização do usuário
+  // Estados locais para o modal
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('')
+
+  // Sincronizar com o contexto de localização
   useEffect(() => {
-    const savedCity = localStorage.getItem('userCity')
-    const savedState = localStorage.getItem('userState')
-    
-    if (savedCity && savedState) {
-      setCity(savedCity)
-      setState(savedState)
+    if (location) {
+      setCity(location.city)
+      setState(location.state)
     }
-  }, [])
+  }, [location])
 
   // Buscar cidades quando estado for selecionado
   useEffect(() => {
@@ -146,12 +147,18 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
   }
 
   const handleSelectLocation = (selectedCity: string) => {
+    // Atualizar contexto global
+    updateLocation(selectedCity, selectedState)
+    
+    // Atualizar estados locais
     setCity(selectedCity)
     setState(selectedState)
-    localStorage.setItem('userCity', selectedCity)
-    localStorage.setItem('userState', selectedState)
+    
+    // Fechar modal
     setShowLocationModal(false)
     setCitySearch('')
+    
+    console.log('📍 Localização atualizada:', `${selectedCity}, ${selectedState}`)
   }
 
   return (
