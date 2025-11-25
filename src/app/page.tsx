@@ -6,7 +6,7 @@ import { HeroSection } from '@/components/home/HeroSection'
 import { CategoriesGrid } from '@/components/home/CategoriesGrid'
 import { CompaniesTabsSection } from '@/components/home/CompaniesTabsSection'
 import { FeaturedProductsSection } from '@/components/home/FeaturedProductsSection'
-import { LocationDebug } from '@/components/debug/LocationDebug'
+
 import { 
   getCategories, 
   getFeaturedCompanies, 
@@ -204,7 +204,6 @@ export default function Home() {
           }
         }
       `}</style>
-      <LocationDebug />
     </Layout>
   )
 }

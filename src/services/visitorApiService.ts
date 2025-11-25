@@ -49,10 +49,7 @@ export class VisitorApiService {
       xhr.onreadystatechange = function() {
         if (xhr.readyState === XMLHttpRequest.DONE) {
           try {
-            console.log('🌐 Resposta da API (raw):', xhr.responseText);
             const response: VisitorAPIResponse = JSON.parse(xhr.responseText);
-            console.log('🔄 Resposta parseada:', response);
-            console.log('🔍 Campos disponíveis na resposta.data:', Object.keys(response.data));
             
             if (response.status === 200) {
               resolve(response.data);
@@ -60,7 +57,7 @@ export class VisitorApiService {
               reject(new Error(`API Error ${response.status}: ${response.result}`));
             }
           } catch (error) {
-            console.error('❌ Erro ao parsear resposta:', error);
+            console.error('❌ Erro ao parsear resposta da Visitor API:', error);
             reject(new Error('Failed to parse API response'));
           }
         }
@@ -75,7 +72,6 @@ export class VisitorApiService {
       };
 
       const url = `https://api.visitorapi.com/api/?pid=${VisitorApiService.API_PID}`;
-      console.log('📡 Chamando API:', url);
       
       xhr.timeout = 10000; // 10 segundos timeout
       xhr.open("GET", url);
@@ -87,45 +83,31 @@ export class VisitorApiService {
    * Formata os dados da API para o formato usado na aplicação
    */
   private static formatLocationData(apiData: VisitorAPIData): LocationData {
-    try {
-      console.log('🔧 Formatando dados da API...', apiData);
-      
-      // Verificar se os campos essenciais existem
-      if (!apiData.city || !apiData.region || !apiData.cityLatLong) {
-        console.error('❌ Campos essenciais faltando:', {
-          city: apiData.city,
-          region: apiData.region, 
-          cityLatLong: apiData.cityLatLong
-        });
-        throw new Error('Dados essenciais da API estão faltando');
-      }
-      
-      // Parse coordenadas do formato "lat,lng"
-      const [lat, lng] = apiData.cityLatLong.split(',').map(coord => parseFloat(coord.trim()));
-      
-      // Formatar cidade (primeira letra maiúscula)
-      const city = apiData.city.charAt(0).toUpperCase() + apiData.city.slice(1).toLowerCase();
-      
-      // Formatar estado (maiúscula)
-      const state = apiData.region.toUpperCase();
-      
-      console.log('✅ Dados formatados com sucesso:', { city, state, country: apiData.countryName });
-      
-      return {
-        city: city,
-        state: state,
-        country: apiData.countryName,
-        fullLocation: `${city}, ${state}`,
-        coordinates: {
-          lat: lat || 0,
-          lng: lng || 0
-        },
-        lastUpdated: Date.now()
-      };
-    } catch (error) {
-      console.error('❌ Erro ao formatar dados:', error);
-      throw error;
+    // Verificar se os campos essenciais existem
+    if (!apiData.city || !apiData.region || !apiData.cityLatLong) {
+      throw new Error('Dados essenciais da API estão faltando');
     }
+    
+    // Parse coordenadas do formato "lat,lng"
+    const [lat, lng] = apiData.cityLatLong.split(',').map(coord => parseFloat(coord.trim()));
+    
+    // Formatar cidade (primeira letra maiúscula)
+    const city = apiData.city.charAt(0).toUpperCase() + apiData.city.slice(1).toLowerCase();
+    
+    // Formatar estado (maiúscula)
+    const state = apiData.region.toUpperCase();
+    
+    return {
+      city: city,
+      state: state,
+      country: apiData.countryName,
+      fullLocation: `${city}, ${state}`,
+      coordinates: {
+        lat: lat || 0,
+        lng: lng || 0
+      },
+      lastUpdated: Date.now()
+    };
   }
 
   /**
@@ -179,13 +161,7 @@ export class VisitorApiService {
     try {
       console.log('🌍 Obtendo localização via Visitor API...');
       const apiData = await this.callVisitorAPI();
-      console.log('📦 Dados brutos da API:', apiData);
-      console.log('🏙️ Cidade direta da API:', apiData.city);
-      console.log('📍 Região direta da API:', apiData.region);
-      
-      console.log('🔄 Chamando formatLocationData...');
       const locationData = this.formatLocationData(apiData);
-      console.log('🏗️ Dados formatados retornados:', locationData);
       
       // Salva no localStorage
       this.storeLocation(locationData);
