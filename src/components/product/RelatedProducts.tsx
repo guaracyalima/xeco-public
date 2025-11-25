@@ -23,7 +23,7 @@ export function RelatedProducts({ products, companyName }: RelatedProductsProps)
             Outros produtos de {companyName}
           </h2>
           <p className="text-gray-600 mt-1">
-            Confira mais opções desta empresa
+            Confira mais opções desta franquia
           </p>
         </div>
         
@@ -56,7 +56,7 @@ export function RelatedProducts({ products, companyName }: RelatedProductsProps)
       {products.length < 2 && (
         <div className="text-center py-8 border-t mt-6">
           <p className="text-gray-500 text-sm">
-            Esta empresa tem apenas este produto disponível no momento.
+            Esta franquia tem apenas este produto disponível no momento.
           </p>
           <p className="text-gray-400 text-xs mt-1">
             Entre em contato para saber sobre outros produtos.

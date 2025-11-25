@@ -147,7 +147,7 @@ export function CompanyProductCard({ product, showBadge }: CompanyProductCardPro
           .product-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-            border-color: #ff5a5f;
+            border-color: var(--primary);
           }
 
           .product-image {
@@ -160,7 +160,7 @@ export function CompanyProductCard({ product, showBadge }: CompanyProductCardPro
             position: absolute;
             top: 12px;
             left: 12px;
-            background: #ff5a5f;
+            background: var(--primary);
             color: white;
             padding: 4px 8px;
             border-radius: 4px;
@@ -200,7 +200,7 @@ export function CompanyProductCard({ product, showBadge }: CompanyProductCardPro
           }
 
           .quick-view-btn:hover {
-            background: #ff5a5f;
+            background: var(--primary);
             color: white;
           }
 
@@ -223,7 +223,7 @@ export function CompanyProductCard({ product, showBadge }: CompanyProductCardPro
           .product-price {
             font-size: 18px;
             font-weight: 700;
-            color: #ff5a5f;
+            color: var(--primary);
             margin-bottom: 8px;
           }
 
@@ -249,7 +249,7 @@ export function CompanyProductCard({ product, showBadge }: CompanyProductCardPro
 
           .add-to-cart-btn {
             width: 100%;
-            background: #ff5a5f;
+            background: var(--primary);
             color: white;
             border: none;
             padding: 10px 16px;

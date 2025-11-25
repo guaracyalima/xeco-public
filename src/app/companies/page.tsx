@@ -7,6 +7,7 @@ import { Company, CompanyCategory } from '@/types'
 import { collection, query, where, orderBy, limit, startAfter, getDocs, QueryConstraint, DocumentData, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Filter, Search, ChevronDown, X } from 'lucide-react'
+import { useLocationContext } from '@/contexts/LocationContext'
 
 const COMPANIES_PER_PAGE = 12
 
@@ -35,19 +36,30 @@ export default function CompaniesPage() {
   const [hasMore, setHasMore] = useState(true)
   const [lastDoc, setLastDoc] = useState<DocumentData | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [userLocation, setUserLocation] = useState<{ city: string; state: string } | null>(null)
   const [citySuggestions, setCitySuggestions] = useState<string[]>([])
   const [showCitySuggestions, setShowCitySuggestions] = useState(false)
   const [searchInput, setSearchInput] = useState('') // Input local para debounce
   const [isSearching, setIsSearching] = useState(false) // Indicador de busca
+  const { location } = useLocationContext()
   
   const [filters, setFilters] = useState<Filters>({
     search: '',
-    city: '',
-    state: '',
+    city: location?.city || '',
+    state: location?.state || '',
     categoryId: '',
     sortBy: 'recent'
   })
+
+  // Sincronizar filtros com localização do contexto
+  useEffect(() => {
+    if (location) {
+      setFilters(prev => ({
+        ...prev,
+        city: location.city,
+        state: location.state
+      }))
+    }
+  }, [location])
 
   // Filtrar sugestões de cidades baseado no que o usuário digitou (com normalização)
   const filteredCitySuggestions = useMemo(() => {
@@ -59,76 +71,7 @@ export default function CompaniesPage() {
     )
   }, [filters.city, citySuggestions])
 
-  // Detectar localização do usuário
-  useEffect(() => {
-    const detectLocation = async () => {
-      try {
-        console.log('📍 [LOCATION] Iniciando detecção de localização...')
-        
-        // Tentar obter do localStorage primeiro
-        const savedCity = localStorage.getItem('userCity')
-        const savedState = localStorage.getItem('userState')
-        
-        if (savedCity && savedState) {
-          console.log('💾 [LOCATION] Localização encontrada no localStorage:', { savedCity, savedState })
-          setUserLocation({ city: savedCity, state: savedState })
-          setFilters(prev => ({ ...prev, city: savedCity, state: savedState }))
-          return
-        }
-
-        console.log('🌍 [LOCATION] Tentando geolocalização do navegador...')
-        
-        // Se não tiver salvo, tenta pela geolocalização
-        if ('geolocation' in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            async (position) => {
-              const { latitude, longitude } = position.coords
-              console.log('🎯 [LOCATION] Coordenadas obtidas:', { latitude, longitude })
-              
-              // Usar API de geocoding reverso
-              const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-              console.log('🌐 [LOCATION] Consultando Nominatim:', url)
-              
-              const response = await fetch(url)
-              const data = await response.json()
-              console.log('📦 [LOCATION] Resposta do Nominatim:', data)
-              
-              if (data.address) {
-                const city = data.address.city || data.address.town || data.address.village || ''
-                const state = data.address.state || ''
-                console.log('🏙️ [LOCATION] Endereço extraído:', { city, state })
-                
-                if (city && state) {
-                  const stateAbbr = state.substring(0, 2).toUpperCase()
-                  console.log('✅ [LOCATION] Localização detectada:', { city, state: stateAbbr })
-                  
-                  setUserLocation({ city, state: stateAbbr })
-                  setFilters(prev => ({ ...prev, city, state: stateAbbr }))
-                  
-                  localStorage.setItem('userCity', city)
-                  localStorage.setItem('userState', stateAbbr)
-                  console.log('💾 [LOCATION] Localização salva no localStorage')
-                } else {
-                  console.warn('⚠️ [LOCATION] Cidade ou estado não encontrados')
-                }
-              } else {
-                console.warn('⚠️ [LOCATION] Endereço não encontrado na resposta')
-              }
-            },
-            (error) => {
-              console.warn('❌ [LOCATION] Erro ao obter localização:', error.message)
-            }
-          )
-        } else {
-          console.warn('❌ [LOCATION] Geolocalização não disponível no navegador')
-        }
-      } catch (error) {
-        console.error('❌ [LOCATION] Erro ao detectar localização:', error)
-      }
-    }
-
-    detectLocation()
-  }, [])
+  // Localização agora é gerenciada pelo LocationContext
 
   // Buscar cidades quando estado mudar
   useEffect(() => {
@@ -395,8 +338,8 @@ export default function CompaniesPage() {
         {/* Header */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Todas as Empresas</h1>
-            <p className="text-gray-600">Explore empresas e estabelecimentos na sua região</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Todas as franquias digitais</h1>
+            <p className="text-gray-600">Explore franquias digitais e estabelecimentos na sua região</p>
           </div>
         </div>
 

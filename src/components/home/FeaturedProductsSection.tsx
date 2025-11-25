@@ -97,24 +97,23 @@ export function FeaturedProductsSection({
         }
 
         .view-all-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: transparent;
-          border: 2px solid #ff5a5f;
-          color: #ff5a5f;
+          background: var(--primary);
+          color: white;
+          border: none;
           padding: 12px 20px;
           border-radius: 6px;
           font-weight: 500;
-          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
           cursor: pointer;
           transition: all 0.3s ease;
-          white-space: nowrap;
+          font-size: 14px;
         }
 
         .view-all-btn:hover {
-          background: #ff5a5f;
-          color: white;
+          background: var(--primary-hover);
+          transform: translateY(-1px);
         }
 
         .products-grid {

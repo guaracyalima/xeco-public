@@ -8,6 +8,7 @@ import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { AnalyticsProvider } from "@/contexts/AnalyticsContext";
 import { LikedCompanyProvider } from "@/contexts/LikedCompanyContext";
 import { LikedProductProvider } from "@/contexts/LikedProductContext";
+import { LocationProvider } from "@/contexts/LocationContext";
 import { AnalyticsConsentBanner } from "@/components/analytics/AnalyticsConsentBanner";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
 import { PWARegister } from "@/components/pwa/PWARegister";
@@ -60,33 +61,35 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${workSans.variable} font-sans antialiased`}>
         <AuthProvider>
-          <AnalyticsProvider>
-            <FavoritesProvider>
-              <LikedCompanyProvider>
-                <LikedProductProvider>
-                  <CartProvider>
-                    <PWARegister />
-                    {children}
-                    <AnalyticsConsentBanner />
-                    <PWAInstallPrompt />
-                    <ToastContainer
-                      position="top-right"
-                      autoClose={3000}
-                      hideProgressBar={false}
-                      newestOnTop
-                      closeOnClick
-                      rtl={false}
-                      pauseOnFocusLoss
-                      draggable
-                      pauseOnHover
-                      theme="light"
-                      className="toast-container"
-                    />
-                  </CartProvider>
-                </LikedProductProvider>
-              </LikedCompanyProvider>
-            </FavoritesProvider>
-          </AnalyticsProvider>
+          <LocationProvider>
+            <AnalyticsProvider>
+              <FavoritesProvider>
+                <LikedCompanyProvider>
+                  <LikedProductProvider>
+                    <CartProvider>
+                      <PWARegister />
+                      {children}
+                      <AnalyticsConsentBanner />
+                      <PWAInstallPrompt />
+                      <ToastContainer
+                        position="top-right"
+                        autoClose={3000}
+                        hideProgressBar={false}
+                        newestOnTop
+                        closeOnClick
+                        rtl={false}
+                        pauseOnFocusLoss
+                        draggable
+                        pauseOnHover
+                        theme="light"
+                        className="toast-container"
+                      />
+                    </CartProvider>
+                  </LikedProductProvider>
+                </LikedCompanyProvider>
+              </FavoritesProvider>
+            </AnalyticsProvider>
+          </LocationProvider>
         </AuthProvider>
       </body>
     </html>

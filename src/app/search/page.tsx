@@ -10,6 +10,7 @@ import { collection, query, where, orderBy, limit, startAfter, getDocs, getDoc, 
 import { db } from '@/lib/firebase'
 import { Search, MapPin, Building2, Package, ChevronDown } from 'lucide-react'
 import { useSearchAnalytics } from '@/hooks/useAnalytics'
+import { useLocationContext } from '@/contexts/LocationContext'
 
 const ITEMS_PER_PAGE = 12
 
@@ -31,6 +32,7 @@ function SearchPageContent() {
   const cityParam = searchParams.get('city') || ''
   const stateParam = searchParams.get('state') || ''
   const { trackSearch, trackSearchResults, trackFilterApplied } = useSearchAnalytics()
+  const { location } = useLocationContext()
 
   const [products, setProducts] = useState<Product[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
@@ -41,23 +43,12 @@ function SearchPageContent() {
   const [lastProductDoc, setLastProductDoc] = useState<DocumentData | null>(null)
   const [lastCompanyDoc, setLastCompanyDoc] = useState<DocumentData | null>(null)
   const [searchType, setSearchType] = useState<SearchType>('all')
-  const [userLocation, setUserLocation] = useState<{ city: string; state: string }>({
-    city: cityParam,
-    state: stateParam
-  })
-
-  // Detectar localização se não foi passada
-  useEffect(() => {
-    if (!cityParam || !stateParam) {
-      const savedCity = localStorage.getItem('userCity')
-      const savedState = localStorage.getItem('userState')
-      
-      if (savedCity && savedState) {
-        console.log('📍 [SEARCH] Localização do localStorage:', { savedCity, savedState })
-        setUserLocation({ city: savedCity, state: savedState })
-      }
-    }
-  }, [cityParam, stateParam])
+  
+  // Usar localização do contexto ou parâmetros URL
+  const userLocation = {
+    city: cityParam || location?.city || '',
+    state: stateParam || location?.state || ''
+  }
 
   const loadProducts = useCallback(async (isLoadMore: boolean = false) => {
     if (!userLocation.city || !userLocation.state || !searchQuery.trim()) return

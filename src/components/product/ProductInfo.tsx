@@ -37,7 +37,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
     const success = await addToCart(product, quantity)
     
     if (!success) {
-      console.log('❌ Conflito de empresa detectado')
+      console.log('❌ Conflito de franquia detectado')
       // Show conflict modal
       setPendingProduct(product)
       setPendingQuantity(quantity)
@@ -93,7 +93,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
     // Track WhatsApp contact
     trackCompanyContact({ id: product.companyOwner, name: product.companyOwnerName }, 'whatsapp')
     
-    // Buscar empresa para obter WhatsApp
+    // Buscar franquia para obter WhatsApp
     const message = `Olá! Tenho interesse no produto: ${product.name}`
     const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
@@ -209,14 +209,32 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <button
           onClick={() => { console.log('Botão Comprar agora clicado'); handleAddToCart(); }}
           disabled={false}
-          style={{ background: '#ff5a5f', color: '#fff', opacity: 1, visibility: 'visible', border: '2px solid #ff5a5f' }}
-          className="w-full !bg-coral-500 hover:!bg-coral-600 !text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg z-50"
+          className="comprar-agora-btn w-full text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg z-50"
         >
           <ShoppingCart className="h-5 w-5" />
           <span>
             Comprar agora
           </span>
         </button>
+        
+        <style jsx>{`
+          .comprar-agora-btn {
+            background: var(--primary);
+            border: 2px solid var(--primary);
+          }
+          
+          .comprar-agora-btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+          }
+          
+          .comprar-agora-btn:disabled {
+            background: #ccc;
+            border-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
+        `}</style>
       </div>
 
       {/* Secondary Actions */}
@@ -268,7 +286,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
               className="flex-1 border border-coral-500 text-coral-600 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 hover:bg-coral-50"
             >
               <Building2 className="h-4 w-4" />
-              <span>Ver Empresa</span>
+              <span>Ver Franquia</span>
             </Link>
           </div>
         </div>
@@ -278,7 +296,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
       <div className="pt-6 border-t border-gray-200">
         <dl className="grid grid-cols-1 gap-3 text-sm">
           <div className="flex justify-between">
-            <dt className="text-gray-600">Empresa:</dt>
+            <dt className="text-gray-600">Franquia:</dt>
             <dd className="text-gray-900 font-medium">{product.companyOwnerName}</dd>
           </div>
           <div className="flex justify-between">

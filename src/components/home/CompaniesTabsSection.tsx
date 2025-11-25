@@ -20,7 +20,7 @@ export function CompaniesTabsSection({ companies, title = "Aqui pertinho" }: Com
         <div className="section-header">
           <div className="header-content">
             <h2 className="section-title">{title}</h2>
-            <p className="section-subtitle">Descubra empresas incríveis na sua região</p>
+            <p className="section-subtitle">Descubra franquias digitais incríveis na sua região</p>
           </div>
           
           {/* Ver todos button */}
@@ -82,7 +82,7 @@ export function CompaniesTabsSection({ companies, title = "Aqui pertinho" }: Com
         }
 
         .view-all-btn {
-          background: #ff5a5f;
+          background: var(--primary);
           color: white;
           border: none;
           padding: 12px 20px;
@@ -97,7 +97,7 @@ export function CompaniesTabsSection({ companies, title = "Aqui pertinho" }: Com
         }
 
         .view-all-btn:hover {
-          background: #e54b50;
+          background: var(--primary-hover);
           transform: translateY(-1px);
         }
 

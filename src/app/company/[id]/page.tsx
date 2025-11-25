@@ -30,8 +30,8 @@ interface CompanyDetails {
   email?: string
   phone?: string
   address?: string
-  cidade: string
-  uf: string
+  city: string
+  state: string
   category?: string
   website?: string
   status: string
@@ -75,13 +75,10 @@ export default function CompanyDetailsPage() {
           createdAt: companySnap.data().createdAt?.toDate() || new Date()
         } as CompanyDetails
 
-        console.log('🏢 Dados da empresa carregados:', {
-          id: companyData.id,
-          name: companyData.name,
-          cover: companyData.cover,
-          logo: companyData.logo
-        })
-
+        console.log('🏢 Dados da empresa carregados:', companyData)
+        console.log('🏢 Cidade:', companyData.city, 'UF:', companyData.state)
+        console.log('🏢 Dados completos:', JSON.stringify(companyData, null, 2))
+        
         setCompany(companyData)
 
         // Track company view
@@ -240,8 +237,8 @@ export default function CompanyDetailsPage() {
                   {company.name}
                 </h1>
                 <div className="flex items-center justify-center text-white/90 text-lg">
-                  <MapPin className="h-5 w-5 mr-2" />
-                  <span>{company.cidade}, {company.uf}</span>
+                                    <MapPin className="h-5 w-5 mr-2" />
+                  <span>{company.city}, {company.state}</span>
                 </div>
               </div>
             </div>
@@ -267,8 +264,8 @@ export default function CompanyDetailsPage() {
                   logo: company.logo,
                   phone: company.phone || '',
                   whatsapp: company.phone || '',
-                  city: company.cidade,
-                  state: company.uf,
+                  city: company.city,
+                  state: company.state,
                   categoryId: company.category || '',
                   status: company.status === 'ATIVO',
                   createdAt: company.createdAt,
@@ -325,7 +322,7 @@ export default function CompanyDetailsPage() {
                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-gray-600 mb-6">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      <span>{company.cidade}, {company.uf}</span>
+                      <span>{company.city}, {company.state}</span>
                     </div>
                     
                     {company.phone && (
@@ -360,7 +357,7 @@ export default function CompanyDetailsPage() {
                 <div className="mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-coral-500" />
-                    Sobre a Empresa
+                    Sobre a franquia digital
                   </h3>
                   <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-coral-500">
                     {company.about && company.about.trim() !== '' ? (
@@ -374,7 +371,7 @@ export default function CompanyDetailsPage() {
                           Descrição não disponível
                         </p>
                         <p className="text-gray-400 text-sm mt-1">
-                          Esta empresa ainda não adicionou uma descrição sobre seus serviços.
+                          Esta franquia ainda não adicionou uma descrição sobre seus serviços.
                         </p>
                       </div>
                     )}
@@ -408,7 +405,7 @@ export default function CompanyDetailsPage() {
                     <div className="flex items-start gap-3">
                       <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
                       <div>
-                        <div className="font-medium text-gray-900">{company.cidade}, {company.uf}</div>
+                        <div className="font-medium text-gray-900">{company.city}, {company.state}</div>
                         {company.address && (
                           <div className="text-sm text-gray-600 mt-1">{company.address}</div>
                         )}
@@ -501,7 +498,7 @@ export default function CompanyDetailsPage() {
                       <div className="text-center text-gray-500">
                         <MapPin className="h-8 w-8 mx-auto mb-2" />
                         <p className="text-sm">Localização não disponível</p>
-                        <p className="text-xs mt-1">{company.cidade}, {company.uf}</p>
+                        <p className="text-xs mt-1">{company.city}, {company.state}</p>
                       </div>
                     </div>
                   )}
@@ -515,7 +512,7 @@ export default function CompanyDetailsPage() {
         <div className="container mx-auto px-4 py-12">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Produtos da Empresa
+              Produtos da franquia
             </h2>
             <p className="text-gray-600">
               Explore todos os produtos disponíveis de {company.name}
@@ -529,7 +526,7 @@ export default function CompanyDetailsPage() {
                 Nenhum produto encontrado
               </h3>
               <p className="text-gray-600">
-                Esta empresa ainda não possui produtos cadastrados.
+                Esta franquia ainda não possui produtos cadastrados.
               </p>
             </div>
           ) : (

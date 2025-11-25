@@ -6,9 +6,11 @@ import { HeroSection } from '@/components/home/HeroSection'
 import { CategoriesGrid } from '@/components/home/CategoriesGrid'
 import { CompaniesTabsSection } from '@/components/home/CompaniesTabsSection'
 import { FeaturedProductsSection } from '@/components/home/FeaturedProductsSection'
+import { useLocationContext } from '@/contexts/LocationContext'
+
 import { 
   getCategories, 
-  getFeaturedCompanies, 
+  getCompanies, 
   getFeaturedProducts 
 } from '@/lib/firebase-service'
 import { populateFirebase } from '@/scripts/populate-firebase'
@@ -20,6 +22,9 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   
+  // Hook para obter localização do usuário (contexto global)
+  const { location, isLoading: locationLoading } = useLocationContext()
+  
   // REMOVIDO: trackPageView manual - o AnalyticsService já faz automaticamente
 
   useEffect(() => {
@@ -27,13 +32,23 @@ export default function Home() {
       try {
         setLoading(true)
         
+        // Preparar filtros baseados na localização do usuário
+        const filters = location ? {
+          city: location.city,
+          state: location.state
+        } : {}
+        
+        console.log('🏠 [HOME] Carregando dados com filtros:', filters)
+        
         // Load data in parallel
         const [categoriesData, companiesData, productsData] = await Promise.all([
           getCategories(),
-          getFeaturedCompanies(6),
+          getCompanies(filters, 6), // Usar getCompanies com filtros de localização
           getFeaturedProducts(6)
         ])
 
+        console.log('🏠 [HOME] Empresas encontradas:', companiesData.length)
+        
         setCategories(categoriesData)
         setCompanies(companiesData)
         setProducts(productsData)
@@ -44,8 +59,11 @@ export default function Home() {
       }
     }
 
-    loadData()
-  }, [])
+    // Só carregar dados quando a localização estiver disponível (ou após timeout)
+    if (!locationLoading) {
+      loadData()
+    }
+  }, [location, locationLoading])
 
   if (loading) {
     return (
@@ -65,7 +83,7 @@ export default function Home() {
             width: 40px;
             height: 40px;
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #ff5a5f;
+            border-top: 4px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto;
@@ -98,7 +116,10 @@ export default function Home() {
     
       {/* Companies Directory Section */}
       {companies.length > 0 && (
-        <CompaniesTabsSection companies={companies} />
+        <CompaniesTabsSection 
+          companies={companies} 
+          title={location ? `Franquias digitais em ${location.city}, ${location.state}` : "Aqui pertinho"}
+        />
       )}
 
       {/* Featured Products Section */}
@@ -144,7 +165,7 @@ export default function Home() {
         .step-number {
           width: 80px;
           height: 80px;
-          background: linear-gradient(135deg, #ff5a5f 0%, #ff7b7e 100%);
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
           color: white;
           border-radius: 50%;
           display: flex;
@@ -153,7 +174,7 @@ export default function Home() {
           font-size: 24px;
           font-weight: 700;
           margin: 0 auto;
-          box-shadow: 0 8px 24px rgba(255, 90, 95, 0.3);
+          box-shadow: 0 8px 24px rgba(var(--primary-rgb), 0.3);
         }
 
         .step-title {

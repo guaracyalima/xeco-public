@@ -126,9 +126,8 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
             title={isFavored(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
           >
             <Heart
-              className="w-6 h-6"
+              className={`w-6 h-6 ${isFavored(product.id) ? 'text-coral-700' : 'text-white'}`}
               fill={isFavored(product.id) ? "currentColor" : "none"}
-              color={isFavored(product.id) ? "#dc2626" : "white"}
             />
           </button>
         </div>
@@ -201,7 +200,7 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
         .product-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-          border-color: #ff5a5f;
+          border-color: var(--primary);
         }
 
         .product-image {
@@ -214,7 +213,7 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
           position: absolute;
           top: 12px;
           left: 12px;
-          background: #ff5a5f;
+          background: var(--primary);
           color: white;
           padding: 4px 8px;
           border-radius: 4px;
@@ -267,7 +266,7 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
         }
 
         .quick-view-btn:hover {
-          background: #ff5a5f;
+          background: var(--primary);
           color: white;
         }
 
@@ -312,7 +311,7 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
         .product-price {
           font-size: 18px;
           font-weight: 700;
-          color: #ff5a5f;
+          color: var(--primary);
           margin-bottom: 8px;
         }
 
@@ -343,7 +342,7 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
 
         .add-to-cart-btn {
           width: 100%;
-          background: #ff5a5f;
+          background: var(--primary);
           color: white;
           border: none;
           padding: 12px;
@@ -359,9 +358,9 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
         }
 
         .add-to-cart-btn:hover:not(:disabled) {
-          background: #e84e53;
+          background: var(--primary-hover);
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 90, 95, 0.3);
+          box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
         }
 
         .add-to-cart-btn:disabled {
