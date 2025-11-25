@@ -91,7 +91,7 @@ export function FavoriteCompanyButton({
             ? 'Aguarde...' 
             : isAlreadyFavored 
               ? 'Favoritado' 
-              : 'Favoritar empresa'
+              : 'Favoritar franquia'
           }
         </span>
       )}

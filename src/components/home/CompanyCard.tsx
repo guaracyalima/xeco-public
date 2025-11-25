@@ -31,9 +31,9 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
   }
 
   return (
-    <div onClick={handleClick} className="company-card group cursor-pointer">
+    <div onClick={handleClick} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100 hover:border-coral-500 overflow-hidden group cursor-pointer">
       {/* Company Logo/Image */}
-      <div className="company-image">
+      <div className="h-48 relative overflow-hidden">
         {company.logo ? (
           <img 
             src={company.logo} 
@@ -53,23 +53,23 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
         
         {/* Badge */}
         {showBadge && (
-          <div className="company-badge">
+          <div className="absolute top-3 left-3 bg-coral-500 text-white px-2 py-1 rounded text-xs font-semibold uppercase">
             {showBadge}
           </div>
         )}
 
         {/* Action buttons */}
-        <div className="company-actions">
+        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
           <button 
             onClick={handlePhoneClick}
-            className="action-btn"
+            className="w-9 h-9 bg-white/90 hover:bg-white text-gray-600 hover:text-coral-500 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all"
             title="Ligar"
           >
             <Phone className="w-4 h-4" />
           </button>
           <button 
             onClick={handleWhatsAppClick}
-            className="action-btn"
+            className="w-9 h-9 bg-white/90 hover:bg-white text-gray-600 hover:text-green-500 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all"
             title="WhatsApp"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -80,179 +80,35 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
       </div>
 
       {/* Company Info */}
-      <div className="company-content">
-        <h3 className="company-title">{company.name}</h3>
+      <div className="p-4">
+        <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2">{company.name}</h3>
         
-        <div className="company-meta">
-          <div className="company-rating">
-            <div className="rating-value">4.5</div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-semibold text-gray-900">4.5</span>
             <Star className="w-4 h-4 fill-current text-yellow-400" />
-            <span className="rating-count">12 avaliações</span>
+            <span className="text-xs text-gray-500">12 avaliações</span>
           </div>
         </div>
 
-        <div className="company-location">
-          <MapPin className="w-4 h-4 text-gray-400" />
-          <span>{company.city}, {company.state}</span>
+        <div className="flex items-center gap-1 mb-3 text-gray-600">
+          <MapPin className="w-4 h-4" />
+          <span className="text-sm">{company.city}, {company.state}</span>
         </div>
 
         {company.about && (
-          <p className="company-description">
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">
             {company.about.substring(0, 100)}
             {company.about.length > 100 ? '...' : ''}
           </p>
         )}
 
-        <div className="company-status">
-          <span className="status-indicator status-open">Aberto agora!</span>
+        <div className="flex items-center">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            Aberto agora!
+          </span>
         </div>
       </div>
-
-      <style jsx>{`
-        .company-card {
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: all 0.3s ease;
-          border: 1px solid #f0f0f0;
-        }
-
-        .company-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-          border-color: #ff5a5f;
-        }
-
-        .company-image {
-          height: 200px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .company-badge {
-          position: absolute;
-          top: 12px;
-          left: 12px;
-          background: #ff5a5f;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-
-        .company-actions {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          display: flex;
-          gap: 8px;
-          opacity: 0;
-          transform: translateY(-10px);
-          transition: all 0.3s ease;
-        }
-
-        .group:hover .company-actions {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .action-btn {
-          width: 36px;
-          height: 36px;
-          background: rgba(255, 255, 255, 0.9);
-          color: #666;
-          border: none;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          backdrop-filter: blur(4px);
-        }
-
-        .action-btn:hover {
-          background: white;
-          color: #ff5a5f;
-          transform: scale(1.1);
-        }
-
-        .company-content {
-          padding: 16px;
-        }
-
-        .company-title {
-          font-size: 18px;
-          font-weight: 600;
-          margin-bottom: 8px;
-          color: #333;
-          line-height: 1.3;
-        }
-
-        .company-meta {
-          margin-bottom: 8px;
-        }
-
-        .company-rating {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          margin-bottom: 8px;
-        }
-
-        .rating-value {
-          background: #ffba00;
-          color: white;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .rating-count {
-          font-size: 12px;
-          color: #666;
-        }
-
-        .company-location {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 14px;
-          color: #666;
-          margin-bottom: 8px;
-        }
-
-        .company-description {
-          font-size: 14px;
-          color: #666;
-          line-height: 1.4;
-          margin-bottom: 12px;
-        }
-
-        .company-status {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .status-indicator {
-          font-size: 12px;
-          font-weight: 500;
-          padding: 2px 0;
-        }
-
-        .status-open {
-          color: #67981a;
-        }
-
-        .status-closed {
-          color: #ff0000;
-        }
-      `}</style>
     </div>
   )
 }

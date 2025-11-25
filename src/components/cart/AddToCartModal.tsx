@@ -109,9 +109,9 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
               onClick={handleGoToCart}
               className="w-full bg-black bg-coral-500 py-4 rounded-xl font-semibold hover:bg-coral-600 transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-coral-500/30"
             >
-              <ShoppingBag className="h-5 w-5" style={{ color: '#ffffff' }} />
-              <span style={{ color: '#ffffff', fontWeight: '600' }}>Finalizar Compra</span>
-              <ArrowRight className="h-5 w-5" style={{ color: '#ffffff' }} />
+              <ShoppingBag className="h-5 w-5 text-white" />
+              <span className="text-white font-semibold">Finalizar Compra</span>
+              <ArrowRight className="h-5 w-5 text-white" />
             </button>
 
             {/* Secondary Action - Continue Shopping */}
@@ -119,7 +119,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
               onClick={handleContinueShopping}
               className="w-full bg-white border-2 border-gray-300 py-4 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 transform hover:scale-105 active:scale-95"
             >
-              <span style={{ color: '#1f2937', fontWeight: '600' }}>Continuar Comprando</span>
+              <span className="text-gray-800 font-semibold">Continuar Comprando</span>
             </button>
           </div>
 

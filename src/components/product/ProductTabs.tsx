@@ -12,7 +12,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
 
   const tabs = [
     { id: 'description', label: 'Descrição' },
-    { id: 'company', label: 'Sobre a Empresa' },
+    { id: 'company', label: 'Sobre a Franquia' },
     { id: 'shipping', label: 'Entrega' }
   ]
 
@@ -30,7 +30,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   <h4 className="font-semibold text-blue-900 mb-2">Informações do Produto</h4>
                   <ul className="text-sm text-blue-800 space-y-1">
                     <li>• Produto verificado pela plataforma Xeco</li>
-                    <li>• Vendido diretamente pela empresa {product.companyOwnerName}</li>
+                    <li>• Vendido diretamente pela franquia {product.companyOwnerName}</li>
                     <li>• Localizado em {product.cidade}, {product.uf}</li>
                   </ul>
                 </div>
@@ -38,7 +38,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <p>Nenhuma descrição detalhada disponível para este produto.</p>
-                <p className="mt-2 text-sm">Entre em contato com a empresa para mais informações.</p>
+                <p className="mt-2 text-sm">Entre em contato com a franquia para mais informações.</p>
               </div>
             )}
           </div>
@@ -59,18 +59,18 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Categoria:</span>
-                    <p className="text-gray-600">Empresa verificada</p>
+                    <p className="text-gray-600">Franquia verificada</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="border-t pt-6">
-              <h4 className="font-semibold text-gray-900 mb-3">Por que escolher esta empresa?</h4>
+              <h4 className="font-semibold text-gray-900 mb-3">Por que escolher esta franquia?</h4>
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
-                  Empresa verificada na plataforma Xeco
+                  Franquia verificada na plataforma Xeco
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
@@ -98,7 +98,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
               </h3>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <p className="text-amber-800 text-sm">
-                  <strong>Importante:</strong> As condições de entrega devem ser negociadas diretamente com a empresa.
+                  <strong>Importante:</strong> As condições de entrega devem ser negociadas diretamente com a franquia.
                 </p>
               </div>
             </div>
@@ -128,7 +128,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   <li>Clique em &quot;Entrar em contato&quot; acima</li>
                   <li>Negocie preço, quantidade e forma de entrega</li>
                   <li>Combine prazo e condições de pagamento</li>
-                  <li>Finalize a compra diretamente com a empresa</li>
+                  <li>Finalize a compra diretamente com a franquia</li>
                 </ol>
               </div>
             </div>

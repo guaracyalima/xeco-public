@@ -68,7 +68,7 @@ export function CategoriesGrid({ categories }: CategoriesGridProps) {
         .category-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-          border-color: #ff5a5f;
+          border-color: var(--primary);
         }
 
         .category-icon-wrapper {

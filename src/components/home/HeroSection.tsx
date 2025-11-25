@@ -166,11 +166,11 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
       <div className="container mx-auto px-4 text-center">
         <div className="max-w-4xl mx-auto">
           <h1 className="hero-title">
-            <span className="block">Descubra</span>
-            <span className="block text-white/90">sua cidade incrível</span>
+            <span className="block">Conecte-se com</span>
+            <span className="block text-white/90">franquias digitais locais</span>
           </h1>
           <p className="hero-subtitle">
-            Encontre ótimos lugares para ficar, comer, comprar ou visitar com especialistas locais.
+            Descubra produtos incríveis e serviços de qualidade das melhores franquias da sua região.
           </p>
 
           {/* Search Bar */}
@@ -190,7 +190,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
                   className="pl-12 border-none focus:ring-0 rounded-none sm:rounded-l-lg h-14 text-gray-900 placeholder-gray-400 bg-white"
                 />
                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                  <span className="text-xs text-gray-500 font-medium">O QUE</span>
+                  
                 </div>
               </div>
 
@@ -225,11 +225,6 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
               </Button>
             </div>
           </div>
-
-          {/* Browse highlights text */}
-          <p className="text-white/80 mt-6 mb-8">
-            Ou navegue pelos destaques
-          </p>
         </div>
       </div>
 
@@ -336,7 +331,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
 
       <style jsx>{`
         .hero {
-          background: linear-gradient(135deg, #ff5a5f 0%, #ff7b7e 100%);
+          background: linear-gradient(135deg, var(--primary) 0%, #ff7b7e 100%);
           color: white;
           padding: 120px 0 80px;
           position: relative;
@@ -364,7 +359,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
         }
 
         .btn-search {
-          background-color: #ff5a5f;
+          background-color: var(--primary);
           color: white;
           border: none;
           font-weight: 600;
@@ -376,7 +371,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
         }
 
         .btn-search:hover {
-          background-color: #e54b50;
+          background-color: var(--primary-hover);
         }
 
         @media (max-width: 768px) {

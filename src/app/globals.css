@@ -1,37 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  /* TheDir Design System Colors */
-  --primary: #ff5a5f;
-  --secondary: #666666;
-  --dark: #000000;
-  --white: #ffffff;
+  /* 🎯 XECO DESIGN SYSTEM - FONTE ÚNICA DA VERDADE */
+  /* Brand Colors */
+  --primary: #FF6D1F;
+  --primary-hover: #e54b50;
+  --primary-light: #ff7b7e;
+  --primary-rgb: 255, 90, 95;
   
-  /* System colors */
+  /* System Colors */
+  --secondary: #666666;
   --success: #67981a;
   --info: #3f93f3;
   --warning: #ffba00;
   --danger: #ff0000;
+  
+  /* Neutrals */
+  --dark: #000000;
+  --white: #ffffff;
   --light: #f0f0f0;
-  
-  /* Gray scale */
   --gray: #999999;
-  --gray-01: #e8edef;
-  --gray-02: #f5f5f5;
-  --gray-03: #eeeeee;
-  --gray-04: #eef1f2;
-  --gray-05: #ecf0f1;
-  --gray-06: #f0f2f3;
-  --darker-light: #cccccc;
-  --lighter-dark: #262626;
-  
-  /* Complementary colors */
-  --blue: #01b3ed;
-  --cyan: #0583c5;
-  --teal: #67981a;
-  --orange: #ffba00;
-  --green: #74b100;
-  --dark-red: #cc0000;
+  --gray-light: #f3f4f6;
+  --gray-medium: #6b7280;
+  --gray-dark: #374151;
   
   /* Typography */
   --font-family-sans-serif: "Inter", "Work Sans", sans-serif;
@@ -62,12 +53,12 @@ body {
   line-height: 1.6;
 }
 
-/* Utility classes for design system */
+/* 🎨 XECO UI COMPONENTS - Use essas classes! */
 .btn-primary {
   background-color: var(--primary);
-  color: white;
+  color: var(--white);
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 12px 24px;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -75,7 +66,7 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: #e54b50;
+  background-color: var(--primary-hover);
   transform: translateY(-1px);
 }
 
@@ -83,7 +74,7 @@ body {
   background-color: transparent;
   color: var(--primary);
   border: 2px solid var(--primary);
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 10px 22px;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -92,7 +83,21 @@ body {
 
 .btn-secondary:hover {
   background-color: var(--primary);
-  color: white;
+  color: var(--white);
+}
+
+/* Cards */
+.card-primary {
+  background: var(--white);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.card-primary:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--primary);
 }
 
 .card {

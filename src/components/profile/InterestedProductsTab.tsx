@@ -150,9 +150,8 @@ export function InterestedProductsTab() {
                   title="Remover dos favoritos"
                 >
                   <Heart
-                    className="w-6 h-6"
+                    className="w-6 h-6 text-coral-700"
                     fill="currentColor"
-                    color="#dc2626"
                   />
                 </button>
               </div>
@@ -221,7 +220,7 @@ export function InterestedProductsTab() {
               .product-card:hover {
                 transform: translateY(-4px);
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-                border-color: #ff5a5f;
+                border-color: var(--primary);
               }
 
               .product-image {
@@ -262,7 +261,7 @@ export function InterestedProductsTab() {
               }
 
               .quick-view-btn:hover {
-                background: #ff5a5f;
+                background: var(--primary);
                 color: white;
               }
 
@@ -304,7 +303,7 @@ export function InterestedProductsTab() {
               .product-price {
                 font-size: 18px;
                 font-weight: 700;
-                color: #ff5a5f;
+                color: var(--primary);
                 margin-bottom: 8px;
               }
 
