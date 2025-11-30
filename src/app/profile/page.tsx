@@ -72,7 +72,7 @@ function ProfileContent() {
       
       // Preservar a aba atual na URL de retorno
       const currentTab = searchParams.get('tab') || 'pedidos'
-      const returnUrl = encodeURIComponent(`/perfil?tab=${currentTab}`)
+      const returnUrl = encodeURIComponent(`/profile?tab=${currentTab}`)
       
       console.log('🔗 [ProfilePage] returnUrl:', returnUrl)
       router.push(`/login?returnUrl=${returnUrl}`)

@@ -60,24 +60,30 @@ export function Header({ children, className }: HeaderProps) {
               >
                 Início
               </Link>
-              <a
-                href="/sobre"
+              <Link
+                href="/franchises"
                 className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium"
               >
-                Sobre
-              </a>
-              <a
-                href="/contato"
+                Franquias
+              </Link>
+              <Link
+                href="/products"
                 className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium"
               >
-                Contato
+                Ofertas
+              </Link>
+              <a
+                href="#"
+                className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium"
+              >
+                Faça Parte
               </a>
             </nav>
 
             {/* Favorites and Cart Icons */}
             <div className="flex items-center space-x-2">
               {/* Profile Icon - sempre visível */}
-              <Link href="/perfil">
+              <Link href="/profile">
                 <div 
                   onClick={handleProfileClick}
                   className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
@@ -88,7 +94,7 @@ export function Header({ children, className }: HeaderProps) {
 
               {/* Favorites Icon */}
               {user && (
-                <Link href="/favoritos">
+                <Link href="/favorites">
                   <div 
                     onClick={handleFavoritesClick}
                     className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
@@ -99,7 +105,7 @@ export function Header({ children, className }: HeaderProps) {
               )}
 
               {/* Cart Icon */}
-              <Link href="/carrinho">
+              <Link href="/cart">
                 <div 
                   onClick={handleCartClick}
                   className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
@@ -118,7 +124,7 @@ export function Header({ children, className }: HeaderProps) {
           {/* Mobile menu button and icons */}
           <div className="md:hidden flex items-center space-x-2">
             {/* Mobile Profile Icon - sempre visível */}
-            <Link href="/perfil">
+            <Link href="/profile">
               <div 
                 onClick={handleProfileClick}
                 className="p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
@@ -129,7 +135,7 @@ export function Header({ children, className }: HeaderProps) {
 
             {/* Mobile Favorites Icon */}
             {user && (
-              <Link href="/favoritos">
+              <Link href="/favorites">
                 <div 
                   onClick={handleFavoritesClick}
                   className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
@@ -140,7 +146,7 @@ export function Header({ children, className }: HeaderProps) {
             )}
 
             {/* Mobile Cart Icon */}
-            <Link href="/carrinho">
+            <Link href="/cart">
               <div 
                 onClick={handleCartClick}
                 className="relative p-2 text-gray-600 hover:text-coral-500 transition-colors cursor-pointer"
@@ -179,29 +185,35 @@ export function Header({ children, className }: HeaderProps) {
               >
                 Início
               </Link>
-              <a
-                href="/sobre"
+              <Link
+                href="/franchises"
                 className="text-gray-500 hover:text-gray-700 block px-3 py-2 text-base font-medium"
               >
-                Sobre
-              </a>
-              <a
-                href="/contato"
+                Franquias
+              </Link>
+              <Link
+                href="/products"
                 className="text-gray-500 hover:text-gray-700 block px-3 py-2 text-base font-medium"
               >
-                Contato
+                Ofertas
+              </Link>
+              <a
+                href="#"
+                className="text-gray-500 hover:text-gray-700 block px-3 py-2 text-base font-medium"
+              >
+                Faça Parte
               </a>
               
               {/* Mobile Profile Link */}
               {user && (
-                <Link href="/perfil">
+                <Link href="/profile">
                   <div className="text-gray-700 hover:text-coral-500 block px-3 py-2 text-base font-medium transition-colors">
                     Meu Perfil
                   </div>
                 </Link>
               )}
 
-              <Link href="/carrinho">
+              <Link href="/cart">
                 <div className="flex items-center justify-between text-gray-700 hover:text-coral-500 block px-3 py-2 text-base font-medium transition-colors">
                   <span>Carrinho</span>
                   {cartItemsCount > 0 && (
@@ -214,7 +226,7 @@ export function Header({ children, className }: HeaderProps) {
               
               {/* Mobile Favorites Link */}
               {user && (
-                <Link href="/favoritos">
+                <Link href="/favorites">
                   <div className="text-gray-700 hover:text-coral-500 block px-3 py-2 text-base font-medium transition-colors">
                     Favoritos
                   </div>

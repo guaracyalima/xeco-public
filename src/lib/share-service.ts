@@ -178,7 +178,7 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
     // 🔲 QR Code no canto inferior direito
     try {
       const url = shareData.type === 'product' 
-        ? `${window.location.origin}/produto/${shareData.data.id}`
+        ? `${window.location.origin}/product/${shareData.data.id}`
         : `${window.location.origin}/company/${shareData.data.id}`
       
       // Gerar QR Code como data URL
@@ -358,7 +358,7 @@ export async function shareProduct(
     )
     
     // URL do produto
-    const productUrl = `${window.location.origin}/produto/${product.id}`
+    const productUrl = `${window.location.origin}/product/${product.id}`
     
     // Montar texto do compartilhamento (estilo Shopee - fluido e natural)
     const priceValue = typeof product.salePrice === 'number' 

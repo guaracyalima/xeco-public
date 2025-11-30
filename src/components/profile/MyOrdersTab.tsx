@@ -189,8 +189,8 @@ export function MyOrdersTab() {
 
   const handleViewOrder = (orderId: string) => {
     console.log('🔗 [handleViewOrder] Navegando para pedido:', orderId)
-    console.log('🔗 [handleViewOrder] URL:', `/pedido/${orderId}`)
-    router.push(`/pedido/${orderId}`)
+    console.log('🔗 [handleViewOrder] URL:', `/order/${orderId}`)
+    router.push(`/order/${orderId}`)
   }
 
   if (loading) {

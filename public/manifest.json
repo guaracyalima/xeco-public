@@ -104,7 +104,7 @@
       "name": "Carrinho",
       "short_name": "Carrinho",
       "description": "Ver seu carrinho",
-      "url": "/carrinho",
+      "url": "/cart",
       "icons": [
         {
           "src": "/icons/cart-icon.png",

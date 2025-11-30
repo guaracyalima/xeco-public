@@ -3,7 +3,8 @@
 import { Company } from '@/types'
 import { CompanyCard } from './CompanyCard'
 import { ArrowRight } from 'lucide-react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useNavigationAnalytics } from '@/hooks/useAnalytics'
 
 interface CompaniesTabsSectionProps {
   companies: Company[]
@@ -11,6 +12,13 @@ interface CompaniesTabsSectionProps {
 }
 
 export function CompaniesTabsSection({ companies, title = "Aqui pertinho" }: CompaniesTabsSectionProps) {
+  const router = useRouter()
+  const { trackButtonClick } = useNavigationAnalytics()
+
+  const handleViewAll = () => {
+    trackButtonClick('view_all_companies', `companies_section_${title}`)
+    router.push('/franchises')
+  }
   // Show only first 6 companies
   const displayCompanies = companies.slice(0, 6)
 
@@ -24,10 +32,10 @@ export function CompaniesTabsSection({ companies, title = "Aqui pertinho" }: Com
           </div>
           
           {/* Ver todos button */}
-          <Link href="/companies" className="view-all-btn">
+          <button onClick={handleViewAll} className="view-all-btn">
             <span>Ver todos</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+            <ArrowRight className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Companies Grid */}

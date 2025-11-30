@@ -34,7 +34,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Product Image */}
         <div className="flex-shrink-0">
-          <Link href={`/produto/${product.id}`}>
+          <Link href={`/product/${product.id}`}>
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden cursor-pointer group">
               <Image
                 src={product.imagesUrl[0] || '/default-fail-image.jpg'}
@@ -55,7 +55,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             {/* Product Details */}
             <div className="flex-1">
-              <Link href={`/produto/${product.id}`}>
+              <Link href={`/product/${product.id}`}>
                 <h3 className="font-semibold text-gray-900 hover:text-coral-500 transition-colors cursor-pointer">
                   {product.name}
                 </h3>

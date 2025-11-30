@@ -218,7 +218,7 @@ export default function OrderStatusPage({ params }: { params: { orderId: string 
           {/* Ações */}
           <div className="flex gap-4">
             <button
-              onClick={() => router.push('/perfil?tab=pedidos')}
+              onClick={() => router.push('/profile?tab=pedidos')}
               className="flex-1 bg-coral-500 text-white py-3 rounded-lg hover:bg-coral-600 transition-colors font-semibold"
             >
               Ver Todos os Pedidos

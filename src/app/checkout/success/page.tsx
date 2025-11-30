@@ -15,7 +15,7 @@ function CheckoutSuccessContent() {
   const { clearCart } = useCart()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [countdown, setCountdown] = useState(10)
+  const [countdown, setCountdown] = useState(50)
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -23,7 +23,7 @@ function CheckoutSuccessContent() {
     const fetchOrderDetails = async () => {
       try {
         // Buscar orderId do searchParams ou localStorage
-        const orderIdFromUrl = searchParams.get('orderId')
+        const orderIdFromUrl = searchParams.get('order')
         const orderIdFromStorage = localStorage.getItem('pendingOrderId')
         const orderId = orderIdFromUrl || orderIdFromStorage
         
@@ -40,9 +40,20 @@ function CheckoutSuccessContent() {
         
         if (orderData) {
           console.log('✅ Pedido encontrado:', orderData)
+          console.log('🔍 Validando status do pagamento:', orderData.paymentStatus)
+          
+          // 🚨 VALIDAÇÃO INTELIGENTE - Só permite sucesso se pagamento confirmado
+          if (orderData.paymentStatus !== 'CONFIRMED') {
+            console.log('❌ Pagamento não confirmado, redirecionando para status do pedido...')
+            // Redireciona para página de status do pedido onde pode acompanhar
+            router.push(`/order/${orderData.id}/status`)
+            return
+          }
+          
+          console.log('✅ Pagamento confirmado! Mostrando página de sucesso')
           setOrder(orderData)
           
-          // Limpar carrinho
+          // Limpar carrinho apenas se pagamento confirmado
           console.log('🧹 Limpando carrinho...')
           clearCart()
           
@@ -54,7 +65,7 @@ function CheckoutSuccessContent() {
             setCountdown((prev) => {
               if (prev <= 1) {
                 clearInterval(interval)
-                router.push(`/perfil?tab=pedidos`)
+                router.push(`/profile?tab=pedidos`)
                 return 0
               }
               return prev - 1
@@ -67,12 +78,12 @@ function CheckoutSuccessContent() {
           console.log('⚠️ Pedido não encontrado')
           setLoading(false)
           // Mesmo sem encontrar, redireciona após 3s
-          setTimeout(() => router.push('/perfil?tab=pedidos'), 3000)
+          setTimeout(() => router.push('/profile?tab=pedidos'), 3000)
         }
       } catch (error) {
         console.error('❌ Erro ao buscar detalhes do pedido:', error)
         setLoading(false)
-        setTimeout(() => router.push('/perfil?tab=pedidos'), 3000)
+        setTimeout(() => router.push('/profile?tab=pedidos'), 3000)
       }
     }
 
@@ -189,10 +200,10 @@ function CheckoutSuccessContent() {
 
             {/* Botão Manual */}
             <button
-              onClick={() => router.push('/perfil?tab=pedidos')}
-              className="w-full bg-coral-500 text-white py-3 rounded-lg hover:bg-coral-600 transition-all duration-200 font-semibold transform hover:scale-105"
+              onClick={() => router.push('/profile?tab=pedidos')}
+              className="view-all-btn w-full bg-coral-500 py-3 rounded-lg hover:bg-coral-600 transition-all duration-200 font-semibold transform hover:scale-105"
             >
-              Ver Meus Pedidos Agora
+              Ver meus pedidos agora
             </button>
           </div>
         </div>

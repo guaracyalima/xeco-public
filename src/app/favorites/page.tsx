@@ -58,7 +58,7 @@ export default function FavoritesPage() {
               Faça login para ver suas empresas favoritas
             </p>
             <Link
-              href="/login?returnUrl=/favoritos"
+              href="/login?returnUrl=/favorites"
               className="inline-block bg-coral-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-coral-600 transition-colors"
             >
               Fazer Login
