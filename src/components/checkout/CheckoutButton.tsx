@@ -47,7 +47,7 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
       if (!firebaseUser) {
         setIsLoading(false)
         // Redirecionar para login com returnUrl apontando para o carrinho
-        const returnUrl = encodeURIComponent('/carrinho')
+        const returnUrl = encodeURIComponent('/cart')
         router.push(`/login?returnUrl=${returnUrl}`)
         return
       }
@@ -269,7 +269,7 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
           console.log('✅ Pagamento concluído!')
           setIsPaymentModalOpen(false)
           // Redirecionar para página de sucesso ou pedidos
-          router.push('/perfil?tab=pedidos')
+          router.push('/profile?tab=pedidos')
         }}
       />
     </>

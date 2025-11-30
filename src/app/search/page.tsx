@@ -51,17 +51,17 @@ function SearchPageContent() {
   }
 
   const loadProducts = useCallback(async (isLoadMore: boolean = false) => {
-    if (!userLocation.city || !userLocation.state || !searchQuery.trim()) return
+    if (!searchQuery.trim()) return
 
     try {
       console.log('🔍 [SEARCH-PRODUCTS] Buscando produtos...', { searchQuery, userLocation, isLoadMore })
 
+      // Buscar todos os produtos ativos com estoque, sem filtro de localização no Firestore
       const constraints: QueryConstraint[] = [
         where('active', '==', 'SIM'),
         where('stockQuantity', '>', 0),
-        where('uf', '==', userLocation.state),
         orderBy('created_at', 'desc'),
-        limit(ITEMS_PER_PAGE)
+        limit(ITEMS_PER_PAGE * 3) // Buscar mais para compensar o filtro client-side
       ]
 
       if (isLoadMore && lastProductDoc) {
@@ -106,20 +106,30 @@ function SearchPageContent() {
         companyOwnerName: companyNames[p.companyOwner] || p.companyOwner
       }))
 
-      // Filtrar por cidade e busca (client-side com normalização)
+      // Filtrar por busca e localização (client-side com normalização)
       const normalizedSearch = normalizeText(searchQuery)
       newProducts = newProducts.filter(p => {
-        // Filtro de cidade
-        const cityMatch = normalizeText(p.cidade).includes(normalizeText(userLocation.city))
-        if (!cityMatch) return false
-
-        // Busca em múltiplos campos
+        // Primeiro verifica se o termo de busca está presente
         const nameMatch = normalizeText(p.name).includes(normalizedSearch)
         const descMatch = p.description ? normalizeText(p.description).includes(normalizedSearch) : false
         const companyMatch = normalizeText(p.companyOwnerName || '').includes(normalizedSearch)
+        const searchMatch = nameMatch || descMatch || companyMatch
 
-        return nameMatch || descMatch || companyMatch
+        // Se tem localização, filtra por ela também
+        if (userLocation.city && userLocation.state) {
+          const cityMatch = normalizeText(p.cidade || '').includes(normalizeText(userLocation.city))
+          const stateMatch = normalizeText(p.uf || '').includes(normalizeText(userLocation.state))
+          return searchMatch && (cityMatch || stateMatch)
+        }
+
+        // Se não tem localização, retorna apenas pela busca
+        return searchMatch
       })
+
+      // Limitar aos primeiros ITEMS_PER_PAGE após filtragem
+      if (!isLoadMore) {
+        newProducts = newProducts.slice(0, ITEMS_PER_PAGE)
+      }
 
       console.log(`✅ [SEARCH-PRODUCTS] ${newProducts.length} produtos encontrados`)
 
@@ -135,19 +145,19 @@ function SearchPageContent() {
     } catch (error) {
       console.error('❌ [SEARCH-PRODUCTS] Erro:', error)
     }
-  }, [searchQuery, userLocation, lastProductDoc, trackSearchResults])
+  }, [searchQuery, userLocation, trackSearchResults])
 
   const loadCompanies = useCallback(async (isLoadMore: boolean = false) => {
-    if (!userLocation.city || !userLocation.state || !searchQuery.trim()) return
+    if (!searchQuery.trim()) return
 
     try {
       console.log('🔍 [SEARCH-COMPANIES] Buscando empresas...', { searchQuery, userLocation, isLoadMore })
 
+      // Buscar todas as empresas ativas, sem filtro de localização no Firestore
       const constraints: QueryConstraint[] = [
         where('status', '==', true),
-        where('state', '==', userLocation.state),
         orderBy('created_at', 'desc'),
-        limit(ITEMS_PER_PAGE)
+        limit(ITEMS_PER_PAGE * 3) // Buscar mais para compensar o filtro client-side
       ]
 
       if (isLoadMore && lastCompanyDoc) {
@@ -192,20 +202,30 @@ function SearchPageContent() {
         categoryName: categoryNames[c.categoryId] || c.categoryId
       }))
 
-      // Filtrar por cidade e busca (client-side com normalização)
+      // Filtrar por busca e localização (client-side com normalização)
       const normalizedSearch = normalizeText(searchQuery)
       newCompanies = newCompanies.filter(c => {
-        // Filtro de cidade
-        const cityMatch = normalizeText(c.city).includes(normalizeText(userLocation.city))
-        if (!cityMatch) return false
-
-        // Busca em múltiplos campos
+        // Primeiro verifica se o termo de busca está presente
         const nameMatch = normalizeText(c.name).includes(normalizedSearch)
         const aboutMatch = c.about ? normalizeText(c.about).includes(normalizedSearch) : false
         const categoryMatch = c.categoryName ? normalizeText(c.categoryName).includes(normalizedSearch) : false
+        const searchMatch = nameMatch || aboutMatch || categoryMatch
 
-        return nameMatch || aboutMatch || categoryMatch
+        // Se tem localização, filtra por ela também
+        if (userLocation.city && userLocation.state) {
+          const cityMatch = normalizeText(c.city || '').includes(normalizeText(userLocation.city))
+          const stateMatch = normalizeText(c.state || '').includes(normalizeText(userLocation.state))
+          return searchMatch && (cityMatch || stateMatch)
+        }
+
+        // Se não tem localização, retorna apenas pela busca
+        return searchMatch
       })
+
+      // Limitar aos primeiros ITEMS_PER_PAGE após filtragem
+      if (!isLoadMore) {
+        newCompanies = newCompanies.slice(0, ITEMS_PER_PAGE)
+      }
 
       console.log(`✅ [SEARCH-COMPANIES] ${newCompanies.length} empresas encontradas`)
 
@@ -221,12 +241,12 @@ function SearchPageContent() {
     } catch (error) {
       console.error('❌ [SEARCH-COMPANIES] Erro:', error)
     }
-  }, [searchQuery, userLocation, lastCompanyDoc, trackSearchResults])
+  }, [searchQuery, userLocation, trackSearchResults])
 
   // Carregar resultados
   useEffect(() => {
     const loadResults = async () => {
-      if (!searchQuery.trim() || !userLocation.city || !userLocation.state) {
+      if (!searchQuery.trim()) {
         setLoading(false)
         return
       }
@@ -257,7 +277,7 @@ function SearchPageContent() {
     }
 
     loadResults()
-  }, [searchQuery, userLocation, searchType, trackSearch, loadProducts, loadCompanies])
+  }, [searchQuery, searchType, trackSearch])
 
   // Scroll infinito
   useEffect(() => {
@@ -289,7 +309,7 @@ function SearchPageContent() {
 
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [loading, loadingMore, searchType, hasMoreProducts, hasMoreCompanies])
+  }, [loading, loadingMore, searchType, hasMoreProducts, hasMoreCompanies, loadProducts, loadCompanies])
 
   const totalResults = products.length + companies.length
 

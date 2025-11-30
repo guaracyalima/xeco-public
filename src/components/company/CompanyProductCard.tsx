@@ -21,7 +21,7 @@ export function CompanyProductCard({ product, showBadge }: CompanyProductCardPro
   const [showSuccessToast, setShowSuccessToast] = useState(false)
 
   const handleViewDetails = () => {
-    router.push(`/produto/${product.id}`)
+    router.push(`/product/${product.id}`)
   }
 
   const handleAddToCart = async (e: React.MouseEvent) => {

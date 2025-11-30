@@ -31,7 +31,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
 
   const handleGoToCart = () => {
     onClose()
-    router.push('/carrinho')
+    router.push('/cart')
   }
 
   const handleContinueShopping = () => {

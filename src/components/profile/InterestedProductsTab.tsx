@@ -19,7 +19,7 @@ export function InterestedProductsTab() {
   const [companyCache, setCompanyCache] = useState<Record<string, CompanyData>>({})
 
   const handleProductClick = (productId: string) => {
-    router.push(`/produto/${productId}`)
+    router.push(`/product/${productId}`)
   }
 
   const handleFavoriteClick = async (e: React.MouseEvent, productId: string) => {

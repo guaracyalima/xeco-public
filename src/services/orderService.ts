@@ -64,7 +64,7 @@ export class OrderService {
         customerName: userName,
         customerPhone: userPhone,
         companyId: companyId,
-        companyReference: `/companies/${companyId}`,
+        companyReference: `/franchises/${companyId}`,
         companyOwnerId: companyOwnerId,
         items: orderItems,
         totalAmount: totalAmount,

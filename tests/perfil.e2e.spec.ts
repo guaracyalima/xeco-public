@@ -1,5 +1,5 @@
 /**
- * @file tests/perfil.e2e.spec.ts
+ * @file tests/profile.e2e.spec.ts
  * @description Testes E2E para a página de perfil do usuário
  * @tools Playwright
  */
@@ -11,7 +11,7 @@ const BASE_URL = 'http://localhost:3000'
 test.describe('Página de Perfil do Usuário', () => {
   test('Deve redirecionar usuário não autenticado para login', async ({ page }) => {
     // Acessar perfil sem estar logado
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     
     // Aguardar redirecionamento
     await page.waitForURL(/.*login.*/, { timeout: 5000 })
@@ -38,7 +38,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.waitForURL(`${BASE_URL}/`, { timeout: 5000 })
     
     // Navegar para perfil
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     
     // Aguardar carregamento
     await page.waitForLoadState('networkidle')
@@ -62,7 +62,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.waitForURL(`${BASE_URL}/`)
     
     // Ir para perfil
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Verificar avatar (deve conter letra ou imagem)
@@ -78,7 +78,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Verificar badges
@@ -97,7 +97,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Verificar aba inicial (Empresas que Sigo)
@@ -128,7 +128,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Verificar link do botão
@@ -149,7 +149,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Verificar endereço
@@ -166,14 +166,14 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.waitForURL(`${BASE_URL}/`)
     
     // Verificar header
-    const perfilIcon = page.locator('a[href="/perfil"]').first()
+    const perfilIcon = page.locator('a[href="/profile"]').first()
     await expect(perfilIcon).toBeVisible()
     
     // Clicar no ícone de perfil
     await perfilIcon.click()
     
     // Deve navegar para perfil
-    await expect(page).toHaveURL(`${BASE_URL}/perfil`)
+    await expect(page).toHaveURL(`${BASE_URL}/profile`)
   })
 
   test('Página deve ser responsiva em mobile', async ({ page }) => {
@@ -187,7 +187,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Verificar que todos os elementos estão visíveis
@@ -217,7 +217,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Verificar layout desktop
@@ -252,7 +252,7 @@ test.describe('Página de Perfil do Usuário', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     
     // Não deve ter erros de TypeScript ou JS críticos
@@ -278,7 +278,7 @@ test.describe('Performance da Página de Perfil', () => {
     
     // Navegar para perfil
     const perfil_start = Date.now()
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('networkidle')
     const perfil_end = Date.now()
     
@@ -295,7 +295,7 @@ test.describe('Performance da Página de Perfil', () => {
     await page.click('button:has-text("Entrar")')
     await page.waitForURL(`${BASE_URL}/`)
     
-    await page.goto(`${BASE_URL}/perfil`)
+    await page.goto(`${BASE_URL}/profile`)
     
     // Verificar que elementos não se movem após carregamento
     const avatar = page.locator('div.rounded-full.bg-gradient-to-br').first()

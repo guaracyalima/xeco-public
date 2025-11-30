@@ -148,7 +148,7 @@ export default function OrderDetailPage() {
               {error || 'Pedido não encontrado'}
             </h2>
             <button
-              onClick={() => router.push('/perfil?tab=pedidos')}
+              onClick={() => router.push('/profile?tab=pedidos')}
               className="mt-4 px-4 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600"
             >
               Voltar para Meus Pedidos
@@ -166,7 +166,7 @@ export default function OrderDetailPage() {
           {/* Header */}
           <div className="mb-6">
             <button
-              onClick={() => router.push('/perfil?tab=pedidos')}
+              onClick={() => router.push('/profile?tab=pedidos')}
               className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
             >
               <ArrowLeft className="w-5 h-5" />

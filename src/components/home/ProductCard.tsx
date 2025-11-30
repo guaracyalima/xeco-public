@@ -29,7 +29,7 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
       location: 'product_card',
       source: 'featured_products'
     })
-    router.push(`/produto/${product.id}`)
+    router.push(`/product/${product.id}`)
   }
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {

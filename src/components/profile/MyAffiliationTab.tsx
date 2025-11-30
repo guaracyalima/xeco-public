@@ -379,7 +379,7 @@ export function MyAffiliationTab() {
                           <li>Telefone</li>
                         </ul>
                         <button
-                          onClick={() => window.location.href = '/perfil'}
+                          onClick={() => window.location.href = '/profile'}
                           className="mt-3 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
                         >
                           Completar Perfil Agora

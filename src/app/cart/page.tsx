@@ -48,7 +48,7 @@ export default function CartPage() {
           // Aguarda 2 segundos para mostrar mensagem e redireciona
           setTimeout(() => {
             clearCart()
-            router.push('/perfil?tab=pedidos')
+            router.push('/profile?tab=pedidos')
           }, 2000)
         } else {
           console.log('⏳ [CARRINHO] Pagamento ainda pendente - Status:', order.status, '| Payment:', order.paymentStatus)
