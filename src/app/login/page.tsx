@@ -7,8 +7,7 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/Button'
-import { Header } from '@/components/layout/Header'
-import { Footer } from '@/components/layout/Footer'
+import { Layout } from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { EventName } from '@/types/analytics'
 
@@ -252,10 +251,8 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      
-      <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <Layout className="bg-gray-50">
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
             <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
@@ -367,22 +364,22 @@ function LoginForm() {
             </div>
           </form>
         </div>
-      </main>
-      
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   )
 }
 
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coral-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
+      <Layout className="bg-gray-50">
+        <div className="flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coral-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Carregando...</p>
+          </div>
         </div>
-      </div>
+      </Layout>
     }>
       <LoginForm />
     </Suspense>
