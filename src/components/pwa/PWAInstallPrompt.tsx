@@ -155,7 +155,7 @@ export function PWAInstallPrompt() {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
         <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md p-6">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-coral-100 rounded-xl flex items-center justify-center">
                 <Smartphone className="w-6 h-6 text-coral-600" />
@@ -169,9 +169,10 @@ export function PWAInstallPrompt() {
             </div>
             <button
               onClick={() => setShowIOSInstructions(false)}
-              className="text-red-500 hover:text-red-600 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"
+              aria-label="Fechar"
             >
-              <X className="w-6 h-6" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -205,16 +206,55 @@ export function PWAInstallPrompt() {
               </div>
             </div>
 
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-amber-800 text-center">
+                💡 <strong>Dica:</strong> Se já estiver no Safari, você pode pular para o passo 1
+              </p>
+            </div>
+            
             <p className="text-xs text-gray-500 text-center">
               O ícone do Xeco aparecerá na sua tela inicial
             </p>
           </div>
 
           <button
-            onClick={() => setShowIOSInstructions(false)}
-            className="w-full mt-4 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            onClick={() => {
+              // Copiar URL atual para clipboard
+              navigator.clipboard.writeText(window.location.href)
+              
+              // Fechar o assistente
+              setShowIOSInstructions(false)
+              setShowPrompt(false)
+              
+              // Toast bonito usando react-toastify
+              if (typeof window !== 'undefined' && (window as any).toast) {
+                (window as any).toast.success('✅ Link copiado! Cole no Safari para instalar', {
+                  position: "top-center",
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                })
+              } else {
+                // Fallback para toast simples se react-toastify não estiver disponível
+                const toast = document.createElement('div')
+                toast.innerHTML = '✅ Link copiado! Cole no Safari para instalar'
+                toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] font-medium text-sm'
+                document.body.appendChild(toast)
+                
+                setTimeout(() => {
+                  toast.style.opacity = '0'
+                  toast.style.transition = 'opacity 0.3s'
+                  setTimeout(() => {
+                    document.body.removeChild(toast)
+                  }, 300)
+                }, 2500)
+              }
+            }}
+            className="w-full mt-4 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
           >
-            Entendi
+            📋 Copiar Link
           </button>
         </div>
       </div>
@@ -225,67 +265,71 @@ export function PWAInstallPrompt() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-md">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-        {/* Header com gradiente */}
-        <div className="bg-gradient-to-r from-coral-500 to-coral-600 p-4 text-white">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
+        {/* Header */}
+        <div className="bg-white p-4 border-b border-gray-200 relative">
+          <button
+            onClick={handleDismiss}
+            className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+            aria-label="Fechar"
+          >
+            <X className="w-4 h-4 text-gray-600" />
+          </button>
+          
+          <div className="flex items-center gap-3 pr-10">
+            <div className="w-12 h-12 bg-coral-100 rounded-xl flex items-center justify-center shadow-lg">
               <Download className="w-6 h-6 text-coral-600" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-lg">Instalar Xeco</h3>
-              <p className="text-sm text-coral-50">Acesso rápido na tela inicial</p>
+              <h3 className="font-bold text-lg text-gray-900">Instalar Xeco</h3>
+              <p className="text-sm text-gray-600">Acesso rápido na tela inicial</p>
             </div>
-            <button
-              onClick={handleDismiss}
-              className="text-red-200 hover:text-red-100 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
         {/* Conteúdo */}
         <div className="p-4">
-          <ul className="space-y-2 mb-4 text-sm text-gray-600">
-            <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-coral-500 rounded-full"></span>
-              Acesso instantâneo sem abrir o navegador
+          <ul className="space-y-3 mb-6 text-sm text-gray-600">
+            <li className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-coral-500 rounded-full flex-shrink-0"></div>
+              <span>Acesso instantâneo sem abrir o navegador</span>
             </li>
-            <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-coral-500 rounded-full"></span>
-              Funciona mesmo sem internet
+            <li className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-coral-500 rounded-full flex-shrink-0"></div>
+              <span>Funciona mesmo sem internet</span>
             </li>
-            <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-coral-500 rounded-full"></span>
-              Notificações de ofertas e novidades
+            <li className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-coral-500 rounded-full flex-shrink-0"></div>
+              <span>Notificações de ofertas e novidades</span>
             </li>
-            <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-coral-500 rounded-full"></span>
-              Experiência otimizada para mobile
+            <li className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-coral-500 rounded-full flex-shrink-0"></div>
+              <span>Experiência otimizada para mobile</span>
             </li>
           </ul>
 
           {/* Botões */}
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {isIOS ? (
               <button
                 onClick={handleInstallClick}
-                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
               >
+                <Smartphone className="w-4 h-4" />
                 Ver instruções
               </button>
             ) : (
               <button
                 onClick={handleInstallClick}
                 disabled={!deferredPrompt}
-                className="flex-1 px-4 py-3 bg-coral-600 text-white rounded-lg font-medium hover:bg-coral-700 transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-3 bg-coral-600 text-white rounded-lg font-semibold hover:bg-coral-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-2"
               >
+                <Download className="w-4 h-4" />
                 Instalar agora
               </button>
             )}
             <button
               onClick={handleDismiss}
-              className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
               Agora não
             </button>

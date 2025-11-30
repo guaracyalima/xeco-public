@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Header } from '@/components/layout/Header'
-import { Footer } from '@/components/layout/Footer'
+import { Layout } from '@/components/layout/Layout'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useAuth } from '@/context/AuthContext'
 import { Heart, Building2, ArrowLeft } from 'lucide-react'
@@ -31,24 +30,21 @@ export default function FavoritesPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
+      <Layout>
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500 mx-auto mb-4"></div>
             <p className="text-gray-600">Carregando...</p>
           </div>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </Layout>
     )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Header />
-        <main className="flex-1 container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="max-w-md mx-auto text-center">
             <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -64,17 +60,14 @@ export default function FavoritesPage() {
               Fazer Login
             </Link>
           </div>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </Layout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <Layout className="bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -169,9 +162,7 @@ export default function FavoritesPage() {
             ))}
           </div>
         )}
-      </main>
-      
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   )
 }
