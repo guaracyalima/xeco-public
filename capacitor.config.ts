@@ -5,14 +5,15 @@ const config: CapacitorConfig = {
   appName: 'Xuxum',
   webDir: 'out',
   
-  // Server configuration - points to deployed app
+  // Server configuration - points to local dev server
   server: {
-    // In production, point to your deployed URL
-    url: 'https://xuxum.com.br',
-    // Clear cache on updates
+    // For development, use your local IP (found via: ipconfig getifaddr en0)
+    url: 'http://192.168.100.132:3001',
     cleartext: true,
     // Allow navigation to external URLs (for Firebase, etc)
     allowNavigation: [
+      'localhost',
+      '192.168.100.132',
       'xuxum.com.br',
       '*.xuxum.com.br', 
       '*.firebaseapp.com', 
