@@ -338,7 +338,7 @@ export default function CompaniesPage() {
         {/* Header */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Todas as franquias digitais</h1>
+            <h1 data-testid="page-title" className="text-3xl font-bold text-gray-900 mb-2">Todas as franquias digitais</h1>
             <p className="text-gray-600">Explore franquias digitais e estabelecimentos na sua região</p>
           </div>
         </div>

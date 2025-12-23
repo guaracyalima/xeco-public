@@ -45,3 +45,8 @@ next-env.d.ts
 .vscode/
 .vscode/*
 *.md
+
+test-results
+test-results/
+test-results/*
+playwright-report/

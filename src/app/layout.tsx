@@ -21,15 +21,15 @@ const workSans = Work_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Xeco - Sistema Público",
-  description: "Área pública do sistema Xeco - Gestão e organização",
+  title: "Xuxum - Sistema Público",
+  description: "Área pública do sistema Xuxum - Gestão e organização",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Xeco",
+    title: "Xuxum",
   },
-  applicationName: "Xeco",
+  applicationName: "Xuxum",
   formatDetection: {
     telephone: false,
   },

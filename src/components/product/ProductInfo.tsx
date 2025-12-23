@@ -104,7 +104,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
       try {
         await navigator.share({
           title: product.name,
-          text: product.description || 'Confira este produto no Xeco!',
+          text: product.description || 'Confira este produto no Xuxum!',
           url: window.location.href,
         })
         // Track successful native share

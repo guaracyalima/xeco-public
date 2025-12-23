@@ -5,7 +5,7 @@
 
 import crypto from 'crypto'
 
-const HMAC_SECRET = process.env.CHECKOUT_SIGNATURE_SECRET || 'xeco-secret-key-change-in-production'
+const HMAC_SECRET = process.env.CHECKOUT_SIGNATURE_SECRET || 'xuxum-secret-key-change-in-production'
 
 console.log('🔐🔐🔐 CHECKOUT-SIGNATURE.TS CARREGADO!')
 console.log('🔐 HMAC_SECRET:', HMAC_SECRET)

@@ -1,8 +1,8 @@
-// Service Worker para PWA Xeco
+// Service Worker para PWA Xuxum
 // Versão 1.0.0
 
-const CACHE_NAME = 'xeco-pwa-v1';
-const RUNTIME_CACHE = 'xeco-runtime-v1';
+const CACHE_NAME = 'xuxum-pwa-v1';
+const RUNTIME_CACHE = 'xuxum-runtime-v1';
 
 // Recursos para cache na instalação
 const PRECACHE_URLS = [
@@ -144,16 +144,16 @@ self.addEventListener('push', (event) => {
     const data = event.data.json();
     
     const options = {
-      body: data.body || 'Nova notificação do Xeco',
+      body: data.body || 'Nova notificação do Xuxum',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-96x96.png',
       vibrate: [200, 100, 200],
-      tag: data.tag || 'xeco-notification',
+      tag: data.tag || 'xuxum-notification',
       data: data.data || {},
     };
     
     event.waitUntil(
-      self.registration.showNotification(data.title || 'Xeco', options)
+      self.registration.showNotification(data.title || 'Xuxum', options)
     );
   }
 });

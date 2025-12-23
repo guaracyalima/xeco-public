@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 // ⚠️ IMPORTANTE: Deve ser EXATAMENTE igual ao .env do Next.js
-const HMAC_SECRET = "xeco-hmac-secret-production-2025-change-me-in-prod";
+const HMAC_SECRET = "xuxum-hmac-secret-production-2025-change-me-in-prod";
 
 // Pega os dados do body
 const body = $input.item.json.body;

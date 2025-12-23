@@ -322,7 +322,10 @@ function SearchPageContent() {
             <div className="flex items-center gap-3 mb-4">
               <Search className="h-8 w-8 text-coral-500" />
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 
+                  data-testid="page-title" 
+                  className="text-2xl font-bold text-gray-900"
+                >
                   Resultados para: <span className="text-coral-500">"{searchQuery}"</span>
                 </h1>
                 <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">

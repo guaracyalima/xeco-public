@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   env: {
     CHECKOUT_SIGNATURE_SECRET: process.env.CHECKOUT_SIGNATURE_SECRET,
   },
+  async redirects() {
+    return [
+      {
+        source: '/affiliate/invite/:token',
+        destination: '/affiliate/accept?token=:token',
+        permanent: true,
+      },
+    ]
+  },
   images: {
     remotePatterns: [
       {

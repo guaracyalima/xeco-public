@@ -32,7 +32,7 @@ export function AnalyticsProvider({
     if (typeof window === 'undefined') return
 
     // Verifica se já tem consentimento salvo
-    const savedConsent = localStorage.getItem('xeco_analytics_consent')
+    const savedConsent = localStorage.getItem('xuxum_analytics_consent')
     
     // Considera como aceito apenas se for explicitamente 'true'
     // 'pending' ou qualquer outro valor é tratado como não aceito

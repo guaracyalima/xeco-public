@@ -18,7 +18,7 @@ import { collection, doc, setDoc, updateDoc } from 'firebase/firestore'
 import { imageUrlToBase64 } from '@/lib/base64-converter'
 
 const N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 
-                        'https://primary-production-9acc.up.railway.app/webhook/xeco-create-checkout'
+                        'https://primary-production-9acc.up.railway.app/webhook/xuxum-create-checkout'
 
 export async function POST(request: NextRequest) {
   try {
@@ -387,9 +387,9 @@ export async function POST(request: NextRequest) {
       externalReference,
       totalAmount: finalTotal,
       callback: {
-        successUrl: 'https://xeco.com.br/checkout/success',
-        cancelUrl: 'https://xeco.com.br/checkout/cancel',
-        expiredUrl: 'https://xeco.com.br/checkout/expired'
+        successUrl: 'https://xuxum.com.br/checkout/success',
+        cancelUrl: 'https://xuxum.com.br/checkout/cancel',
+        expiredUrl: 'https://xuxum.com.br/checkout/expired'
       },
       items: itemsWithBase64,
       customerData: body.customerData,

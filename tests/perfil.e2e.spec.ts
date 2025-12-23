@@ -6,7 +6,7 @@
 
 import { test, expect } from '@playwright/test'
 
-const BASE_URL = 'http://localhost:3000'
+const BASE_URL = 'http://localhost:3001'
 
 test.describe('Página de Perfil do Usuário', () => {
   test('Deve redirecionar usuário não autenticado para login', async ({ page }) => {

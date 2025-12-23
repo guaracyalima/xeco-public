@@ -31,7 +31,7 @@ export class PaymentService {
       // - Limpar carrinho do localStorage
       if (confirmation.status === 'PAID') {
         // Apenas limpar carrinho quando pagamento for confirmado
-        localStorage.removeItem('xeco-cart')
+        localStorage.removeItem('xuxum-cart')
         console.log('✅ Carrinho limpo após confirmação de pagamento')
       }
 

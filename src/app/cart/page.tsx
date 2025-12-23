@@ -111,7 +111,7 @@ export default function CartPage() {
                   <ArrowLeft className="h-5 w-5 mr-2" />
                   Voltar
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">Carrinho de Compras</h1>
+                <h1 data-testid="page-title" className="text-2xl font-bold text-gray-900">Carrinho de Compras</h1>
               </div>
             </div>
           </div>
@@ -153,7 +153,7 @@ export default function CartPage() {
                 <ArrowLeft className="h-5 w-5 mr-2" />
                 Voltar
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">Carrinho de Compras</h1>
+              <h1 data-testid="page-title" className="text-2xl font-bold text-gray-900">Carrinho de Compras</h1>
             </div>
           </div>
         </div>

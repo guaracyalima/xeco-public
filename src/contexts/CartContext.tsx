@@ -33,7 +33,7 @@ type CartAction =
   | { type: 'SET_ORDER_ID'; payload: { orderId: string } }
   | { type: 'CLEAR_ORDER_ID' }
 
-const CART_STORAGE_KEY = 'xeco-cart'
+const CART_STORAGE_KEY = 'xuxum-cart'
 
 const initialCart: Cart = {
   items: [],

@@ -36,7 +36,7 @@ interface LocationData {
 
 export class VisitorApiService {
   private static readonly API_PID = "Na4FUplhgJJGYRvwr2Uz";
-  private static readonly STORAGE_KEY = "xeco_user_location";
+  private static readonly STORAGE_KEY = "xuxum_user_location";
   private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas
 
   /**

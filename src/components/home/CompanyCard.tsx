@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { Company } from '@/types'
 import { MapPin, Phone, Star } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -112,3 +113,6 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
     </div>
   )
 }
+
+// Memoize component for better performance in lists
+export default memo(CompanyCard)

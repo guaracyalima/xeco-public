@@ -109,7 +109,7 @@ export class CompanyUrlService {
    * @returns URL completa formatada
    */
   static generateFullUrl(companyUrl: CompanyUrl): string {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'xeco.com.br'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'xuxum.com.br'
     return `${baseUrl}/${companyUrl.city}-${companyUrl.state}/${companyUrl.slug}`
   }
 

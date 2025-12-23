@@ -175,7 +175,7 @@ export default function CompanyCustomUrlPage() {
       try {
         await navigator.share({
           title: company.name,
-          text: `Conheça ${company.name} - ${company.about || 'Empresa parceira do XECO'}`,
+          text: `Conheça ${company.name} - ${company.about || 'Empresa parceira do XUXUM'}`,
           url: currentUrl
         })
         trackCompanyShare(company, 'native')

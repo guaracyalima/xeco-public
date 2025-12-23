@@ -75,7 +75,7 @@ export function UserProfileHeader({ profile, onLogout }: UserProfileHeaderProps)
             </button>
             
             <Link
-              href="https://franquia.xeco.com.br/create-company"
+              href="https://franquia.xuxum.com.br/create-company"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
