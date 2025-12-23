@@ -162,7 +162,7 @@ export function PWAInstallPrompt() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Instalar Xeco no iOS
+                  Instalar Xuxum no iOS
                 </h3>
                 <p className="text-sm text-gray-500">iPhone/iPad</p>
               </div>
@@ -213,7 +213,7 @@ export function PWAInstallPrompt() {
             </div>
             
             <p className="text-xs text-gray-500 text-center">
-              O ícone do Xeco aparecerá na sua tela inicial
+              O ícone do Xuxum aparecerá na sua tela inicial
             </p>
           </div>
 
@@ -280,7 +280,7 @@ export function PWAInstallPrompt() {
               <Download className="w-6 h-6 text-coral-600" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-lg text-gray-900">Instalar Xeco</h3>
+              <h3 className="font-bold text-lg text-gray-900">Instalar Xuxum</h3>
               <p className="text-sm text-gray-600">Acesso rápido na tela inicial</p>
             </div>
           </div>

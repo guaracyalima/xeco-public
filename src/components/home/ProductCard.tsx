@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { Product } from '@/types'
 import { MapPin, Package, Heart, ShoppingCart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -390,3 +390,6 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
     </div>
   )
 }
+
+// Memoize component for better performance in lists
+export default memo(ProductCard)

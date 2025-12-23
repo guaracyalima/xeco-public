@@ -15,7 +15,7 @@ export function Footer({ children, className }: FooterProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Company Info */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Xeco</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Xuxum</h3>
               <p className="text-gray-600 text-sm">
                 Sistema público para gestão e organização.
               </p>
@@ -47,14 +47,14 @@ export function Footer({ children, className }: FooterProps) {
             <div>
               <h4 className="text-md font-medium text-gray-900 mb-4">Contato</h4>
               <p className="text-gray-600 text-sm">
-                contato@xeco.com.br
+                contato@xuxum.com.br
               </p>
             </div>
           </div>
 
           <div className="mt-8 pt-8 border-t border-gray-200">
             <p className="text-center text-gray-500 text-sm">
-              © {new Date().getFullYear()} Xeco. Todos os direitos reservados.
+              © {new Date().getFullYear()} Xuxum. Todos os direitos reservados.
             </p>
           </div>
         </div>

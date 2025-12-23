@@ -1,3 +1,4 @@
+import { test, expect } from '@playwright/test';
 import crypto from 'crypto';
 
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/checkout';
@@ -53,9 +54,9 @@ async function sendCheckoutRequest(payload: Omit<CheckoutPayload, 'signature'>) 
   };
 }
 
-describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
+test.test.describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
   
-  describe('FASE 1: Validação de Campos', () => {
+  test.test.describe('FASE 1: Validação de Campos', () => {
     test('Rejeita missing orderId', async () => {
       const result = await sendCheckoutRequest({
         orderId: '',
@@ -155,7 +156,7 @@ describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
     });
   });
 
-  describe('FASE 2: Auditoria', () => {
+  test.describe('FASE 2: Auditoria', () => {
     test('Rejeita Order não encontrada', async () => {
       const result = await sendCheckoutRequest({
         orderId: 'order-not-exists-xyz-999',
@@ -270,7 +271,7 @@ describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
     });
   });
 
-  describe('FASE 3: Validação de Produtos', () => {
+  test.describe('FASE 3: Validação de Produtos', () => {
     test('Rejeita Produto não encontrado', async () => {
       const result = await sendCheckoutRequest({
         orderId: 'order-123',
@@ -420,7 +421,7 @@ describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
     });
   });
 
-  describe('FASE 4: Segurança (HMAC-SHA256)', () => {
+  test.describe('FASE 4: Segurança (HMAC-SHA256)', () => {
     test('Rejeita Assinatura inválida (fraude)', async () => {
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -510,7 +511,7 @@ describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
     });
   });
 
-  describe('FASE 5: Integração Asaas', () => {
+  test.describe('FASE 5: Integração Asaas', () => {
     test('Sucesso completo com dados válidos', async () => {
       const result = await sendCheckoutRequest({
         orderId: 'order-123',
@@ -561,7 +562,7 @@ describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
     });
   });
 
-  describe('FASE 6: Error Handling Centralizado', () => {
+  test.describe('FASE 6: Error Handling Centralizado', () => {
     test('Error handler retorna estrutura consistente', async () => {
       const result = await sendCheckoutRequest({
         orderId: 'order-not-exists',
@@ -699,7 +700,7 @@ describe('N8N Checkout Integration - Fase 1-6 Completa', () => {
     });
   });
 
-  describe('Fluxo Completo End-to-End', () => {
+  test.describe('Fluxo Completo End-to-End', () => {
     test('Todas as 6 fases executam em sucesso', async () => {
       const result = await sendCheckoutRequest({
         orderId: 'order-123',

@@ -119,7 +119,7 @@ export function CartSummary() {
       <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
         <div className="text-center">
           <div className="text-xs text-gray-500 space-y-1">
-            <p>🔒 Compra segura via Xeco</p>
+            <p>🔒 Compra segura via Xuxum</p>
             <p>✅ Empresa verificada</p>
             <p>📞 Suporte disponível</p>
           </div>

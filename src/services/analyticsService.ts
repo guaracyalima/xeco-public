@@ -460,16 +460,16 @@ export class AnalyticsService {
   }
 
   private getPageCount(): number {
-    const stored = sessionStorage.getItem('xeco_page_count')
+    const stored = sessionStorage.getItem('xuxum_page_count')
     const count = stored ? parseInt(stored) + 1 : 1
-    sessionStorage.setItem('xeco_page_count', count.toString())
+    sessionStorage.setItem('xuxum_page_count', count.toString())
     return count
   }
 
   private isNewSession(): boolean {
-    const stored = sessionStorage.getItem('xeco_session_id')
+    const stored = sessionStorage.getItem('xuxum_session_id')
     if (stored !== this.sessionId) {
-      sessionStorage.setItem('xeco_session_id', this.sessionId)
+      sessionStorage.setItem('xuxum_session_id', this.sessionId)
       return true
     }
     return false

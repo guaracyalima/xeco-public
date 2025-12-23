@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* 🎯 XECO DESIGN SYSTEM - FONTE ÚNICA DA VERDADE */
+  /* 🎯 XUXUM DESIGN SYSTEM - FONTE ÚNICA DA VERDADE */
   /* Brand Colors */
   --primary: #FF6D1F;
   --primary-hover: #e54b50;
@@ -53,7 +53,7 @@ body {
   line-height: 1.6;
 }
 
-/* 🎨 XECO UI COMPONENTS - Use essas classes! */
+/* 🎨 XUXUM UI COMPONENTS - Use essas classes! */
 .btn-primary {
   background-color: var(--primary);
   color: var(--white);

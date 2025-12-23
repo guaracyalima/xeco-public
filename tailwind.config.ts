@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Xeco Brand Colors - FONTE ÚNICA DA VERDADE 🎯
+        // Xuxum Brand Colors - FONTE ÚNICA DA VERDADE 🎯
         primary: 'var(--primary)',
         coral: {
           50: '#fef2f2',

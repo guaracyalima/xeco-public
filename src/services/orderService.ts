@@ -68,7 +68,7 @@ export class OrderService {
         companyOwnerId: companyOwnerId,
         items: orderItems,
         totalAmount: totalAmount,
-        description: `Sua compra no app Xeco em ${new Date().toLocaleDateString('pt-BR')}`,
+        description: `Sua compra no app Xuxum em ${new Date().toLocaleDateString('pt-BR')}`,
         status: 'CREATED',
         channel: 'WEB',
         type: 'PRODUCT',

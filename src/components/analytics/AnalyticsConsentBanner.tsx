@@ -19,7 +19,7 @@ export function AnalyticsConsentBanner() {
     if (typeof window === 'undefined') return
 
     // Verifica se já tem decisão sobre consentimento
-    const savedConsent = localStorage.getItem('xeco_analytics_consent')
+    const savedConsent = localStorage.getItem('xuxum_analytics_consent')
     
     // Só mostra o banner se:
     // 1. Não tiver nenhuma decisão salva (null)
@@ -29,7 +29,7 @@ export function AnalyticsConsentBanner() {
       setTimeout(() => setShowBanner(true), 2000)
     } else if (savedConsent === 'pending') {
       // Se está pendente, mostra de novo após 1 dia
-      const lastShown = localStorage.getItem('xeco_analytics_banner_last_shown')
+      const lastShown = localStorage.getItem('xuxum_analytics_banner_last_shown')
       const oneDayInMs = 24 * 60 * 60 * 1000
       
       if (!lastShown || Date.now() - parseInt(lastShown) > oneDayInMs) {
@@ -41,19 +41,19 @@ export function AnalyticsConsentBanner() {
   const handleAccept = () => {
     setConsent(true)
     setShowBanner(false)
-    localStorage.removeItem('xeco_analytics_banner_last_shown')
+    localStorage.removeItem('xuxum_analytics_banner_last_shown')
   }
 
   const handleReject = () => {
     setConsent(false)
     setShowBanner(false)
-    localStorage.removeItem('xeco_analytics_banner_last_shown')
+    localStorage.removeItem('xuxum_analytics_banner_last_shown')
   }
 
   const handleClose = () => {
     // Usuário fechou sem decidir - marca como pendente
-    localStorage.setItem('xeco_analytics_consent', 'pending')
-    localStorage.setItem('xeco_analytics_banner_last_shown', Date.now().toString())
+    localStorage.setItem('xuxum_analytics_consent', 'pending')
+    localStorage.setItem('xuxum_analytics_banner_last_shown', Date.now().toString())
     setShowBanner(false)
   }
 

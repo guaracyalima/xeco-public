@@ -45,3 +45,18 @@ next-env.d.ts
 .vscode/
 .vscode/*
 *.md
+
+test-results
+test-results/
+
+# Capacitor native platforms
+# Uncomment if you want to track native code in git
+# ios/
+# android/
+
+# Capacitor generated files
+ios/App/App/public/
+android/app/src/main/assets/public/
+capacitor.config.dev.ts
+test-results/*
+playwright-report/

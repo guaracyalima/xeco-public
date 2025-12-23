@@ -149,7 +149,7 @@ export default function CompanyDetailsPage() {
       try {
         await navigator.share({
           title: company.name,
-          text: `Confira a empresa ${company.name} no Xeco!`,
+          text: `Confira a empresa ${company.name} no Xuxum!`,
           url: window.location.href,
         })
         // Track successful native share
@@ -216,14 +216,14 @@ export default function CompanyDetailsPage() {
           {/* Cover Image */}
           <div className="relative h-80 md:h-96 bg-gradient-to-r from-coral-500 to-coral-600">
             <img
-              src={company.cover || 'https://firebasestorage.googleapis.com/v0/b/xeco-334f5.firebasestorage.app/o/blue-connections-linkedin-cover-717dweuzdc11zpwu.jpg?alt=media&token=21b31369-d550-42e4-b467-385b8b4a1828'}
+              src={company.cover || 'https://firebasestorage.googleapis.com/v0/b/xuxum-334f5.firebasestorage.app/o/blue-connections-linkedin-cover-717dweuzdc11zpwu.jpg?alt=media&token=21b31369-d550-42e4-b467-385b8b4a1828'}
               alt={`Cover de ${company.name}`}
               className="w-full h-full object-cover"
               onLoad={() => console.log('✅ Cover image loaded:', company.cover || 'default')}
               onError={(e) => {
                 console.error('❌ Error loading cover:', company.cover)
                 // Fallback para a imagem default
-                ;(e.target as HTMLImageElement).src = 'https://firebasestorage.googleapis.com/v0/b/xeco-334f5.firebasestorage.app/o/blue-connections-linkedin-cover-717dweuzdc11zpwu.jpg?alt=media&token=21b31369-d550-42e4-b467-385b8b4a1828'
+                ;(e.target as HTMLImageElement).src = 'https://firebasestorage.googleapis.com/v0/b/xuxum-334f5.firebasestorage.app/o/blue-connections-linkedin-cover-717dweuzdc11zpwu.jpg?alt=media&token=21b31369-d550-42e4-b467-385b8b4a1828'
               }}
             />
             

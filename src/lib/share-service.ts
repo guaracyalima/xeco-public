@@ -60,20 +60,20 @@ async function generateShareImage(shareData: ShareData): Promise<Blob> {
     ctx.font = 'bold 48px system-ui, -apple-system, sans-serif'
     
     // Marca d'água no topo esquerdo
-    ctx.fillText('Xeco', 30, 80)
+    ctx.fillText('Xuxum', 30, 80)
     
     // Marca d'água no meio direito
-    ctx.fillText('Xeco', 420, 320)
+    ctx.fillText('Xuxum', 420, 320)
     
     // Marca d'água no centro (levemente rotacionada)
     ctx.save()
     ctx.translate(280, 250)
     ctx.rotate(-20 * Math.PI / 180)
-    ctx.fillText('Xeco', 0, 0)
+    ctx.fillText('Xuxum', 0, 0)
     ctx.restore()
     
     // Marca d'água embaixo esquerdo
-    ctx.fillText('Xeco', 40, 520)
+    ctx.fillText('Xuxum', 40, 520)
     
     ctx.restore()
     
@@ -367,7 +367,7 @@ export async function shareProduct(
     
     const shareText = `Confira ${product.name} por R$${priceValue.toFixed(2).replace('.', ',')}. ${
       companyName ? `Vendido por ${companyName}. ` : ''
-    }Encontre na Xeco agora! ${productUrl}`
+    }Encontre na Xuxum agora! ${productUrl}`
     
     // Verificar se Web Share API está disponível E suporta arquivos
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
@@ -408,7 +408,7 @@ export async function shareProduct(
     const url = URL.createObjectURL(imageBlob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `xeco-${product.name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
+    a.download = `xuxum-${product.name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -465,7 +465,7 @@ export async function shareCompany(company: Company): Promise<boolean> {
     
     // Montar texto do compartilhamento (estilo Shopee - fluido e natural)
     const locationText = company.city && company.state ? ` em ${company.city}, ${company.state}` : ''
-    const shareText = `Confira ${company.name}${locationText}. Encontre na Xeco agora! ${companyUrl}`
+    const shareText = `Confira ${company.name}${locationText}. Encontre na Xuxum agora! ${companyUrl}`
     
     // Verificar se Web Share API está disponível E suporta arquivos
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
@@ -506,7 +506,7 @@ export async function shareCompany(company: Company): Promise<boolean> {
     const url = URL.createObjectURL(imageBlob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `xeco-${company.name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
+    a.download = `xuxum-${company.name.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

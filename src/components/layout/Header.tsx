@@ -45,9 +45,13 @@ export function Header({ children, className }: HeaderProps) {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/">
-              <h1 className="text-xl font-bold text-gray-900 cursor-pointer hover:text-coral-500 transition-colors">
-                Xeco
-              </h1>
+              <span 
+                role="banner" 
+                data-testid="site-logo"
+                className="text-xl font-bold text-gray-900 cursor-pointer hover:text-coral-500 transition-colors"
+              >
+                Xuxum
+              </span>
             </Link>
           </div>
 
@@ -73,7 +77,9 @@ export function Header({ children, className }: HeaderProps) {
                 Ofertas
               </Link>
               <a
-                href="#"
+                href="https://franquia.xuxum.com.br/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium"
               >
                 Faça Parte
@@ -198,7 +204,9 @@ export function Header({ children, className }: HeaderProps) {
                 Ofertas
               </Link>
               <a
-                href="#"
+                href="https://franquia.xuxum.com.br/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-500 hover:text-gray-700 block px-3 py-2 text-base font-medium"
               >
                 Faça Parte

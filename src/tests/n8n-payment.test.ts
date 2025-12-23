@@ -56,7 +56,7 @@ const mockPaymentData = {
   orderId: 'test-order-id', // ← ADICIONADO: ID da ordem
   userId: 'test-user-id',
   companyWalletId: 'test-wallet-id',
-  userEmail: 'teste@xeco.com.br',
+  userEmail: 'teste@xuxum.com.br',
   userName: 'Usuário Teste',
   userPhone: '11999999999'
 }
