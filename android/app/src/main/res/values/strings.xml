@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Xuxum</string>
+    <string name="title_activity_main">Xuxum</string>
+    <string name="package_name">com.xuxum.app</string>
+    <string name="custom_url_scheme">com.xuxum.app</string>
+</resources>

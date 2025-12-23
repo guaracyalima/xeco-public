@@ -1,18 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  env: {
-    CHECKOUT_SIGNATURE_SECRET: process.env.CHECKOUT_SIGNATURE_SECRET,
-  },
-  async redirects() {
-    return [
-      {
-        source: '/affiliate/invite/:token',
-        destination: '/affiliate/accept?token=:token',
-        permanent: true,
-      },
-    ]
-  },
+  // For Capacitor, we'll use the live server approach instead of static export
+  // This allows dynamic routes to work properly
+  
   images: {
     remotePatterns: [
       {
@@ -29,16 +20,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  
+  env: {
+    CHECKOUT_SIGNATURE_SECRET: process.env.CHECKOUT_SIGNATURE_SECRET,
+  },
+  
+  async redirects() {
+    return [
+      {
+        source: '/affiliate/invite/:token',
+        destination: '/affiliate/accept?token=:token',
+        permanent: true,
+      },
+    ]
+  },
+  
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
 };
