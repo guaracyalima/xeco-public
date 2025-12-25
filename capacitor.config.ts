@@ -5,20 +5,26 @@ const config: CapacitorConfig = {
   appName: 'Xuxum',
   webDir: 'out',
   
-  // Server configuration - points to local dev server
+  // Server configuration - points to Railway staging
   server: {
-    // For development, use your local IP (found via: ipconfig getifaddr en0)
-    url: 'http://192.168.100.132:3001',
-    cleartext: true,
+    url: 'https://xuxum-public-production.up.railway.app',
+    cleartext: false,
     // Allow navigation to external URLs (for Firebase, etc)
     allowNavigation: [
-      'localhost',
-      '192.168.100.132',
+      'xuxum-public-production.up.railway.app',
+      '*.railway.app',
       'xuxum.com.br',
       '*.xuxum.com.br', 
       '*.firebaseapp.com', 
       '*.googleapis.com',
-      '*.railway.app',
+      // Asaas payment domains
+      '*.asaas.com',
+      'asaas.com',
+      'sandbox.asaas.com',
+      'www.asaas.com',
+      // Additional payment domains (caso o Asaas use)
+      '*.pagamentos.asaas.com',
+      'checkout.asaas.com',
     ],
   },
   

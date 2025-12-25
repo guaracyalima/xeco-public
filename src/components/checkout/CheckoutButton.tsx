@@ -8,10 +8,12 @@ import { CheckoutModal } from '@/components/checkout/CheckoutModal'
 import CheckoutIframeModal from '@/components/checkout/CheckoutIframeModal'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/context/AuthContext'
+import { useCapacitorPlatform } from '@/hooks/useCapacitorPlatform'
 import { CheckoutUserData } from '@/types/order'
 import { useNavigationAnalytics } from '@/hooks/useAnalytics'
 import { UserService } from '@/services/userService'
 import { CartDiscount } from '@/types'
+import { Browser } from '@capacitor/browser'
 
 interface CheckoutButtonProps {
   discount?: CartDiscount | null;
@@ -20,6 +22,7 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
   const { cart, getCartItemsCount, getCartTotal, startCheckout } = useCart()
   const { firebaseUser } = useAuth()
+  const { isNative } = useCapacitorPlatform()
   const router = useRouter()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -34,6 +37,40 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
   const subtotalAmount = getCartTotal()
   const discountAmount = discount?.discountAmount || 0
   const totalAmount = discount?.finalTotal || subtotalAmount
+
+  /**
+   * Abre URL de pagamento de forma apropriada para cada plataforma
+   * - Web: window.location.href (navegação na mesma aba)
+   * - Mobile: Browser.open() (abre navegador externo)
+   */
+  const openPaymentUrl = async (url: string) => {
+    console.log(`🔗 [PAYMENT] Abrindo URL de pagamento (${isNative ? 'mobile' : 'web'}):`, url)
+    
+    try {
+      if (isNative) {
+        // Em ambiente mobile (Capacitor): abre no navegador externo
+        await Browser.open({
+          url,
+          windowName: '_system', // Força usar navegador do sistema
+          presentationStyle: 'popover' // iOS: estilo de apresentação
+        })
+        console.log('✅ [PAYMENT] URL aberta no navegador externo')
+      } else {
+        // Em ambiente web: redireciona na mesma aba
+        window.location.href = url
+        console.log('✅ [PAYMENT] URL aberta no navegador web')
+      }
+    } catch (error) {
+      console.error('❌ [PAYMENT] Erro ao abrir URL:', error)
+      
+      // Fallback: tenta abrir de forma tradicional
+      if (typeof window !== 'undefined') {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+      
+      throw new Error('Não foi possível abrir a página de pagamento. Tente novamente.')
+    }
+  }
 
   const handleCheckoutClick = async () => {
     setError(null)
@@ -110,9 +147,8 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
       
       setIsModalOpen(false)
       
-      // Redirecionar para o link de pagamento na página atual
-      console.log('[CHECKOUT] Redirecionando para link de pagamento:', checkoutUrl)
-      window.location.href = checkoutUrl
+      // Abrir URL de pagamento usando método apropriado para a plataforma
+      await openPaymentUrl(checkoutUrl)
 
     } catch (error) {
       console.error('Erro no checkout:', error)
