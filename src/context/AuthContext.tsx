@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth'
+import { User as FirebaseUser, onAuthStateChanged, getRedirectResult } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { User, UserProfile } from '@/types'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
@@ -22,6 +22,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Handler para capturar resultado de redirect (Google Auth em WebView)
+  useEffect(() => {
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result) {
+          console.log('✅ Redirect login capturado:', result.user.email)
+        }
+      } catch (error) {
+        console.error('❌ Erro ao processar redirect:', error)
+      }
+    }
+    
+    handleRedirect()
+  }, [])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
