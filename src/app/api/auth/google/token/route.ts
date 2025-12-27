@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { code } = await request.json()
+    const { code, redirectUri: customRedirectUri } = await request.json()
 
     if (!code) {
       return NextResponse.json(
@@ -12,9 +12,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Configuração do Google OAuth
-    const clientId = process.env.GOOGLE_CLIENT_ID
+    const clientId = process.env.GOOGLE_CLIENT_ID || '300882600959-0mftq5khqlo6c8c1rgvam48u2llchtrh.apps.googleusercontent.com'
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/google/callback`
+    
+    // Usar redirectUri enviado pelo client ou o default
+    const redirectUri = customRedirectUri || `${request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/google/callback`
+    
+    console.log('🔑 Token exchange - Redirect URI:', redirectUri)
+
+    if (!clientSecret) {
+      console.error('❌ GOOGLE_CLIENT_SECRET not configured')
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error: missing client secret' },
+        { status: 500 }
+      )
+    }
 
     // Trocar código por token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

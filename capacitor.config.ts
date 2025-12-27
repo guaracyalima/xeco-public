@@ -14,8 +14,8 @@ const config: CapacitorConfig = {
       'xuxum-public-production.up.railway.app',
       '*.railway.app',
       'xuxum.com.br',
-      '*.xuxum.com.br', 
-      '*.firebaseapp.com', 
+      '*.xuxum.com.br',
+      '*.firebaseapp.com',
       '*.googleapis.com',
     ],
   },
@@ -42,6 +42,10 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'light',
       backgroundColor: '#10B981',
+    },
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ['google.com'],
     },
   },
 };

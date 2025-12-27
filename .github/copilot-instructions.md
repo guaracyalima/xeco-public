@@ -121,6 +121,44 @@ Use `docs/TEST_DATA.md` for consistent test data. Tests should be **idempotent**
 4. **PWA caching**: Service worker may cache old versions - test in incognito for fresh state
 5. **Mobile payments**: Use `Browser.open()` for external URLs in Capacitor - check `useCapacitorPlatform()` hook
 
+## 🚨 CONFIGURAÇÕES PROTEGIDAS - NÃO ALTERAR!
+
+### Google Auth Mobile (CRÍTICO!)
+
+As seguintes configurações são **OBRIGATÓRIAS** para o login Google funcionar no mobile. **NUNCA remova ou altere**:
+
+#### 1. `capacitor.config.ts` - Plugin FirebaseAuthentication
+```typescript
+plugins: {
+  // ... outras configs
+  FirebaseAuthentication: {
+    skipNativeAuth: false,        // ❌ NUNCA mudar para true
+    providers: ['google.com'],    // ❌ NUNCA remover
+  },
+}
+```
+
+#### 2. `android/variables.gradle` - Google Auth Enabled
+```gradle
+rgcfaIncludeGoogle = true         // ❌ NUNCA mudar para false ou remover
+```
+
+#### 3. `android/app/google-services.json` - Client IDs
+- O `client_id` com `client_type: 1` DEVE ser um ID real do Google Console
+- **NUNCA invente ou altere** esses IDs - sempre baixe do Firebase Console
+
+#### 4. `src/services/googleAuthService.ts` - Lógica de Plataforma
+```typescript
+// ❌ NUNCA use signInWithPopup/signInWithRedirect diretamente no mobile
+// ✅ SEMPRE use a detecção de plataforma existente
+if (platform === 'web') { signInWithPopup } 
+else { FirebaseAuthentication.signInWithGoogle() }
+```
+
+**📖 Documentação completa**: `docs/GOOGLE_AUTH_MOBILE_FIX.md`
+
+**Se o login Google parar de funcionar no mobile, SEMPRE verifique esses 4 pontos PRIMEIRO!**
+
 ## 🔧 Service Layer Patterns
 
 Services in `src/services/` follow **async/await error handling**:
@@ -153,4 +191,4 @@ Based on those files, grade the outputs of Step 1 objectively against that stand
 ### Step 3
 For any screens or components that have a score less than 8 out of 10, make changes, and then repeat from Step 1.
 
-NÃO FAÇA COMMITS ATÉ QUE EU TE ORDENE!
+NÃO FAÇA COMMITS NO GIT ATÉ QUE EU TE ORDENE!

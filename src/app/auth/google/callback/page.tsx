@@ -30,11 +30,14 @@ function GoogleCallbackContent() {
 
         setStatus('Trocando código por token...')
 
+        // Redirect URI deve ser o mesmo usado na autenticação
+        const redirectUri = `${window.location.origin}/auth/google/callback`
+
         // Trocar o código por um token de acesso
         const tokenResponse = await fetch('/api/auth/google/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code })
+          body: JSON.stringify({ code, redirectUri })
         })
 
         const tokenData = await tokenResponse.json()
