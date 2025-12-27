@@ -5,101 +5,35 @@ import { auth, googleProvider } from '@/lib/firebase'
 import { Capacitor } from '@capacitor/core'
 
 /**
- * Verifica se o plugin FirebaseAuthentication está realmente disponível E funcionando
- */
-async function isFirebaseAuthPluginAvailable(): Promise<boolean> {
-  try {
-    if (!Capacitor.isNativePlatform()) {
-      return false
-    }
-    
-    const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication')
-    
-    // Testa se o plugin está realmente bridgeado tentando chamar um método
-    if (FirebaseAuthentication && typeof FirebaseAuthentication.signInWithGoogle === 'function') {
-      // Verifica se o bridge está funcionando checando se é um plugin real
-      // Plugins não bridgeados vão ter métodos que jogam erro de "null object"
-      console.log('📱 Plugin FirebaseAuthentication encontrado, testando bridge...')
-      
-      // Verifica se temos o método getCurrentUser que não requer interação
-      if (typeof FirebaseAuthentication.getCurrentUser === 'function') {
-        try {
-          await FirebaseAuthentication.getCurrentUser()
-          console.log('✅ Bridge funcionando!')
-          return true
-        } catch (e: any) {
-          // Se der null object reference, o bridge não está funcionando
-          if (e.message?.includes('null object') || e.message?.includes('null pointer')) {
-            console.log('❌ Bridge não está funcionando (null object)')
-            return false
-          }
-          // Outros erros podem ser ok (ex: usuário não logado)
-          return true
-        }
-      }
-      return true
-    }
-    
-    return false
-  } catch (error) {
-    console.log('⚠️ Plugin FirebaseAuthentication não disponível:', error)
-    return false
-  }
-}
-
-/**
  * Detecta se estamos em um WebView do Capacitor carregando URL remota
- * Nesse caso, não podemos usar popup nem plugins nativos
+ * Nesse caso, NÃO podemos usar popup NEM plugins nativos - só redirect funciona
  */
-function isCapacitorWebViewWithRemoteUrl(): boolean {
+function isRemoteWebView(): boolean {
   if (typeof window === 'undefined') return false
   
-  // Verifica se estamos em Capacitor
-  const isNative = Capacitor.isNativePlatform()
+  // Se a URL é https ou http, estamos carregando de servidor remoto
+  // Plugins nativos do Capacitor NÃO funcionam nesse cenário
+  const isRemote = window.location.protocol === 'https:' || window.location.protocol === 'http:'
   
-  // Verifica se a URL é remota (não file://)
-  const isRemoteUrl = window.location.protocol === 'https:' || window.location.protocol === 'http:'
+  console.log('🔍 isRemoteWebView:', { 
+    protocol: window.location.protocol, 
+    isRemote,
+    href: window.location.href 
+  })
   
-  // Se estamos em plataforma nativa mas com URL remota, estamos no WebView problemático
-  const result = isNative && isRemoteUrl
-  console.log('🔍 isCapacitorWebViewWithRemoteUrl:', { isNative, isRemoteUrl, result })
-  
-  return result
+  return isRemote
 }
 
 export class GoogleAuthService {
   static async signInWithGoogle(): Promise<UserCredential> {
     const platform = Capacitor.getPlatform()
-    const isNative = Capacitor.isNativePlatform()
-    console.log('🚀 Google Auth - Platform:', platform, 'isNative:', isNative)
+    console.log('🚀 Google Auth - Platform:', platform)
     
     try {
-      // CASO 1: Plugin nativo disponível e funcionando
-      const pluginAvailable = await isFirebaseAuthPluginAvailable()
-      console.log('🔌 Plugin Firebase Auth disponível:', pluginAvailable)
-      
-      if (pluginAvailable) {
-        console.log('📱 Mobile: Usando FirebaseAuthentication nativo')
-        
-        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication')
-        
-        const result = await FirebaseAuthentication.signInWithGoogle()
-        console.log('📱 Native result:', result)
-        
-        if (!result.credential?.idToken) {
-          throw new Error('Token não recebido do Google')
-        }
-        
-        const credential = GoogleAuthProvider.credential(result.credential.idToken)
-        const userCredential = await signInWithCredential(auth, credential)
-        
-        console.log('✅ Mobile Google Auth sucesso:', userCredential.user.email)
-        return userCredential
-      }
-      
-      // CASO 2: WebView do Capacitor com URL remota - usar redirect
-      if (isCapacitorWebViewWithRemoteUrl()) {
-        console.log('📱 WebView com URL remota: Usando signInWithRedirect')
+      // Se estamos carregando de URL remota (https), plugins nativos NÃO funcionam
+      // Usar signInWithRedirect que funciona em qualquer browser/webview
+      if (isRemoteWebView()) {
+        console.log('🌐 URL Remota detectada: Usando signInWithRedirect')
         
         // Primeiro tenta pegar resultado de redirect anterior
         const redirectResult = await getRedirectResult(auth)
@@ -109,13 +43,39 @@ export class GoogleAuthService {
         }
         
         // Se não tem resultado, inicia o redirect
+        console.log('🔄 Iniciando redirect para Google...')
         await signInWithRedirect(auth, googleProvider)
         
-        // Isso não deve chegar aqui porque vai redirecionar
-        throw new Error('Redirecionando para login...')
+        // Isso não vai executar porque vai redirecionar
+        throw new Error('Redirecionando...')
       }
       
-      // CASO 3: Web normal - popup funciona
+      // Se estamos em file:// (assets locais), podemos tentar plugin nativo
+      if (Capacitor.isNativePlatform()) {
+        console.log('📱 Assets locais: Tentando plugin nativo')
+        
+        try {
+          const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication')
+          const result = await FirebaseAuthentication.signInWithGoogle()
+          
+          if (!result.credential?.idToken) {
+            throw new Error('Token não recebido do Google')
+          }
+          
+          const credential = GoogleAuthProvider.credential(result.credential.idToken)
+          const userCredential = await signInWithCredential(auth, credential)
+          
+          console.log('✅ Native Google Auth sucesso:', userCredential.user.email)
+          return userCredential
+        } catch (nativeError: any) {
+          console.error('❌ Plugin nativo falhou:', nativeError)
+          // Fallback para redirect
+          await signInWithRedirect(auth, googleProvider)
+          throw new Error('Redirecionando...')
+        }
+      }
+      
+      // Web normal - popup funciona
       console.log('🌐 Web: Usando signInWithPopup')
       const result = await signInWithPopup(auth, googleProvider)
       console.log('✅ Web Google Auth sucesso:', result.user.email)
@@ -127,9 +87,6 @@ export class GoogleAuthService {
     }
   }
 
-  /**
-   * Deve ser chamado no início do app para capturar resultado de redirect
-   */
   static async handleRedirectResult(): Promise<UserCredential | null> {
     try {
       const result = await getRedirectResult(auth)

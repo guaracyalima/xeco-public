@@ -152,3 +152,5 @@ Based on those files, grade the outputs of Step 1 objectively against that stand
 
 ### Step 3
 For any screens or components that have a score less than 8 out of 10, make changes, and then repeat from Step 1.
+
+NÃO FAÇA COMMITS ATÉ QUE EU TE ORDENE!
