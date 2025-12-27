@@ -13,7 +13,7 @@ export function Layout({ children, className }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className={cn('flex-1 pb-20 md:pb-0', className)}>
+      <main className={cn('flex-1 pb-24 md:pb-0', className)}>
         {children}
       </main>
       <Footer />

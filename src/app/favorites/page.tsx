@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { Layout } from '@/components/layout/Layout'
-import { useFavorites } from '@/contexts/FavoritesContext'
+import { useLikedCompanyContext } from '@/contexts/LikedCompanyContext'
 import { useAuth } from '@/context/AuthContext'
 import { Heart, Building2, ArrowLeft } from 'lucide-react'
 import { FavoriteCompanyButton } from '@/components/favorites/FavoriteCompanyButton'
@@ -12,7 +12,7 @@ import { EventName } from '@/types/analytics'
 
 export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth()
-  const { favorites, loading: favoritesLoading } = useFavorites()
+  const { favoredCompanies, loading: favoritesLoading } = useLikedCompanyContext()
   const { trackEvent } = useAnalytics()
 
   // Track page view
@@ -20,13 +20,13 @@ export default function FavoritesPage() {
     if (!authLoading && user) {
       trackEvent(EventName.FAVORITES_VIEW, {
         eventData: {
-          favoritesCount: favorites.length,
+          favoritesCount: favoredCompanies.length,
           category: 'favorites',
           label: 'favorites_page_view'
         }
       })
     }
-  }, [authLoading, user, favorites.length, trackEvent])
+  }, [authLoading, user, favoredCompanies.length, trackEvent])
 
   if (authLoading) {
     return (
@@ -87,7 +87,7 @@ export default function FavoritesPage() {
                 Empresas Favoritas
               </h1>
               <p className="text-gray-600">
-                {favorites.length} {favorites.length === 1 ? 'empresa favoritada' : 'empresas favoritadas'}
+                {favoredCompanies.length} {favoredCompanies.length === 1 ? 'empresa favoritada' : 'empresas favoritadas'}
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function FavoritesPage() {
         )}
 
         {/* Empty State */}
-        {!favoritesLoading && favorites.length === 0 && (
+        {!favoritesLoading && favoredCompanies.length === 0 && (
           <div className="text-center py-12">
             <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -121,11 +121,11 @@ export default function FavoritesPage() {
         )}
 
         {/* Favorites List */}
-        {!favoritesLoading && favorites.length > 0 && (
+        {!favoritesLoading && favoredCompanies.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {favorites.map((favorite) => (
+            {favoredCompanies.map((company) => (
               <div
-                key={favorite.id}
+                key={company.id}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -135,10 +135,10 @@ export default function FavoritesPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 text-lg">
-                        {favorite.name}
+                        {company.name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        Adicionado em {favorite.addedAt.toLocaleDateString('pt-BR')}
+                        Categoria: {company.categoryId}
                       </p>
                     </div>
                   </div>
@@ -146,13 +146,13 @@ export default function FavoritesPage() {
 
                 <div className="flex gap-2">
                   <FavoriteCompanyButton
-                    companyId={favorite.id}
-                    companyName={favorite.name}
+                    companyId={company.id}
+                    companyName={company.name}
                     size="sm"
                     showText={false}
                   />
                   <Link
-                    href={`/company/${favorite.id}`}
+                    href={`/company/${company.id}`}
                     className="flex-1 text-center bg-gray-100 text-gray-700 px-3 py-2 text-sm rounded-lg font-medium hover:bg-gray-200 transition-colors"
                   >
                     Ver Produtos

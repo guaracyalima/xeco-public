@@ -24,6 +24,11 @@ export const storage = getStorage(app)
 export const googleProvider = new GoogleAuthProvider()
 googleProvider.setCustomParameters({
   prompt: 'select_account' // Sempre mostrar seleção de conta
+  // 🔥 REMOVIDO ux_mode: 'popup' - deixar Firebase decidir o melhor modo
 })
+
+// Adicionar escopos necessários
+googleProvider.addScope('profile')
+googleProvider.addScope('email')
 
 export default app

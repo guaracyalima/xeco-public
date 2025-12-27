@@ -345,22 +345,6 @@ export function CheckoutModal({
             </div>
           </div>
 
-          {/* Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <FileText className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="text-blue-800 font-medium mb-1">
-                  Processo Seguro
-                </p>
-                <p className="text-blue-700">
-                  Seus dados são protegidos e utilizados apenas para processar sua compra. 
-                  Você será redirecionado para uma página segura de pagamento.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Actions */}
           <div className="flex space-x-3">
             <Button

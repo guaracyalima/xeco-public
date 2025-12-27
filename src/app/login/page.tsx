@@ -2,14 +2,16 @@
 
 import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
-import { auth, db, googleProvider } from '@/lib/firebase'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/Button'
 import { Layout } from '@/components/layout/Layout'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { EventName } from '@/types/analytics'
+import { GoogleAuthService } from '@/services/googleAuthService'
+import { SimpleGoogleAuthService } from '@/services/simpleGoogleAuthService'
 
 function LoginForm() {
   const [isLogin, setIsLogin] = useState(true)
@@ -146,7 +148,10 @@ function LoginForm() {
 
     try {
       console.log('🔵 Iniciando login com Google...')
-      const result = await signInWithPopup(auth, googleProvider)
+      
+      // 🔥 SEMPRE usar GoogleAuthService que detecta plataforma corretamente
+      const result = await GoogleAuthService.signInWithGoogle()
+        
       const user = result.user
       console.log('✅ Login com Google bem-sucedido:', user.email)
 
@@ -228,23 +233,40 @@ function LoginForm() {
       router.push(returnUrl)
     } catch (error: unknown) {
       console.error('❌ Erro no login com Google:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      let errorMessage = 'Erro desconhecido ao fazer login com Google'
+      
+      if (error instanceof Error) {
+        console.error('❌ Erro detalhado:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        })
+        
+        // Mensagens de erro mais amigáveis
+        if (error.message.includes('invalid')) {
+          errorMessage = 'Configuração de autenticação inválida. Tente novamente em alguns instantes.'
+        } else if (error.message.includes('popup')) {
+          errorMessage = 'Popup bloqueado. Permita popups e tente novamente.'
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Problema de conexão. Verifique sua internet e tente novamente.'
+        } else if (error.message.includes('cancelled') || error.message.includes('closed')) {
+          errorMessage = 'Login cancelado pelo usuário.'
+        } else {
+          errorMessage = `Erro ao fazer login: ${error.message}`
+        }
+      }
       
       // Track login failure
       trackEvent(EventName.LOGIN_FAILED, {
         eventData: {
           method: 'google',
-          error: errorMessage,
+          error: error instanceof Error ? error.message : 'unknown_error',
           category: 'authentication',
           label: 'login_failed_google'
         }
       })
       
-      if (error instanceof Error) {
-        setError(`Erro ao fazer login com Google: ${error.message}`)
-      } else {
-        setError('Erro desconhecido ao fazer login com Google')
-      }
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

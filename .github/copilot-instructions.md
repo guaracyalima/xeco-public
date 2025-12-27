@@ -68,6 +68,7 @@ The app requires these environment variables:
 - Capacitor config points to Railway production URL for live testing
 - PWA features are implemented - check `components/pwa/` for install prompts
 - **Payment flows**: Use `useCapacitorPlatform()` hook to detect platform and `Browser.open()` for external URLs in mobile apps
+- **Google Auth**: Use `GoogleAuthService.signInWithGoogle()` which automatically detects platform and uses native auth in mobile
 
 ## 🎨 Design System Conventions
 

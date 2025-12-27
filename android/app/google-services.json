@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "300882600959",
+    "project_id": "xeco-334f5",
+    "storage_bucket": "xeco-334f5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:300882600959:android:97b4227ebe8a39a2c67dca",
+        "android_client_info": {
+          "package_name": "com.xuxum.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "300882600959-borom1gr9g5bj2m71aeo5debltlt57jp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.xuxum.app",
+            "certificate_hash": "03ac991592bf98fcc4069c57414e58ea0a50a054"
+          }
+        },
+        {
+          "client_id": "300882600959-0mftq5khqlo6c8c1rgvam48u2llchtrh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIztnZ_rP2R-haQW7ppJYRjlwkAk_xCVc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "300882600959-0mftq5khqlo6c8c1rgvam48u2llchtrh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "300882600959-kds1j3qbqfu9erlsrko9bl67joh0rsr8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "br.com.xeco.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

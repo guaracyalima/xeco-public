@@ -17,14 +17,6 @@ const config: CapacitorConfig = {
       '*.xuxum.com.br', 
       '*.firebaseapp.com', 
       '*.googleapis.com',
-      // Asaas payment domains
-      '*.asaas.com',
-      'asaas.com',
-      'sandbox.asaas.com',
-      'www.asaas.com',
-      // Additional payment domains (caso o Asaas use)
-      '*.pagamentos.asaas.com',
-      'checkout.asaas.com',
     ],
   },
   

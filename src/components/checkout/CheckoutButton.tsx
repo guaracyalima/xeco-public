@@ -269,13 +269,6 @@ export function CheckoutButton({ discount }: CheckoutButtonProps = {}) {
             </>
           )}
         </Button>
-
-        {/* Informação de segurança */}
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            🔒 Pagamento 100% seguro via Asaas
-          </p>
-        </div>
       </div>
 
       {/* Modal de checkout (dados do usuário) */}
