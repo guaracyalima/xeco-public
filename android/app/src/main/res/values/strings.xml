@@ -4,4 +4,6 @@
     <string name="title_activity_main">Xuxum</string>
     <string name="package_name">com.xuxum.app</string>
     <string name="custom_url_scheme">com.xuxum.app</string>
+    <!-- Google Sign-In Web Client ID (from google-services.json client_type: 3) -->
+    <string name="default_web_client_id">300882600959-0mftq5khqlo6c8c1rgvam48u2llchtrh.apps.googleusercontent.com</string>
 </resources>
