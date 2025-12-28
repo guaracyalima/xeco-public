@@ -166,7 +166,7 @@ export async function createPaymentCheckout(
     
     // Monta o payload da requisição
     const paymentRequest: N8NPaymentRequest = {
-      billingTypes: ['CREDIT_CARD', 'PIX'],
+      billingTypes: ['CREDIT_CARD'],
       chargeTypes: ['DETACHED', 'INSTALLMENT'],
       minutesToExpire: 15,
       totalAmount,

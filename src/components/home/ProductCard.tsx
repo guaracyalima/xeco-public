@@ -115,20 +115,22 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
           </div>
         )}
 
+        {/* Favorite button - always visible */}
+        <button
+          onClick={handleFavoriteClick}
+          className="favorite-btn-always"
+          title={isFavored(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+        >
+          <Heart
+            className={`w-5 h-5 ${isFavored(product.id) ? 'text-coral-500' : 'text-gray-400'}`}
+            fill={isFavored(product.id) ? "currentColor" : "none"}
+          />
+        </button>
+
         {/* Quick view overlay */}
         <div className="product-overlay">
           <button className="quick-view-btn">
             Ver Detalhes
-          </button>
-          <button
-            onClick={handleFavoriteClick}
-            className="favorite-btn"
-            title={isFavored(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-          >
-            <Heart
-              className={`w-6 h-6 ${isFavored(product.id) ? 'text-coral-700' : 'text-white'}`}
-              fill={isFavored(product.id) ? "currentColor" : "none"}
-            />
           </button>
         </div>
       </div>
@@ -290,6 +292,29 @@ export function ProductCard({ product, showBadge }: ProductCardProps) {
         .favorite-btn:hover {
           background: white;
           transform: scale(1.1);
+        }
+
+        .favorite-btn-always {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: white;
+          border: none;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          z-index: 10;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .favorite-btn-always:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .product-content {

@@ -39,7 +39,7 @@ export function Header({ children, className }: HeaderProps) {
   }
 
   return (
-    <header className={cn('bg-white shadow-sm border-b pt-2 md:pt-0', className)}>
+    <header className={cn('bg-white shadow-sm border-b pt-safe-area-inset-top', className)} style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}

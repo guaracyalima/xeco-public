@@ -23,7 +23,7 @@ const tabs: TabItem[] = [
   },
   {
     id: 'ofertas',
-    label: 'Ofertas',
+    label: 'Marketplace',
     icon: Tag,
     href: '/products',
     activePattern: /^\/products/

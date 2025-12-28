@@ -278,8 +278,8 @@ export default function CompanyDetailsPage() {
 
           {/* Company Logo - Positioned over cover */}
           {company.logo && (
-            <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 md:left-1/2 md:-translate-x-1/2">
-              <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-white">
+            <div className="absolute -bottom-12 left-6 md:left-1/2 md:-translate-x-1/2">
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-white">
                 <img
                   src={company.logo}
                   alt={`Logo de ${company.name}`}
@@ -292,7 +292,7 @@ export default function CompanyDetailsPage() {
 
         {/* Company Info Section */}
         <div className="bg-white border-b">
-          <div className="container mx-auto px-4 pt-20 pb-6">
+          <div className="container mx-auto px-4 pt-16 md:pt-20 pb-6 pb-24">
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Company Info */}
               <div className="lg:col-span-2">

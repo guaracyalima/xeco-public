@@ -2,9 +2,10 @@
 
 import { memo } from 'react'
 import { Company } from '@/types'
-import { MapPin, Phone, Star } from 'lucide-react'
+import { MapPin, Phone, Star, Heart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCompanyAnalytics } from '@/hooks/useAnalytics'
+import { useLikedCompanyContext } from '@/contexts/LikedCompanyContext'
 
 interface CompanyCardProps {
   company: Company
@@ -14,6 +15,7 @@ interface CompanyCardProps {
 export function CompanyCard({ company, showBadge }: CompanyCardProps) {
   const router = useRouter()
   const { trackCompanyContact } = useCompanyAnalytics()
+  const { favoriteCompany, unfavoriteCompany, isFavored } = useLikedCompanyContext()
 
   const handleClick = () => {
     router.push(`/company/${company.id}`)
@@ -29,6 +31,20 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
     e.stopPropagation()
     trackCompanyContact(company, 'whatsapp')
     window.open(`https://wa.me/${company.whatsapp.replace(/\D/g, '')}`, '_blank')
+  }
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    try {
+      if (isFavored(company.id)) {
+        await unfavoriteCompany(company.id)
+      } else {
+        await favoriteCompany(company.id)
+      }
+    } catch (error) {
+      console.error('Erro ao favoritar franquia:', error)
+    }
   }
 
   return (
@@ -59,8 +75,20 @@ export function CompanyCard({ company, showBadge }: CompanyCardProps) {
           </div>
         )}
 
-        {/* Action buttons */}
-        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+        {/* Favorite button - always visible */}
+        <button
+          onClick={handleFavoriteClick}
+          className="absolute top-3 right-3 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all hover:scale-110 z-10"
+          title={isFavored(company.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+        >
+          <Heart
+            className={`w-5 h-5 ${isFavored(company.id) ? 'text-coral-500' : 'text-gray-400'}`}
+            fill={isFavored(company.id) ? "currentColor" : "none"}
+          />
+        </button>
+
+        {/* Action buttons - phone and whatsapp */}
+        <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
           <button 
             onClick={handlePhoneClick}
             className="w-9 h-9 bg-white/90 hover:bg-white text-gray-600 hover:text-coral-500 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all"

@@ -7,7 +7,7 @@ const isDevelopment = process.env.NODE_ENV === 'development'
 
 // Base URL da aplicação
 export const APP_BASE_URL = isDevelopment 
-  ? 'http://localhost:3000' 
+  ? 'https://xeco.com.br' 
   : 'https://xuxum.com.br'
 
 // URLs de callback para o checkout

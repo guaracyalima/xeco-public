@@ -63,14 +63,14 @@ export function UserProfileHeader({ profile, onLogout }: UserProfileHeaderProps)
             </div>
           </div>
 
-          {/* Right: Action Buttons - Stacked vertically, aligned right */}
-          <div className="flex flex-col gap-2 items-end justify-end min-h-full">
+          {/* Right: Action Buttons - Same size, aligned horizontally on mobile */}
+          <div className="flex flex-row gap-3 w-full sm:w-auto justify-end">
             <button
               onClick={onLogout}
               title="Sair do sistema"
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap min-w-[100px]"
             >
-              <LogOut className="w-3 h-3" />
+              <LogOut className="w-4 h-4" />
               Sair
             </button>
             
@@ -78,7 +78,7 @@ export function UserProfileHeader({ profile, onLogout }: UserProfileHeaderProps)
               href="https://franquia.xuxum.com.br/create-company"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap min-w-[100px]"
             >
               <Plus className="w-4 h-4" />
               Franquia
