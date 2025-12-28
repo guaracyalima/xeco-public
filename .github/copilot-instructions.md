@@ -159,6 +159,58 @@ else { FirebaseAuthentication.signInWithGoogle() }
 
 **Se o login Google parar de funcionar no mobile, SEMPRE verifique esses 4 pontos PRIMEIRO!**
 
+### Mobile Checkout / Pagamentos (CRÍTICO!)
+
+As seguintes configurações são **OBRIGATÓRIAS** para o checkout funcionar no mobile. **NUNCA remova ou altere**:
+
+#### 1. `src/lib/n8n-config.ts` - Detecção de Plataforma
+```typescript
+import { Capacitor } from '@capacitor/core'
+
+const getCreatePaymentEndpoint = () => {
+  const platform = Capacitor.getPlatform()
+  
+  if (platform === 'web') {
+    return '/api/checkout/create-payment'  // ✅ API Route para web
+  } else {
+    return process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL  // ✅ Webhook direto para mobile
+  }
+}
+```
+
+**Por quê?** Mobile Capacitor serve arquivos estáticos - API Routes do Next.js não existem!
+
+#### 2. `.env.local` - Variável do Webhook
+```bash
+NEXT_PUBLIC_N8N_WEBHOOK_URL=https://primary-production-9acc.up.railway.app/webhook/xeco-create-checkout
+```
+- ❌ **NUNCA** remova o prefixo `NEXT_PUBLIC_`
+- ❌ **NUNCA** tente usar API Routes no mobile
+
+#### 3. `src/lib/base64-converter.ts` - Apenas no Backend
+```typescript
+// ❌ NUNCA importe este arquivo em componentes 'use client'
+// ✅ Apenas em API Routes (src/app/api/*)
+import sharp from 'sharp'
+```
+
+**Por quê?** `sharp` é uma biblioteca Node.js que **NÃO funciona no browser/mobile**
+
+#### 4. CORS no n8n
+O webhook n8n **DEVE** aceitar requisições do mobile:
+```javascript
+{
+  "cors": {
+    "enabled": true,
+    "allowedOrigins": ["*"]
+  }
+}
+```
+
+**📖 Documentação completa**: `docs/MOBILE_CHECKOUT_FIX.md`
+
+**Se o checkout der erro "sharp module" no mobile, VERIFIQUE ESSAS CONFIGURAÇÕES!**
+
 ## 🔧 Service Layer Patterns
 
 Services in `src/services/` follow **async/await error handling**:

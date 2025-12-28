@@ -2,15 +2,56 @@
  * Configurações para integração com n8n workflows
  */
 
-// Usa a API route local do Next.js que faz proxy para o n8n
-// Isso evita problemas de CORS fazendo a requisição do servidor
-const N8N_API_ROUTE = '/api/checkout/create-payment'
-const N8N_ASAAS_ACCOUNT_ROUTE = '/api/affiliate/create-asaas-account'
+import { Capacitor } from '@capacitor/core'
+
+// 📱 No mobile Capacitor, as API Routes do Next.js não funcionam porque serve static files
+// Web: usa API Route local (evita CORS)
+// Mobile: chama n8n diretamente
+const getCreatePaymentEndpoint = () => {
+  const platform = Capacitor.getPlatform()
+  
+  console.log('🔧 [N8N_CONFIG] Platform:', platform)
+  
+  if (platform === 'web') {
+    // Web: usa API route local que faz proxy
+    console.log('🌐 [N8N_CONFIG] Usando API Route: /api/checkout/create-payment')
+    return '/api/checkout/create-payment'
+  } else {
+    // Mobile: chama n8n diretamente
+    const n8nUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
+    console.log('📱 [N8N_CONFIG] Usando webhook direto:', n8nUrl)
+    
+    if (!n8nUrl) {
+      console.error('❌ [N8N_CONFIG] NEXT_PUBLIC_N8N_WEBHOOK_URL não configurada!')
+      throw new Error('URL do webhook n8n não configurada')
+    }
+    
+    return n8nUrl
+  }
+}
+
+const getAsaasAccountEndpoint = () => {
+  const platform = Capacitor.getPlatform()
+  
+  if (platform === 'web') {
+    return '/api/affiliate/create-asaas-account'
+  } else {
+    const n8nUrl = process.env.N8N_ASAAS_ACCOUNT_WEBHOOK_URL
+    if (!n8nUrl) {
+      throw new Error('URL do webhook n8n Asaas não configurada')
+    }
+    return n8nUrl
+  }
+}
 
 // Endpoints do n8n
 export const N8N_ENDPOINTS = {
-  createPayment: N8N_API_ROUTE,
-  createAsaasAccount: N8N_ASAAS_ACCOUNT_ROUTE,
+  get createPayment() {
+    return getCreatePaymentEndpoint()
+  },
+  get createAsaasAccount() {
+    return getAsaasAccountEndpoint()
+  },
 } as const
 
 // Tipos para requisição de pagamento

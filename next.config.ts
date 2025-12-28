@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // For Capacitor, we'll use the live server approach instead of static export
-  // This allows dynamic routes to work properly
+  // For Capacitor: App points to Railway server (not static export)
+  // This allows dynamic routes and API routes to work properly
   
   images: {
     remotePatterns: [

@@ -12,10 +12,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateCheckoutRequest } from '@/services/checkoutValidationService'
 import { validateCheckoutSignature } from '@/lib/checkout-signature'
-import { calculateSplits } from '@/services/splitCalculationService'
 import { db } from '@/lib/firebase'
 import { collection, doc, setDoc, updateDoc } from 'firebase/firestore'
-import { imageUrlToBase64 } from '@/lib/base64-converter'
+
+// ⚠️ REMOVIDO: import { imageUrlToBase64 } from '@/lib/base64-converter'
+// O módulo sharp causa erro no Railway - não é mais necessário
 
 const N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 
                         'https://primary-production-9acc.up.railway.app/webhook/xuxum-create-checkout'
@@ -171,32 +172,13 @@ export async function POST(request: NextRequest) {
     })
 
     // Passo 3: Usa imagem default local (WORKAROUND Asaas)
-    console.log('Usando imagem default local para todos os produtos...')
+    // ⚠️ REMOVIDO SHARP - Railway tem problemas com o módulo
+    console.log('Usando imagem default fixa (sem sharp)...')
     
-    const fs = require('fs')
-    const path = require('path')
-    const sharp = require('sharp')
+    // Imagem 1x1 pixel transparente em base64 (fallback seguro)
+    const defaultImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
     
-    const defaultImagePath = path.join(process.cwd(), 'public', 'default-product-image.png')
-    console.log('Lendo:', defaultImagePath)
-    
-    let defaultImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-    
-    try {
-      const imageBuffer = fs.readFileSync(defaultImagePath)
-      const jpegBuffer = await sharp(imageBuffer)
-        .jpeg({ quality: 85, progressive: true, mozjpeg: true })
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .toBuffer()
-      
-      const base64Pure = jpegBuffer.toString('base64')
-      defaultImageBase64 = `data:image/jpeg;base64,${base64Pure}` // <- COM PREFIXO!
-      
-      console.log('Base64 gerado:', defaultImageBase64.length, 'chars, KB:', (jpegBuffer.length / 1024).toFixed(2))
-      console.log('Formato:', defaultImageBase64.substring(0, 50) + '...')
-    } catch (error: any) {
-      console.error('Erro imagem default:', error.message)
-    }
+    console.log('✅ Usando imagem default fixa (sem processamento)')
     
     const itemsWithBase64 = products.map((product) => ({
       externalReference: product.id,
@@ -415,14 +397,10 @@ export async function POST(request: NextRequest) {
     // ⚠️ DEBUG: Log do productList sendo enviado
     console.log('🔍 ProductList sendo enviado ao N8N:', JSON.stringify(n8nPayload.productList, null, 2))
     
-    // ⚠️ DEBUG: Log dos items com imageBase64 sendo enviados
-    console.log('🔍 Items com imageBase64 sendo enviados ao N8N:')
+    // ⚠️ DEBUG: Log dos items sendo enviados
+    console.log('🔍 Items sendo enviados ao N8N:')
     n8nPayload.items.forEach((item, index) => {
-      console.log(`  [${index + 1}] ${item.name}:`, {
-        hasImageBase64: !!item.imageBase64,
-        imageLength: item.imageBase64?.length || 0,
-        firstChars: item.imageBase64?.substring(0, 30) + '...'
-      })
+      console.log(`  [${index + 1}] ${item.name}`)
     })
 
     // Passo 5: Chama o n8n
@@ -447,16 +425,8 @@ export async function POST(request: NextRequest) {
       }))
     })
     
-    // ⚠️ DEBUG: Log COMPLETO do payload N8N (truncando base64)
-    console.log('🔍 PAYLOAD COMPLETO N8N:', JSON.stringify({
-      ...n8nPayload,
-      items: n8nPayload.items?.map(item => ({
-        ...item,
-        imageBase64: item.imageBase64 
-          ? `[JPEG base64: ${item.imageBase64.length} chars]`
-          : 'MISSING'
-      }))
-    }, null, 2))
+    // ⚠️ DEBUG: Log COMPLETO do payload N8N
+    console.log('🔍 PAYLOAD COMPLETO N8N:', JSON.stringify(n8nPayload, null, 2))
 
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
