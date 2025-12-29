@@ -4,7 +4,11 @@
 
 import { Capacitor } from '@capacitor/core'
 
-// 📱 No mobile Capacitor, as API Routes do Next.js não funcionam porque serve static files
+// � IMPORTANTE: No mobile Capacitor, as variáveis de ambiente NÃO estão disponíveis em runtime
+// porque o app carrega arquivos estáticos exportados. Por isso usamos fallback hardcoded.
+const N8N_WEBHOOK_URL_PRODUCTION = 'https://primary-production-9acc.up.railway.app/webhook/xuxum-create-checkout'
+
+// �📱 No mobile Capacitor, as API Routes do Next.js não funcionam porque serve static files
 // Web: usa API Route local (evita CORS)
 // Mobile: chama n8n diretamente
 const getCreatePaymentEndpoint = () => {
@@ -18,13 +22,9 @@ const getCreatePaymentEndpoint = () => {
     return '/api/checkout/create-payment'
   } else {
     // Mobile: chama n8n diretamente
-    const n8nUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
+    // ⚠️ Env vars não funcionam em runtime no mobile, usar fallback hardcoded
+    const n8nUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || N8N_WEBHOOK_URL_PRODUCTION
     console.log('📱 [N8N_CONFIG] Usando webhook direto:', n8nUrl)
-    
-    if (!n8nUrl) {
-      console.error('❌ [N8N_CONFIG] NEXT_PUBLIC_N8N_WEBHOOK_URL não configurada!')
-      throw new Error('URL do webhook n8n não configurada')
-    }
     
     return n8nUrl
   }
