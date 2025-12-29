@@ -37,7 +37,8 @@ function tryOpenMobileApp(path: string = 'checkout/success') {
   console.log('� [DEEP LINK] ✅ Mobile detectado, tentando abrir app...')
   
   // Tenta abrir via custom scheme (xuxum://)
-  const appUrl = `xuxum://${path}${window.location.search}`
+  // NÃO adiciona window.location.search porque path já vem com query se necessário
+  const appUrl = `xuxum://${path}`
   console.log('🔗 [DEEP LINK] Custom scheme URL:', appUrl)
   
   // Cria um iframe invisível para tentar abrir o app
@@ -50,7 +51,7 @@ function tryOpenMobileApp(path: string = 'checkout/success') {
   
   // Também tenta via intent:// para Android (mais confiável)
   if (isAndroid) {
-    const intentUrl = `intent://${path}${window.location.search}#Intent;scheme=xuxum;package=com.xuxum.app;end`
+    const intentUrl = `intent://${path}#Intent;scheme=xuxum;package=com.xuxum.app;end`
     console.log('🔗 [DEEP LINK] Intent URL (Android):', intentUrl)
     
     // Usa setTimeout para dar tempo do iframe tentar primeiro

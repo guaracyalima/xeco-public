@@ -441,13 +441,35 @@ export async function POST(request: NextRequest) {
     // Valida resposta
     if (!n8nResponse.ok) {
       const errorData = await n8nResponse.json()
-      console.error('❌ Erro na resposta do n8n:', errorData)
+      console.error('❌ Erro na resposta do n8n:')
+      console.error('   Status:', n8nResponse.status)
+      console.error('   Error Data:', JSON.stringify(errorData, null, 2))
+      
+      // Tenta extrair mensagem de erro mais detalhada
+      let errorMessage = 'Erro ao processar pagamento'
+      let errorCode = 'N8N_ERROR'
+      
+      if (errorData.message) {
+        errorMessage = errorData.message
+        
+        // Se é erro de webhook não registrado, melhora a mensagem
+        if (errorMessage.includes('is not registered')) {
+          errorCode = 'WEBHOOK_NOT_ACTIVE'
+          errorMessage = 'O workflow de pagamento não está ativo no servidor. Entre em contato com o suporte.'
+        }
+      } else if (errorData.error) {
+        errorMessage = errorData.error
+      } else if (errorData.errors && Array.isArray(errorData.errors)) {
+        errorMessage = errorData.errors.map((e: any) => e.description || e.message || e).join('; ')
+      }
+      
       return NextResponse.json(
         {
           errors: [
             {
-              code: 'N8N_ERROR',
-              description: errorData.error || 'Erro ao processar pagamento'
+              code: errorCode,
+              description: errorMessage,
+              details: errorData // ← Adiciona detalhes completos para debug
             }
           ]
         },

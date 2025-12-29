@@ -29,7 +29,7 @@ function tryOpenMobileApp(path: string) {
 
   console.log('� [DEEP LINK] ✅ Mobile detectado, tentando abrir app...')
   
-  const appUrl = `xuxum://${path}${window.location.search}`
+  const appUrl = `xuxum://${path}`
   console.log('🔗 [DEEP LINK] Custom scheme URL:', appUrl)
   
   const iframe = document.createElement('iframe')
@@ -38,7 +38,7 @@ function tryOpenMobileApp(path: string) {
   document.body.appendChild(iframe)
   
   if (isAndroid) {
-    const intentUrl = `intent://${path}${window.location.search}#Intent;scheme=xuxum;package=com.xuxum.app;end`
+    const intentUrl = `intent://${path}#Intent;scheme=xuxum;package=com.xuxum.app;end`
     console.log('🔗 [DEEP LINK] Intent URL (Android):', intentUrl)
     setTimeout(() => {
       console.log('🔗 [DEEP LINK] Redirecionando para intent URL...')
