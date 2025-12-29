@@ -1,47 +1,19 @@
 /**
  * Configurações para integração com n8n workflows
+ * 
+ * IMPORTANTE: SEMPRE usar API Route para evitar CORS
+ * O Capacitor WebView carrega de https://xuxum.com.br (Railway)
+ * As API Routes rodam no servidor Railway e fazem proxy para n8n
  */
 
-import { Capacitor } from '@capacitor/core'
-
-// � IMPORTANTE: No mobile Capacitor, as variáveis de ambiente NÃO estão disponíveis em runtime
-// porque o app carrega arquivos estáticos exportados. Por isso usamos fallback hardcoded.
-const N8N_WEBHOOK_URL_PRODUCTION = 'https://primary-production-9acc.up.railway.app/webhook/xuxum-create-checkout'
-
-// �📱 No mobile Capacitor, as API Routes do Next.js não funcionam porque serve static files
-// Web: usa API Route local (evita CORS)
-// Mobile: chama n8n diretamente
+// SEMPRE usa API Route - funciona tanto em web quanto em mobile Capacitor
 const getCreatePaymentEndpoint = () => {
-  const platform = Capacitor.getPlatform()
-  
-  console.log('🔧 [N8N_CONFIG] Platform:', platform)
-  
-  if (platform === 'web') {
-    // Web: usa API route local que faz proxy
-    console.log('🌐 [N8N_CONFIG] Usando API Route: /api/checkout/create-payment')
-    return '/api/checkout/create-payment'
-  } else {
-    // Mobile: chama n8n diretamente
-    // ⚠️ Env vars não funcionam em runtime no mobile, usar fallback hardcoded
-    const n8nUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || N8N_WEBHOOK_URL_PRODUCTION
-    console.log('📱 [N8N_CONFIG] Usando webhook direto:', n8nUrl)
-    
-    return n8nUrl
-  }
+  console.log('🌐 [N8N_CONFIG] Usando API Route: /api/checkout/create-payment')
+  return '/api/checkout/create-payment'
 }
 
 const getAsaasAccountEndpoint = () => {
-  const platform = Capacitor.getPlatform()
-  
-  if (platform === 'web') {
-    return '/api/affiliate/create-asaas-account'
-  } else {
-    const n8nUrl = process.env.N8N_ASAAS_ACCOUNT_WEBHOOK_URL
-    if (!n8nUrl) {
-      throw new Error('URL do webhook n8n Asaas não configurada')
-    }
-    return n8nUrl
-  }
+  return '/api/affiliate/create-asaas-account'
 }
 
 // Endpoints do n8n
@@ -70,8 +42,8 @@ export interface N8NPaymentRequest {
     externalReference: string
     productId: string
     description: string
-    imageUrl?: string // ← Frontend envia URL
-    imageBase64?: string // ← Backend adiciona base64
+    imageUrl?: string
+    imageBase64?: string
     name: string
     quantity: number
     value: number
@@ -96,8 +68,7 @@ export interface N8NPaymentRequest {
     walletId: string
     percentageValue: number
   }>
-  // Dados internos para auditoria e double-check
-  orderId: string // ID da ordem criada no Firebase
+  orderId: string
   companyId: string
   companyOrder: string
   userId: string
@@ -106,10 +77,10 @@ export interface N8NPaymentRequest {
     productName: string
     quantity: number
     unitPrice: number
-    totalPrice: number // quantity × unitPrice
+    totalPrice: number
   }>
-  couponCode?: string // ← 🎟️ Código do cupom aplicado
-  signature?: string // ← NOVO: Assinatura HMAC para fraud prevention
+  couponCode?: string
+  signature?: string
 }
 
 // Tipos para resposta de sucesso
@@ -194,12 +165,12 @@ export function isSuccessResponse(response: unknown): response is N8NPaymentSucc
 // ============================================================================
 
 export interface N8NAsaasAccountRequest {
-  affiliateId: string // ID do afiliado já criado no Firestore
+  affiliateId: string
   name: string
   email: string
   cpfCnpj: string
-  birthDate?: string // Obrigatório para CPF
-  companyType?: 'MEI' | 'LIMITED' | 'INDIVIDUAL' | 'ASSOCIATION' // Obrigatório para CNPJ
+  birthDate?: string
+  companyType?: 'MEI' | 'LIMITED' | 'INDIVIDUAL' | 'ASSOCIATION'
   phone?: string
   mobilePhone: string
   site?: string
@@ -225,4 +196,3 @@ export interface N8NAsaasAccountErrorResponse {
 }
 
 export type N8NAsaasAccountResponse = N8NAsaasAccountSuccessResponse | N8NAsaasAccountErrorResponse
-
