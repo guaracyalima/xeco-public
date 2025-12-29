@@ -2,20 +2,17 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.xuxum.app',
-  appName: 'Xuxum Dev',
+  appName: 'Xuxum',
   webDir: 'out',
   
-  // Server configuration - LOCAL DEV SERVER
+  // Server configuration - PRODUCTION
   server: {
-    url: 'http://192.168.100.132:3001',
-    cleartext: true,
+    url: 'https://xuxum.com.br',
     // Allow navigation to external URLs (for Firebase, etc)
     allowNavigation: [
-      '192.168.100.132:3001',
-      'localhost:3001',
-      '*.railway.app',
       'xuxum.com.br',
       '*.xuxum.com.br',
+      '*.railway.app',
       '*.firebaseapp.com',
       '*.googleapis.com',
       '*.asaas.com',

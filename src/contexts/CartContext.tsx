@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { AddToCartModal } from '@/components/cart/AddToCartModal'
+import { Capacitor } from '@capacitor/core'
 
 interface CartContextType {
   cart: Cart & { orderId?: string }
@@ -520,6 +521,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.log('💰 Dados do desconto:', discountData)
       }
 
+      // 📱 Detecta plataforma para usar callbacks corretos (xuxum:// no mobile)
+      const capacitorPlatform = Capacitor.getPlatform()
+      const platform: 'web' | 'ios' | 'android' = 
+        capacitorPlatform === 'ios' ? 'ios' : 
+        capacitorPlatform === 'android' ? 'android' : 'web'
+      console.log('📱 [CART CONTEXT] Plataforma detectada:', platform)
+
       // Chama serviço de checkout
       const checkoutResponse = await CheckoutService.createCheckout(
         order,
@@ -527,7 +535,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         checkoutUserData,
         affiliateData,
         couponCode,
-        discountData
+        discountData,
+        platform // ← 📱 Passa plataforma para usar callbacks corretos
       )
 
       // Incrementa o contador de uso do cupom se houver

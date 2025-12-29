@@ -11,13 +11,89 @@ import { Order } from '@/types/order'
 // Force this page to be dynamic (no static generation)
 export const dynamic = 'force-dynamic'
 
+/**
+ * Tenta abrir o app mobile via Custom URL Scheme
+ * Funciona independente das configurações de App Links do usuário
+ */
+function tryOpenMobileApp(path: string = 'checkout/success') {
+  // Detecta se é mobile pelo user agent
+  const userAgent = navigator.userAgent
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(userAgent)
+  const isAndroid = /Android/i.test(userAgent)
+  
+  console.log('🔗 [DEEP LINK] ==========================================')
+  console.log('🔗 [DEEP LINK] Tentando redirecionar para o app...')
+  console.log('🔗 [DEEP LINK] User Agent:', userAgent)
+  console.log('🔗 [DEEP LINK] É mobile?', isMobile)
+  console.log('🔗 [DEEP LINK] É Android?', isAndroid)
+  console.log('🔗 [DEEP LINK] Path:', path)
+  console.log('🔗 [DEEP LINK] Search params:', window.location.search)
+  
+  if (!isMobile) {
+    console.log('� [DEEP LINK] ❌ Não é mobile, ignorando redirecionamento para app')
+    return false
+  }
+
+  console.log('� [DEEP LINK] ✅ Mobile detectado, tentando abrir app...')
+  
+  // Tenta abrir via custom scheme (xuxum://)
+  const appUrl = `xuxum://${path}${window.location.search}`
+  console.log('🔗 [DEEP LINK] Custom scheme URL:', appUrl)
+  
+  // Cria um iframe invisível para tentar abrir o app
+  // Isso evita que a página atual seja substituída se o app não estiver instalado
+  const iframe = document.createElement('iframe')
+  iframe.style.display = 'none'
+  iframe.src = appUrl
+  document.body.appendChild(iframe)
+  console.log('🔗 [DEEP LINK] Iframe criado com src:', appUrl)
+  
+  // Também tenta via intent:// para Android (mais confiável)
+  if (isAndroid) {
+    const intentUrl = `intent://${path}${window.location.search}#Intent;scheme=xuxum;package=com.xuxum.app;end`
+    console.log('🔗 [DEEP LINK] Intent URL (Android):', intentUrl)
+    
+    // Usa setTimeout para dar tempo do iframe tentar primeiro
+    setTimeout(() => {
+      console.log('🔗 [DEEP LINK] Redirecionando para intent URL...')
+      window.location.href = intentUrl
+    }, 100)
+  }
+  
+  // Remove o iframe após 2 segundos
+  setTimeout(() => {
+    document.body.removeChild(iframe)
+    console.log('🔗 [DEEP LINK] Iframe removido')
+  }, 2000)
+  
+  console.log('🔗 [DEEP LINK] ==========================================')
+  return true
+}
+
 function CheckoutSuccessContent() {
   const { clearCart } = useCart()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [countdown, setCountdown] = useState(50)
+  const [countdown, setCountdown] = useState(10) // 10 segundos
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Tenta abrir o app mobile assim que a página carrega
+  // Usa window.location.search diretamente porque searchParams pode estar vazio no primeiro render
+  useEffect(() => {
+    // Pega orderId diretamente da URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const orderId = urlParams.get('order') || urlParams.get('orderId')
+    
+    console.log('🔗 [DEEP LINK] window.location.search:', window.location.search)
+    console.log('🔗 [DEEP LINK] orderId extraído:', orderId)
+    
+    if (orderId) {
+      tryOpenMobileApp(`checkout/success?orderId=${orderId}`)
+    } else {
+      tryOpenMobileApp('checkout/success')
+    }
+  }, [])
 
   useEffect(() => {
     const fetchOrderDetails = async () => {

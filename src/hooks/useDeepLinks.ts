@@ -37,23 +37,28 @@ export function useDeepLinks() {
         // Rotas de checkout
         if (pathname.startsWith('/checkout/')) {
           const route = pathname.replace('/checkout/', '')
+          // Preserva query params (order, orderId, etc)
+          const queryString = url.search || ''
+          
+          console.log('🔗 [DEEP LINK] Route:', route)
+          console.log('🔗 [DEEP LINK] Query string:', queryString)
           
           switch (route) {
             case 'success':
               console.log('✅ Pagamento bem-sucedido!')
-              router.push('/checkout/success')
+              router.push(`/checkout/success${queryString}`)
               break
             case 'cancel':
               console.log('❌ Pagamento cancelado')
-              router.push('/checkout/cancel')
+              router.push(`/checkout/cancel${queryString}`)
               break
             case 'expired':
               console.log('⏰ Pagamento expirado')
-              router.push('/checkout/expired')
+              router.push(`/checkout/expired${queryString}`)
               break
             default:
               // Pode ter um orderId como /checkout/success?orderId=xxx
-              const orderId = searchParams.get('orderId')
+              const orderId = searchParams.get('orderId') || searchParams.get('order')
               if (orderId) {
                 router.push(`/orders/${orderId}`)
               } else {
@@ -63,13 +68,18 @@ export function useDeepLinks() {
           return
         }
 
-        // Custom URL scheme: xuxum://checkout/success
+        // Custom URL scheme: xuxum://checkout/success?orderId=xxx
         if (event.url.startsWith('xuxum://')) {
-          const customPath = event.url.replace('xuxum://', '')
+          const customUrl = new URL(event.url.replace('xuxum://', 'https://dummy.com/'))
+          const customPath = customUrl.pathname.replace('/', '')
+          const customQuery = customUrl.search || ''
+          
+          console.log('🔗 [DEEP LINK] Custom path:', customPath)
+          console.log('🔗 [DEEP LINK] Custom query:', customQuery)
           
           if (customPath.startsWith('checkout/')) {
             const route = customPath.replace('checkout/', '')
-            router.push(`/checkout/${route}`)
+            router.push(`/checkout/${route}${customQuery}`)
             return
           }
         }
