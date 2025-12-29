@@ -12,6 +12,7 @@ import { LocationProvider } from "@/contexts/LocationContext";
 import { AnalyticsConsentBanner } from "@/components/analytics/AnalyticsConsentBanner";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
 import { PWARegister } from "@/components/pwa/PWARegister";
+import { DeepLinkHandler } from "@/components/DeepLinkHandler";
 import { ToastContainer } from 'react-toastify';
 
 const workSans = Work_Sans({
@@ -68,6 +69,7 @@ export default function RootLayout({
                   <LikedProductProvider>
                     <CartProvider>
                       <PWARegister />
+                      <DeepLinkHandler />
                       {children}
                       <AnalyticsConsentBanner />
                       <PWAInstallPrompt />

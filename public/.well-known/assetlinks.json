@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.xuxum.app",
+      "sha256_cert_fingerprints": [
+        "B6:B5:75:5D:10:C7:7A:A6:26:A4:3B:BD:50:DA:23:23:C7:5D:A0:03:42:F9:40:96:B9:53:D7:D1:BF:50:56:21"
+      ]
+    }
+  }
+]
