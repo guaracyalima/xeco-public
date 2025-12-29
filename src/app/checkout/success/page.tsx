@@ -100,7 +100,8 @@ function CheckoutSuccessContent() {
     const fetchOrderDetails = async () => {
       try {
         // Buscar orderId do searchParams ou localStorage
-        const orderIdFromUrl = searchParams.get('order')
+        // Aceita tanto 'order' (Asaas callback) quanto 'orderId' (deep link interno)
+        const orderIdFromUrl = searchParams.get('order') || searchParams.get('orderId')
         const orderIdFromStorage = localStorage.getItem('pendingOrderId')
         const orderId = orderIdFromUrl || orderIdFromStorage
         
