@@ -29,8 +29,7 @@ export class CheckoutService {
     discountData?: {
       discountAmount: number
       finalTotal: number
-    },
-    platform?: 'web' | 'ios' | 'android' // ← 📱 Plataforma para callback correto
+    }
   ): Promise<CheckoutResponse> {
     try {
       console.log('🚀 Iniciando criação de checkout para order:', order.id)
@@ -101,8 +100,7 @@ export class CheckoutService {
         finalTotal: discountData?.finalTotal, // ← 💰 Total final com desconto
         userEmail: userData.email || order.customerEmail, // ← Usa userData.email ou order.customerEmail
         userName: userData.name || order.customerName, // ← Usa userData.name ou order.customerName
-        userPhone: userData.phone || order.customerPhone || '', // ← Usa userData.phone ou order.customerPhone
-        platform // ← 📱 Plataforma para usar callbacks corretos (xuxum:// no mobile)
+        userPhone: userData.phone || order.customerPhone || '' // ← Usa userData.phone ou order.customerPhone
       }
 
       console.log('📤 Enviando dados para o novo serviço de pagamento...')

@@ -5,7 +5,7 @@
 import { CartItem } from '@/types'
 import { CheckoutUserData } from '@/types/order'
 import { calculatePaymentSplits } from '@/lib/payment-config'
-import { CHECKOUT_CALLBACKS, CHECKOUT_CALLBACKS_MOBILE } from '@/lib/config'
+import { CHECKOUT_CALLBACKS } from '@/lib/config'
 import { generateCheckoutSignature } from '@/lib/checkout-signature'
 import {
   N8N_ENDPOINTS,
@@ -36,7 +36,6 @@ export interface CreatePaymentData {
   userEmail: string
   userName: string
   userPhone: string
-  platform?: 'web' | 'ios' | 'android' // ← 📱 Plataforma para callback correto
 }
 
 /**
@@ -165,13 +164,9 @@ export async function createPaymentCheckout(
     console.log('🎟️ vai adicionar?', !!data.couponCode)
     console.log('🎟️'.repeat(40) + '\n')
     
-    // ⚠️ IMPORTANTE: Asaas NÃO suporta Custom URL Schemes (xuxum://) nos callbacks
-    // Por isso, usamos SEMPRE https:// e dependemos de Android App Links para retornar ao app
-    // O Android App Links está configurado em:
-    // - AndroidManifest.xml com intent-filter autoVerify="true"
-    // - https://xuxum.com.br/.well-known/assetlinks.json
-    const callbacks = CHECKOUT_CALLBACKS // Sempre usa HTTPS, App Links faz o redirecionamento
-    console.log('📱 [CHECKOUT] Plataforma:', data.platform, '| Usando callbacks HTTPS (App Links):', callbacks.success)
+    // Sempre usa callbacks HTTPS - App Links faz redirecionamento para o app
+    const callbacks = CHECKOUT_CALLBACKS
+    console.log('📱 [CHECKOUT] Usando callbacks HTTPS:', callbacks.success)
     
     // Monta o payload da requisição
     const paymentRequest: N8NPaymentRequest = {
